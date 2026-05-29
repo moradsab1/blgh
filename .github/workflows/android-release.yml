@@ -3,7 +3,7 @@ name: Android Release APK
 on:
   push:
     branches:
-      - dev-native
+      - main
   workflow_dispatch:
 
 jobs:

@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Design tokens snapshot — palette is stable 1`] = `
+{
+  "accent": "#DC2626",
+  "bg": "#0B1220",
+  "border": "#334155",
+  "card": "#1E293B",
+  "cardElevated": "#263347",
+  "error": "#DC2626",
+  "overlay": "rgba(11, 18, 32, 0.8)",
+  "severity": {
+    "critical": "#DC2626",
+    "high": "#EA580C",
+    "low": "#65A30D",
+    "medium": "#F59E0B",
+  },
+  "status": {
+    "active": "#DC2626",
+    "calm": "#16A34A",
+    "watch": "#F59E0B",
+  },
+  "success": "#16A34A",
+  "textMuted": "#64748B",
+  "textPrimary": "#F8FAFC",
+  "textSecondary": "#94A3B8",
+  "transparent": "transparent",
+  "warning": "#F59E0B",
+}
+`;

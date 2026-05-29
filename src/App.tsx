@@ -1,0 +1,119 @@
+import React, { Component, useEffect, useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StyleSheet, View, Text } from 'react-native';
+import { linking } from './navigation/linking';
+import { RootNavigator } from './navigation/RootNavigator';
+import store, { StorageKeys, hydrateStorage } from './core/storage';
+import { applyRTL } from './core/strings';
+import { useLangStore } from './domain/stores/lang';
+import type { AppLanguage } from './core/types';
+
+// ── Error Boundary ────────────────────────────────────────────────────────────
+
+class AppErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error): void {
+    // eslint-disable-next-line no-console
+    console.error('[Balagh] Uncaught render error:', error);
+  }
+
+  render(): React.ReactNode {
+    if (this.state.hasError) {
+      return (
+        <View style={boundaryStyles.container}>
+          <Text style={boundaryStyles.title}>بلاغ</Text>
+          <Text style={boundaryStyles.body}>حدث خطأ. أعد تشغيل التطبيق.</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const boundaryStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0B1220',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  title: {
+    color: '#F8FAFC',
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  body: {
+    color: '#94A3B8',
+    fontSize: 15,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+});
+
+// ── Storage hydration gate ──────────────────────────────────────────────────
+// AsyncStorage is async, so we load the cache once before rendering the tree.
+// This is a single multiGet — fast. Until it resolves we show a dark splash.
+// (I18nManager.forceRTL is persisted natively by Android across restarts, so
+// the layout direction is already correct from the previous session.)
+
+function useHydrated(): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    hydrateStorage().finally(() => {
+      try {
+        const lang = store.getString(StorageKeys.LANGUAGE) as AppLanguage | undefined;
+        if (lang === 'ar' || lang === 'he' || lang === 'en') {
+          useLangStore.getState().setLang(lang);
+          applyRTL(lang);
+        }
+      } catch {
+        // non-fatal — proceed with defaults
+      }
+      setReady(true);
+    });
+  }, []);
+  return ready;
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+
+const AppInner = (): React.ReactElement => (
+  <NavigationContainer linking={linking}>
+    <RootNavigator />
+  </NavigationContainer>
+);
+
+const App = (): React.ReactElement => {
+  const hydrated = useHydrated();
+
+  if (!hydrated) {
+    return <View style={styles.splash} />;
+  }
+
+  return (
+    <AppErrorBoundary>
+      <SafeAreaProvider>
+        <AppInner />
+      </SafeAreaProvider>
+    </AppErrorBoundary>
+  );
+};
+
+const styles = StyleSheet.create({
+  splash: { flex: 1, backgroundColor: '#0B1220' },
+});
+
+export default App;

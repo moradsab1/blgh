@@ -160,10 +160,10 @@ jobs:
       - name: Build Release APK
         working-directory: mobile/frontend/Balagh/android
         env:
-          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+          MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
         run: |
-          if [ -z "$MAPBOX_DOWNLOADS_TOKEN" ]; then
-            echo "::error::MAPBOX_DOWNLOADS_TOKEN secret is not set. Add it in GitHub → Settings → Secrets → Actions."
+          if [ -z "$MAPBOX_DOWNLOAD_TOKEN" ]; then
+            echo "::error::MAPBOX_DOWNLOAD_TOKEN secret is not set. Add it in GitHub → Settings → Secrets → Actions."
             exit 1
           fi
           ./gradlew assembleRelease --no-daemon

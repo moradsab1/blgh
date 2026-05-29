@@ -26,10 +26,10 @@ allprojects {
                 basic(BasicAuthentication)
             }
             credentials {
-                // Set MAPBOX_DOWNLOADS_TOKEN in ~/.gradle/gradle.properties
+                // Set MAPBOX_DOWNLOAD_TOKEN in ~/.gradle/gradle.properties
                 // (never commit the secret token to git)
                 username = "mapbox"
-                password = project.findProperty('MAPBOX_DOWNLOADS_TOKEN') ?: System.getenv('MAPBOX_DOWNLOADS_TOKEN') ?: ""
+                password = project.findProperty('MAPBOX_DOWNLOAD_TOKEN') ?: System.getenv('MAPBOX_DOWNLOAD_TOKEN') ?: ""
             }
         }
     }

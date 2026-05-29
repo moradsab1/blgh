@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: mobile/frontend/Balagh/package-lock.json
+          cache-dependency-path: blgh/package-lock.json
 
       - name: Set up Java 21
         uses: actions/setup-java@v4
@@ -35,11 +35,11 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install npm dependencies
-        working-directory: mobile/frontend/Balagh
+        working-directory: blgh
         run: npm ci --legacy-peer-deps
 
       - name: Security — forbidden API check
-        working-directory: mobile/frontend/Balagh/src
+        working-directory: blgh/src
         run: |
           FORBIDDEN_PATTERNS=(
             'react-native-camera'
@@ -62,11 +62,12 @@ jobs:
             'BackgroundLocation'
             'background-location'
           )
+
           FOUND=0
           for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
             matches=$(grep -rl "$pattern" . --include="*.ts" --include="*.tsx" --include="*.js" || true)
             if [ -n "$matches" ]; then
-              echo "FORBIDDEN IMPORT DETECTED: '$pattern'"
+              echo "FORBIDDEN IMPORT DETECTED: $pattern"
               echo "$matches"
               FOUND=1
             fi
@@ -80,7 +81,7 @@ jobs:
           echo "Security check passed."
 
       - name: Download fonts
-        working-directory: mobile/frontend/Balagh/assets/fonts
+        working-directory: blgh/assets/fonts
         run: |
           curl -fsSL -o /tmp/ibm.zip https://github.com/IBM/plex/releases/download/v6.4.0/IBM-Plex-Sans-Arabic.zip
           unzip -jo /tmp/ibm.zip "IBM-Plex-Sans-Arabic/fonts/ttf/*" -d .
@@ -102,7 +103,7 @@ jobs:
             gradle-${{ runner.os }}
 
       - name: Write release keystore (if secret provided)
-        working-directory: mobile/frontend/Balagh/android
+        working-directory: blgh/android
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -111,31 +112,32 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 --decode > app/release.keystore
-            cat > keystore.properties <<EOF
-storeFile=release.keystore
-storePassword=$KEYSTORE_PASSWORD
-keyAlias=$KEY_ALIAS
-keyPassword=$KEY_PASSWORD
-EOF
+
+            printf "storeFile=release.keystore\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n" \
+              "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+
+            echo "Release keystore configured."
+          else
+            echo "No keystore provided — using debug build."
           fi
 
       - name: Make gradlew executable
-        working-directory: mobile/frontend/Balagh/android
+        working-directory: blgh/android
         run: chmod +x gradlew
 
       - name: Build Release APK
-        working-directory: mobile/frontend/Balagh/android
+        working-directory: blgh/android
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: balagh-release-apk
-          path: mobile/frontend/Balagh/android/app/build/outputs/apk/release/*.apk
+          name: blgh-release-apk
+          path: blgh/android/app/build/outputs/apk/release/*.apk
           retention-days: 30
 
       - name: Upload APK to release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: mobile/frontend/Balagh/android/app/build/outputs/apk/release/*.apk
+          files: blgh/android/app/build/outputs/apk/release/*.apk

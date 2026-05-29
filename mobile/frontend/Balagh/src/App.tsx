@@ -2,12 +2,20 @@ import React, { Component, useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet, View, Text } from 'react-native';
+import MapboxGL from '@rnmapbox/maps';
 import { linking } from './navigation/linking';
 import { RootNavigator } from './navigation/RootNavigator';
 import store, { StorageKeys, hydrateStorage } from './core/storage';
 import { applyRTL } from './core/strings';
 import { useLangStore } from './domain/stores/lang';
 import type { AppLanguage } from './core/types';
+
+// Set the public Mapbox token. Replace with your token from account.mapbox.com.
+// This is the PUBLIC token (pk.*), not the secret download token.
+// Keep the secret download token in ~/.gradle/gradle.properties (Android)
+// and ~/.netrc (iOS) — never commit it to git.
+const MAPBOX_PUBLIC_TOKEN = 'pk.YOUR_MAPBOX_PUBLIC_TOKEN_HERE';
+MapboxGL.setAccessToken(MAPBOX_PUBLIC_TOKEN);
 
 // ── Error Boundary ────────────────────────────────────────────────────────────
 

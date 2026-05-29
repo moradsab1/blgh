@@ -18,4 +18,21 @@ buildscript {
     }
 }
 
+allprojects {
+    repositories {
+        maven {
+            url 'https://api.mapbox.com/downloads/v2/releases/maven'
+            authentication {
+                basic(BasicAuthentication)
+            }
+            credentials {
+                // Set MAPBOX_DOWNLOADS_TOKEN in ~/.gradle/gradle.properties
+                // (never commit the secret token to git)
+                username = "mapbox"
+                password = project.findProperty('MAPBOX_DOWNLOADS_TOKEN') ?: System.getenv('MAPBOX_DOWNLOADS_TOKEN') ?: ""
+            }
+        }
+    }
+}
+
 apply plugin: "com.facebook.react.rootproject"

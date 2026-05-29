@@ -7,4 +7,7 @@ export const haptics = {
   warning: (): void => {},
   error: (): void => {},
   heavy: (): void => {},
+  // Impact and selection feedback (used by Map screen)
+  impact: (): void => {},
+  selection: (): void => {},
 };

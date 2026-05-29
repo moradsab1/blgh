@@ -88,6 +88,8 @@ export const StorageKeys = {
   NOTIFICATION_FOLLOWUP: 'notif_followup',
   READ_INCIDENTS: 'readIncidents',
   PENDING_REPORTS: 'pendingReports',
+  LOCATION_PERMISSION_ASKED: 'locationPermAsked',
+  LOCATION_GRANTED: 'locationGranted',
 } as const;
 
 export type StorageKey = (typeof StorageKeys)[keyof typeof StorageKeys];

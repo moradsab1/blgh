@@ -40,6 +40,14 @@ jobs:
         working-directory: mobile/frontend/Balagh
         run: npm ci --legacy-peer-deps
 
+      - name: Write Mapbox public token
+        working-directory: mobile/frontend/Balagh/src/core
+        env:
+          MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
+        run: |
+          echo "export const MAPBOX_PUBLIC_TOKEN = '${MAPBOX_PUBLIC_TOKEN}';" > mapboxToken.ts
+          echo "mapboxToken.ts written."
+
       - name: Security — forbidden API check
         working-directory: mobile/frontend/Balagh/src
         run: |
@@ -147,6 +155,8 @@ jobs:
 
       - name: Build Release APK
         working-directory: mobile/frontend/Balagh/android
+        env:
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK artifact

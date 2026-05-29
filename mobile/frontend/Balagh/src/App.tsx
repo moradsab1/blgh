@@ -14,7 +14,8 @@ import type { AppLanguage } from './core/types';
 // This is the PUBLIC token (pk.*), not the secret download token.
 // Keep the secret download token in ~/.gradle/gradle.properties (Android)
 // and ~/.netrc (iOS) — never commit it to git.
-const MAPBOX_PUBLIC_TOKEN = 'pk.YOUR_MAPBOX_PUBLIC_TOKEN_HERE';
+// Token loaded from gitignored src/core/mapboxToken.ts — see mapboxToken.example.ts
+import { MAPBOX_PUBLIC_TOKEN } from './core/mapboxToken';
 MapboxGL.setAccessToken(MAPBOX_PUBLIC_TOKEN);
 
 // ── Error Boundary ────────────────────────────────────────────────────────────

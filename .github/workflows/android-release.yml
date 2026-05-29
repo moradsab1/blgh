@@ -45,8 +45,12 @@ jobs:
         env:
           MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
         run: |
-          echo "export const MAPBOX_PUBLIC_TOKEN = '${MAPBOX_PUBLIC_TOKEN}';" > mapboxToken.ts
-          echo "mapboxToken.ts written."
+          if [ -z "$MAPBOX_PUBLIC_TOKEN" ]; then
+            echo "::error::MAPBOX_PUBLIC_TOKEN secret is not set. Add it in GitHub → Settings → Secrets → Actions."
+            exit 1
+          fi
+          printf 'export const MAPBOX_PUBLIC_TOKEN = %s;\n' "'${MAPBOX_PUBLIC_TOKEN}'" > mapboxToken.ts
+          echo "mapboxToken.ts written from secret."
 
       - name: Security — forbidden API check
         working-directory: mobile/frontend/Balagh/src
@@ -157,7 +161,12 @@ jobs:
         working-directory: mobile/frontend/Balagh/android
         env:
           MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: |
+          if [ -z "$MAPBOX_DOWNLOADS_TOKEN" ]; then
+            echo "::error::MAPBOX_DOWNLOADS_TOKEN secret is not set. Add it in GitHub → Settings → Secrets → Actions."
+            exit 1
+          fi
+          ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

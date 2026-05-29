@@ -9,7 +9,8 @@
     "start": "react-native start",
     "test": "jest",
     "test:ci": "jest --passWithNoTests --forceExit",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "postinstall": "node -e \"const fs=require('fs'),src='src/core/mapboxToken.ts',ex='src/core/mapboxToken.example.ts';if(!fs.existsSync(src)){fs.copyFileSync(ex,src);console.log('Created '+src+' from example — set MAPBOX_PUBLIC_TOKEN or fill in your token.');}\" "
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

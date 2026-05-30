@@ -38,3 +38,4 @@ export type CrisisReassureProps = NativeStackScreenProps<RootStackParamList, 'Cr
 export type CrisisCategoryProps = NativeStackScreenProps<RootStackParamList, 'CrisisCategory'>;
 export type CrisisConfirmProps = NativeStackScreenProps<RootStackParamList, 'CrisisConfirm'>;
 export type CrisisSuccessProps = NativeStackScreenProps<RootStackParamList, 'CrisisSuccess'>;
+export type FollowUpProps = NativeStackScreenProps<RootStackParamList, 'FollowUp'>;

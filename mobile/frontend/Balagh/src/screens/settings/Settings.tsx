@@ -30,6 +30,7 @@ import { Text } from '../../core/theme/components';
 import { haptics } from '../../core/haptics';
 import store, { StorageKeys } from '../../core/storage';
 import { getPublicKeyHex, getPublicIdentifier, deleteIdentity } from '../../core/identity';
+import { notificationService } from '../../domain/services/notifications';
 import { strings } from '../../core/strings';
 import { useLangStore } from '../../domain/stores/lang';
 import type { SettingsProps } from '../../navigation/types';
@@ -67,9 +68,22 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
     value: boolean,
     setter: (v: boolean) => void,
   ): void => {
-    haptics.toggle();
-    setter(value);
-    store.setBoolean(key, value);
+    if (value) {
+      // Enabling a toggle — request POST_NOTIFICATIONS permission first.
+      notificationService.requestPermission().then(granted => {
+        if (!granted) {
+          Alert.alert(s.settings.notifications.permissionDenied);
+          return;
+        }
+        haptics.toggle();
+        setter(true);
+        store.setBoolean(key, true);
+      }).catch(() => {});
+    } else {
+      haptics.toggle();
+      setter(false);
+      store.setBoolean(key, false);
+    }
   };
 
   const handleDeleteData = (): void => {

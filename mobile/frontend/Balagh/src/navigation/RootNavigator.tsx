@@ -20,6 +20,8 @@ import CrisisReassureScreen from '../screens/crisis/CrisisReassure';
 import CrisisCategoryScreen from '../screens/crisis/CrisisCategory';
 import CrisisConfirmScreen from '../screens/crisis/CrisisConfirm';
 import CrisisSuccessScreen from '../screens/crisis/CrisisSuccess';
+import InboxScreen from '../screens/Inbox';
+import FollowUpScreen from '../screens/FollowUp';
 
 const StubScreen = (): React.ReactElement => (
   <View style={stubStyles.c}>
@@ -65,7 +67,7 @@ export const RootNavigator = (): React.ReactElement => (
       component={SettingsScreen}
       options={{ animation: 'slide_from_right' }}
     />
-    <Stack.Screen name="Inbox" component={StubScreen} />
+    <Stack.Screen name="Inbox" component={InboxScreen} />
     <Stack.Screen name="ReportCategory" component={ReportCategoryScreen} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} initialParams={{ category: '' }} />
     <Stack.Screen name="ReportSuccess" component={ReportSuccessScreen} initialParams={{ ref: '' }} />
@@ -73,7 +75,7 @@ export const RootNavigator = (): React.ReactElement => (
     <Stack.Screen name="CrisisCategory" component={CrisisCategoryScreen} />
     <Stack.Screen name="CrisisConfirm" component={CrisisConfirmScreen} initialParams={{ category: '' }} />
     <Stack.Screen name="CrisisSuccess" component={CrisisSuccessScreen} initialParams={{ ref: '' }} />
-    <Stack.Screen name="FollowUp" component={StubScreen} initialParams={{ ref: '' }} />
+    <Stack.Screen name="FollowUp" component={FollowUpScreen} initialParams={{ ref: '' }} />
     <Stack.Screen name="PrivacyConstitution" component={StubScreen} />
     <Stack.Screen name="About" component={StubScreen} />
   </Stack.Navigator>

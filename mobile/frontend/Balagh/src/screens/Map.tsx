@@ -53,6 +53,12 @@ import type { Incident, SafetyState } from '../core/types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+// Hermes polyfills navigator.geolocation but TypeScript has no DOM lib here.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const global: Record<string, unknown>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getGeo = (): any => (global as any)?.navigator?.geolocation;
+
 const MAPBOX_DARK_STYLE = 'mapbox://styles/mapbox/dark-v11';
 const INITIAL_ZOOM = 13;
 const USER_ZOOM = 14;
@@ -322,7 +328,11 @@ const IncidentDetailSheet = ({
 
 const dsStyles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
@@ -556,11 +566,11 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
 
   useEffect(() => {
     if (!locationGranted) return;
-    // navigator.geolocation may be absent in test environments
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    const geo = getGeo();
+    if (!geo) return;
 
-    geoWatchIdRef.current = navigator.geolocation.watchPosition(
-      pos => {
+    geoWatchIdRef.current = geo.watchPosition(
+      (pos: { coords: { latitude: number; longitude: number } }) => {
         setUserLocation(pos.coords.latitude, pos.coords.longitude);
         if (!hasFlownToUserRef.current && cameraRef.current) {
           hasFlownToUserRef.current = true;
@@ -571,7 +581,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           });
         }
       },
-      _err => {
+      (_err: unknown) => {
         // silently fail — location may be unavailable
       },
       { enableHighAccuracy: true, distanceFilter: 20 },
@@ -579,7 +589,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
 
     return () => {
       if (geoWatchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(geoWatchIdRef.current);
+        getGeo()?.clearWatch(geoWatchIdRef.current);
         geoWatchIdRef.current = null;
       }
     };
@@ -602,17 +612,18 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
       }
     } else {
       // iOS: trigger the system permission dialog via watchPosition (Hermes polyfill)
-      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      const geo = getGeo();
+      if (geo) {
         await new Promise<void>(resolve => {
-          const watchId = navigator.geolocation.watchPosition(
+          const watchId = geo.watchPosition(
             () => {
               granted = true;
-              navigator.geolocation.clearWatch(watchId);
+              geo.clearWatch(watchId);
               resolve();
             },
             () => {
               granted = false;
-              navigator.geolocation.clearWatch(watchId);
+              geo.clearWatch(watchId);
               resolve();
             },
             { enableHighAccuracy: true },
@@ -834,40 +845,36 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
 
   // ── Pin tap handlers ──────────────────────────────────────────────────────
 
-  const handleClusterPress = useCallback(
+  // Single handler for ShapeSource — handles both clusters and individual pins
+  const handleSourcePress = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async (event: any) => {
       const feature = event?.features?.[0];
       if (!feature) return;
-      const [lng, lat] = feature.geometry.coordinates;
-      const currentZoom = (await cameraRef.current?.getZoom?.()) ?? INITIAL_ZOOM;
-      cameraRef.current?.setCamera({
-        centerCoordinate: [lng, lat],
-        zoomLevel: currentZoom + 2,
-        animationDuration: reduceMotion ? 0 : motion.base,
-      });
-    },
-    [reduceMotion],
-  );
 
-  const handlePinPress = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (event: any) => {
-      const feature = event?.features?.[0];
-      if (!feature) return;
-      const { id } = feature;
-      const inc = incidents.find(i => i.id === String(id));
-      if (!inc) return;
-
-      setActiveIncident(inc.id);
-      setSelectedIncident(inc);
-
-      cameraRef.current?.setCamera({
-        centerCoordinate: [inc.lng, inc.lat],
-        zoomLevel: USER_ZOOM,
-        animationDuration: reduceMotion ? 0 : motion.base,
-      });
-      haptics.selection();
+      if (feature.properties?.cluster) {
+        // Cluster tap → zoom in to expand
+        const [lng, lat] = feature.geometry.coordinates;
+        const currentZoom = (await cameraRef.current?.getZoom?.()) ?? INITIAL_ZOOM;
+        cameraRef.current?.setCamera({
+          centerCoordinate: [lng, lat],
+          zoomLevel: currentZoom + 2,
+          animationDuration: reduceMotion ? 0 : motion.base,
+        });
+      } else {
+        // Individual pin tap → open detail sheet
+        const incId = String(feature.id ?? feature.properties?.id ?? '');
+        const inc = incidents.find(i => i.id === incId);
+        if (!inc) return;
+        setActiveIncident(inc.id);
+        setSelectedIncident(inc);
+        cameraRef.current?.setCamera({
+          centerCoordinate: [inc.lng, inc.lat],
+          zoomLevel: USER_ZOOM,
+          animationDuration: reduceMotion ? 0 : motion.base,
+        });
+        haptics.selection();
+      }
     },
     [incidents, reduceMotion, setActiveIncident],
   );
@@ -964,7 +971,6 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         {/* User location puck */}
         {locationGranted && (
           <MapboxGL.LocationPuck
-            testID="mapbox-location-puck"
             pulsing={{ isEnabled: !reduceMotion }}
           />
         )}
@@ -984,7 +990,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
               ['get', 'severityLevel'],
             ],
           }}
-          onPress={handleClusterPress}>
+          onPress={handleSourcePress}>
 
           {/* Cluster circles */}
           <MapboxGL.CircleLayer
@@ -1019,8 +1025,6 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           <MapboxGL.CircleLayer
             id="pinLayer"
             filter={['!', ['has', 'point_count']]}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onPress={handlePinPress as any}
             style={{
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               circleColor: pinCircleColor as any,
@@ -1185,7 +1189,11 @@ const styles = StyleSheet.create({
     backgroundColor: color.bg,
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 
   // Status pill

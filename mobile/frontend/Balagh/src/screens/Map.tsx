@@ -24,12 +24,10 @@ import React, {
 } from 'react';
 import {
   Animated,
-  Dimensions,
   Linking,
   Modal,
   PermissionsAndroid,
   Platform,
-  Pressable,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -39,7 +37,7 @@ import MapboxGL from '@rnmapbox/maps';
 
 import type { MapProps } from '../navigation/types';
 import { color, fontSize, font, motion, radius, space } from '../core/theme/tokens';
-import { Text, SeverityPill } from '../core/theme/components';
+import { Text } from '../core/theme/components';
 import { useReduceMotion } from '../core/a11y/useReduceMotion';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
@@ -71,15 +69,6 @@ const NEW_ANIM_DURATION = 320; // ms — how long "new" pin animation lasts
 const RESOLVE_FADE_DURATION = 30_000; // 30 s fade-out for resolving pins
 const PULSE_INTERVAL = 800; // ms toggle for pulse ring
 
-const CATEGORY_LABELS_AR: Record<string, string> = {
-  GUNFIRE: 'إطلاق نار',
-  STABBING: 'طعن',
-  ASSAULT: 'اعتداء',
-  ROBBERY: 'سطو',
-  SUSPICIOUS: 'مشبوه',
-  OTHER: 'أخرى',
-};
-
 const SEVERITY_ORDER: Record<string, number> = {
   critical: 4,
   high: 3,
@@ -90,14 +79,6 @@ const SEVERITY_ORDER: Record<string, number> = {
 // Mapbox expression-safe numeric severity level for cluster maxSeverity property
 function severityLevel(s: string): number {
   return SEVERITY_ORDER[s] ?? 0;
-}
-
-function timeAgoAr(iso: string): string {
-  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return `${diff} ث`;
-  if (diff < 3600) return `${Math.floor(diff / 60)} د`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} س`;
-  return `${Math.floor(diff / 86400)} ي`;
 }
 
 // Default locality if StorageKeys.LOCALITY_ID not set
@@ -235,177 +216,6 @@ const ovStyles = StyleSheet.create({
   },
 });
 
-// ── IncidentDetailSheet ───────────────────────────────────────────────────────
-
-interface DetailSheetProps {
-  incident: Incident | null;
-  onClose: () => void;
-}
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SHEET_HEIGHT = 320;
-
-const IncidentDetailSheet = ({
-  incident,
-  onClose,
-}: DetailSheetProps): React.ReactElement | null => {
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const reduceMotion = useReduceMotion();
-
-  useEffect(() => {
-    if (incident) {
-      // Slide up
-      Animated.timing(slideAnim, {
-        toValue: 1,
-        duration: reduceMotion ? motion.instant : motion.base,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      // Slide down
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: reduceMotion ? motion.instant : motion.fast,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [incident, reduceMotion, slideAnim]);
-
-  if (!incident) return null;
-
-  const translateY = slideAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [SHEET_HEIGHT, 0],
-  });
-
-  return (
-    <>
-      {/* Dim backdrop */}
-      <Pressable
-        style={dsStyles.backdrop}
-        onPress={onClose}
-        accessibilityLabel="إغلاق التفاصيل"
-      />
-      <Animated.View
-        style={[dsStyles.sheet, { transform: [{ translateY }] }]}
-        testID="incident-detail-sheet">
-        {/* Close button */}
-        <TouchableOpacity
-          style={dsStyles.closeBtn}
-          onPress={onClose}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={dsStyles.closeBtnText}>×</Text>
-        </TouchableOpacity>
-
-        {/* Severity pill + category */}
-        <View style={dsStyles.row}>
-          <SeverityPill
-            severity={incident.severity}
-            label={CATEGORY_LABELS_AR[incident.category] ?? incident.category}
-          />
-          <Text style={dsStyles.timeAgo}>{timeAgoAr(incident.createdAt)}</Text>
-        </View>
-
-        {/* Description */}
-        {incident.description ? (
-          <Text style={dsStyles.description}>{incident.description}</Text>
-        ) : null}
-
-        {/* Ref code */}
-        <Text style={dsStyles.ref}>{incident.ref}</Text>
-
-        {/* Votes */}
-        <View style={dsStyles.votesRow}>
-          <Text style={dsStyles.voteText}>✓ {incident.confirmations}</Text>
-          <Text style={dsStyles.voteText}>✗ {incident.denials}</Text>
-        </View>
-
-        {/* Coming-soon note */}
-        <Text style={dsStyles.note}>تفاصيل كاملة في الإصدار القادم</Text>
-      </Animated.View>
-    </>
-  );
-};
-
-const dsStyles = StyleSheet.create({
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: SHEET_HEIGHT,
-    backgroundColor: color.cardElevated,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    padding: space(3),
-    paddingTop: space(2),
-  },
-  closeBtn: {
-    position: 'absolute',
-    top: space(1.5),
-    left: space(2),
-    zIndex: 10,
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeBtnText: {
-    fontSize: 24,
-    color: color.textSecondary,
-    lineHeight: 28,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: space(1.5),
-    marginTop: space(1),
-  },
-  timeAgo: {
-    fontSize: fontSize.sm,
-    fontFamily: font.arabic,
-    color: color.textMuted,
-  },
-  description: {
-    fontSize: fontSize.base,
-    fontFamily: font.arabic,
-    color: color.textPrimary,
-    marginBottom: space(1.5),
-    lineHeight: fontSize.base * 1.6,
-    textAlign: 'right',
-  },
-  ref: {
-    fontSize: fontSize.sm,
-    fontFamily: font.mono,
-    color: color.textMuted,
-    marginBottom: space(1),
-  },
-  votesRow: {
-    flexDirection: 'row',
-    gap: space(2),
-    marginBottom: space(1.5),
-  },
-  voteText: {
-    fontSize: fontSize.sm,
-    fontFamily: font.arabic,
-    color: color.textSecondary,
-  },
-  note: {
-    fontSize: fontSize.xs,
-    fontFamily: font.arabic,
-    color: color.textMuted,
-    textAlign: 'center',
-    marginTop: 'auto',
-  },
-});
 
 // ── GeoJSON builder ───────────────────────────────────────────────────────────
 
@@ -503,17 +313,14 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
     setSafetyState,
     setRecenterVisible,
     setActiveIncident,
-    activeIncidentId,
   } = useMapStore();
 
   // ── Local state ────────────────────────────────────────────────────────────
 
   const [incidents, setIncidents] = useState<Incident[]>(() => db.incidents.getAll());
   const [localityCoords, setLocalityCoords] = useState<{ lat: number; lng: number }>(DEFAULT_LOCALITY);
-  const [localityName, setLocalityName] = useState<string>(DEFAULT_LOCALITY.nameAr);
   const [showPermOverlay, setShowPermOverlay] = useState(false);
   const [permDeniedBanner, setPermDeniedBanner] = useState(false);
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [mapKey, setMapKey] = useState(0);
   const [mapError, setMapError] = useState(false);
   const [pulseOpaque, setPulseOpaque] = useState(true);
@@ -527,7 +334,8 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
   const [animTick, setAnimTick] = useState(0); // incremented to force re-render
 
   // Refs
-  const cameraRef = useRef</* any — Mapbox Camera type is complex */ any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cameraRef = useRef<any>(null);
   const hasFlownToUserRef = useRef(false);
   const geoWatchIdRef = useRef<number | null>(null);
 
@@ -541,7 +349,6 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
     const localityId = store.getString(StorageKeys.LOCALITY_ID);
     const found = LOCALITIES.find(l => l.id === localityId) ?? DEFAULT_LOCALITY;
     setLocalityCoords({ lat: found.lat, lng: found.lng });
-    setLocalityName(found.nameAr);
   }, []);
 
   // ── Location permission init ──────────────────────────────────────────────
@@ -862,27 +669,22 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           animationDuration: reduceMotion ? 0 : motion.base,
         });
       } else {
-        // Individual pin tap → open detail sheet
+        // Individual pin tap → center map + open the Incident Detail route (§5.12)
         const incId = String(feature.id ?? feature.properties?.id ?? '');
         const inc = incidents.find(i => i.id === incId);
         if (!inc) return;
         setActiveIncident(inc.id);
-        setSelectedIncident(inc);
         cameraRef.current?.setCamera({
           centerCoordinate: [inc.lng, inc.lat],
           zoomLevel: USER_ZOOM,
           animationDuration: reduceMotion ? 0 : motion.base,
         });
         haptics.selection();
+        navigation.navigate('IncidentDetail', { id: inc.id });
       }
     },
-    [incidents, reduceMotion, setActiveIncident],
+    [incidents, reduceMotion, setActiveIncident, navigation],
   );
-
-  const handleCloseSheet = useCallback(() => {
-    setSelectedIncident(null);
-    setActiveIncident(null);
-  }, [setActiveIncident]);
 
   // ── Mapbox layer expressions ──────────────────────────────────────────────
 
@@ -1143,8 +945,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         {/* Feed pill */}
         <TouchableOpacity
           style={styles.feedPill}
-          // TODO: navigate to Feed screen when it's added to navigation
-          onPress={() => navigation.navigate('Inbox')}
+          onPress={() => navigation.navigate('Feed')}
           activeOpacity={0.8}
           testID="feed-pill">
           <Text style={styles.feedPillText}>{s.map.feed}</Text>
@@ -1163,13 +964,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         </Animated.View>
       </View>
 
-      {/* ── Incident Detail Sheet ───────────────────────────────────── */}
-      {selectedIncident ? (
-        <IncidentDetailSheet
-          incident={selectedIncident}
-          onClose={handleCloseSheet}
-        />
-      ) : null}
+      {/* Incident Detail now opens as its own route (§5.12) on pin tap. */}
 
       {/* ── Location Permission Overlay (Modal) ─────────────────────── */}
       <LocationPermissionOverlay

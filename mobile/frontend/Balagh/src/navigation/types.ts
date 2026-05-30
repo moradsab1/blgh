@@ -6,6 +6,8 @@ export type RootStackParamList = {
   Welcome: undefined;
   Locality: { fromSettings?: boolean };
   Map: undefined;
+  Feed: undefined;
+  IncidentDetail: { id: string };
   ReportCategory: undefined;
   ReportDetails: { category: string };
   ReportSuccess: { ref: string };
@@ -25,5 +27,7 @@ export type LanguageProps = NativeStackScreenProps<RootStackParamList, 'Language
 export type WelcomeProps = NativeStackScreenProps<RootStackParamList, 'Welcome'>;
 export type LocalityProps = NativeStackScreenProps<RootStackParamList, 'Locality'>;
 export type MapProps = NativeStackScreenProps<RootStackParamList, 'Map'>;
+export type FeedProps = NativeStackScreenProps<RootStackParamList, 'Feed'>;
+export type IncidentDetailProps = NativeStackScreenProps<RootStackParamList, 'IncidentDetail'>;
 export type SettingsProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 export type InboxProps = NativeStackScreenProps<RootStackParamList, 'Inbox'>;

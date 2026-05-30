@@ -227,7 +227,7 @@ describe('Map screen', () => {
 
     const { queryByText } = renderMap();
     await act(async () => {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise<void>(r => setTimeout(() => r(), 50));
     });
 
     expect(queryByText('متابعة')).toBeNull();
@@ -252,7 +252,7 @@ describe('Map screen', () => {
 
     const { queryByTestId, findByTestId } = renderMap();
     await act(async () => {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise<void>(r => setTimeout(() => r(), 50));
     });
 
     expect(queryByTestId('mapbox-location-puck')).toBeNull();
@@ -301,7 +301,7 @@ describe('Map screen', () => {
 
     renderMap();
     await act(async () => {
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise<void>(r => setTimeout(() => r(), 100));
     });
 
     expect(loopSpy).not.toHaveBeenCalled();
@@ -318,7 +318,7 @@ describe('Map screen', () => {
 
     renderMap();
     await act(async () => {
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise<void>(r => setTimeout(() => r(), 100));
     });
 
     expect(loopSpy).toHaveBeenCalled();
@@ -337,7 +337,7 @@ describe('Map screen', () => {
 
     await act(async () => {
       fireEvent.press(getByText('ليس الآن'));
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise<void>(r => setTimeout(() => r(), 50));
     });
 
     await waitFor(() => {
@@ -375,7 +375,7 @@ describe('Map screen', () => {
 
     await act(async () => {
       fireEvent.press(getByText('متابعة'));
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise<void>(r => setTimeout(() => r(), 100));
     });
 
     expect(permSpy).toHaveBeenCalledWith(
@@ -415,11 +415,11 @@ describe('Map screen', () => {
 
     const { getByTestId } = renderMap();
     await act(async () => {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise<void>(r => setTimeout(() => r(), 50));
     });
 
     fireEvent.press(getByTestId('feed-pill'));
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('Inbox');
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('Feed');
   });
 
   // 11. Report FAB navigates to ReportCategory
@@ -428,7 +428,7 @@ describe('Map screen', () => {
 
     const { getByTestId } = renderMap();
     await act(async () => {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise<void>(r => setTimeout(() => r(), 50));
     });
 
     fireEvent.press(getByTestId('report-fab'));
@@ -452,7 +452,7 @@ describe('Map screen', () => {
 
     const { getByTestId } = renderMap();
     await act(async () => {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise<void>(r => setTimeout(() => r(), 50));
     });
 
     fireEvent.press(getByTestId('toolbar-settings-btn'));
@@ -465,7 +465,7 @@ describe('Map screen', () => {
 
     const { getByTestId } = renderMap();
     await act(async () => {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise<void>(r => setTimeout(() => r(), 50));
     });
 
     fireEvent.press(getByTestId('toolbar-inbox-btn'));
@@ -480,7 +480,7 @@ describe('Map screen', () => {
 
     renderMap();
     await act(async () => {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise<void>(r => setTimeout(() => r(), 50));
     });
 
     // Simulate a pin press by directly updating the store as the handler would

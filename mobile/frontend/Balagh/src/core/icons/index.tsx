@@ -41,6 +41,12 @@ export const ChevronLeft = makeIcon('❮', true);
 export const ArrowRight = makeIcon('→', true);
 export const ArrowLeft = makeIcon('←', true);
 export const Check = makeIcon('✓', true);
+export const X = makeIcon('✕', true);
+export const Plus = makeIcon('＋', true);
+export const Minus = makeIcon('－', true);
+export const Send = makeIcon('➤', true);
+export const ThumbsUp = makeIcon('✓', true);
+export const ThumbsDown = makeIcon('✕', true);
 
 // Emoji — colorful glyphs
 export const Shield = makeIcon('🛡️', false);
@@ -55,3 +61,28 @@ export const Info = makeIcon('ℹ️', false);
 export const HelpCircle = makeIcon('❓', false);
 export const Mail = makeIcon('✉️', false);
 export const Copy = makeIcon('📋', false);
+export const Newspaper = makeIcon('📰', false);
+export const Siren = makeIcon('🚨', false);
+export const Bookmark = makeIcon('🔖', false);
+export const MessageCircle = makeIcon('💬', false);
+export const Compass = makeIcon('🧭', false);
+export const Settings = makeIcon('⚙️', false);
+
+// Category glyphs (used by the feed + report category grid)
+export const CategoryGunfire = makeIcon('🔫', false);
+export const CategoryStabbing = makeIcon('🔪', false);
+export const CategoryAssault = makeIcon('👊', false);
+export const CategoryRobbery = makeIcon('🦹', false);
+export const CategorySuspicious = makeIcon('👁️', false);
+export const CategoryOther = makeIcon('⚠️', false);
+
+import type { Category } from '../types';
+
+export const CATEGORY_ICON: Record<Category, ReturnType<typeof makeIcon>> = {
+  GUNFIRE: CategoryGunfire,
+  STABBING: CategoryStabbing,
+  ASSAULT: CategoryAssault,
+  ROBBERY: CategoryRobbery,
+  SUSPICIOUS: CategorySuspicious,
+  OTHER: CategoryOther,
+};

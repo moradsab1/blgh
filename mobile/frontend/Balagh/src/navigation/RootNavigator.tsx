@@ -11,6 +11,8 @@ import WelcomeScreen from '../screens/onboarding/Welcome';
 import LocalityScreen from '../screens/onboarding/Locality';
 import SettingsScreen from '../screens/settings/Settings';
 import MapScreen from '../screens/Map';
+import FeedScreen from '../screens/Feed';
+import IncidentDetailScreen from '../screens/IncidentDetail';
 
 const StubScreen = (): React.ReactElement => (
   <View style={stubStyles.c}>
@@ -37,6 +39,20 @@ export const RootNavigator = (): React.ReactElement => (
       options={{ animation: 'slide_from_bottom' }}
     />
     <Stack.Screen name="Map" component={MapScreen} />
+    {/* Feed + Incident Detail slide over the map as transparent sheets (§5.10, §5.12) */}
+    <Stack.Group
+      screenOptions={{
+        presentation: 'transparentModal',
+        animation: 'fade',
+        contentStyle: { backgroundColor: 'transparent' },
+      }}>
+      <Stack.Screen name="Feed" component={FeedScreen} />
+      <Stack.Screen
+        name="IncidentDetail"
+        component={IncidentDetailScreen}
+        initialParams={{ id: '' }}
+      />
+    </Stack.Group>
     <Stack.Screen
       name="Settings"
       component={SettingsScreen}

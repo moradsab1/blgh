@@ -5,6 +5,8 @@ import { config } from './config';
 import { errorHandler } from './lib/errors';
 import { pool } from './db/client';
 import localitiesRoutes from './modules/localities/routes';
+import incidentsRoutes from './modules/incidents/routes';
+import statusRoutes from './modules/status/routes';
 
 async function build() {
   const app = Fastify({
@@ -39,6 +41,8 @@ async function build() {
 
   // Routes
   await app.register(localitiesRoutes);
+  await app.register(incidentsRoutes);
+  await app.register(statusRoutes);
 
   return app;
 }

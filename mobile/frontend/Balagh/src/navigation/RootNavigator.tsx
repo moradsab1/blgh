@@ -1,9 +1,7 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
 import { color } from '../core/theme/tokens';
-import { Text } from '../core/theme/components';
 
 import SplashScreen from '../screens/Splash';
 import LanguageScreen from '../screens/onboarding/Language';
@@ -22,13 +20,8 @@ import CrisisConfirmScreen from '../screens/crisis/CrisisConfirm';
 import CrisisSuccessScreen from '../screens/crisis/CrisisSuccess';
 import InboxScreen from '../screens/Inbox';
 import FollowUpScreen from '../screens/FollowUp';
-
-const StubScreen = (): React.ReactElement => (
-  <View style={stubStyles.c}>
-    <Text secondary>قريبًا — المرحلة القادمة</Text>
-  </View>
-);
-const stubStyles = StyleSheet.create({ c: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.bg } });
+import PrivacyConstitutionScreen from '../screens/settings/PrivacyConstitution';
+import AboutScreen from '../screens/settings/About';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -76,7 +69,7 @@ export const RootNavigator = (): React.ReactElement => (
     <Stack.Screen name="CrisisConfirm" component={CrisisConfirmScreen} initialParams={{ category: '' }} />
     <Stack.Screen name="CrisisSuccess" component={CrisisSuccessScreen} initialParams={{ ref: '' }} />
     <Stack.Screen name="FollowUp" component={FollowUpScreen} initialParams={{ ref: '' }} />
-    <Stack.Screen name="PrivacyConstitution" component={StubScreen} />
-    <Stack.Screen name="About" component={StubScreen} />
+    <Stack.Screen name="PrivacyConstitution" component={PrivacyConstitutionScreen} />
+    <Stack.Screen name="About" component={AboutScreen} />
   </Stack.Navigator>
 );

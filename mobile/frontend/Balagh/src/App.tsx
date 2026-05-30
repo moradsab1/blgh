@@ -5,6 +5,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import { linking } from './navigation/linking';
 import { RootNavigator } from './navigation/RootNavigator';
+import OfflineBanner from './presentation/components/OfflineBanner';
 import store, { StorageKeys, hydrateStorage } from './core/storage';
 import { applyRTL } from './core/strings';
 import { useLangStore } from './domain/stores/lang';
@@ -102,6 +103,8 @@ function useHydrated(): boolean {
 const AppInner = (): React.ReactElement => (
   <NavigationContainer linking={linking}>
     <RootNavigator />
+    {/* Global connectivity banner — sits above every screen (§14 Phase 6). */}
+    <OfflineBanner />
   </NavigationContainer>
 );
 

@@ -32,6 +32,7 @@ import store, { StorageKeys } from '../../core/storage';
 import { getPublicKeyHex, getPublicIdentifier, deleteIdentity } from '../../core/identity';
 import { notificationService } from '../../domain/services/notifications';
 import { strings } from '../../core/strings';
+import { APP_VERSION } from '../../core/version';
 import { useLangStore } from '../../domain/stores/lang';
 import type { SettingsProps } from '../../navigation/types';
 import { useOnboardingStore } from '../../domain/stores/onboarding';
@@ -212,7 +213,7 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
         <SettingsRow
           icon={<Info size={20} color={color.textSecondary} />}
           label={s.settings.about.version}
-          value="1.0.0"
+          value={APP_VERSION}
           onPress={() => navigation.navigate('About')}
           chevron={<ChevronIcon size={18} color={color.textMuted} />}
           isLast

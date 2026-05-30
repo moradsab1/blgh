@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  App-icon long-press shortcut "بلاغ فوري آمن" — fires the balagh://crisis deep
+  link (§14 Phase 6). The VIEW intent is caught by MainActivity's existing
+  balagh://crisis intent-filter and routed to CrisisReassure by linking.ts.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="crisis"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_crisis_short"
+        android:shortcutLongLabel="@string/shortcut_crisis_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="balagh://crisis" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>

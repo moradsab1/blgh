@@ -6,11 +6,11 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
-  ActivityIndicator,
 } from 'react-native';
 import { Text } from '../core/theme/components';
 import { color, space, fontSize } from '../core/theme/tokens';
 import { ChevronLeft, Shield, Siren, Check, Radio, MessageCircle } from '../core/icons';
+import { InboxSkeleton } from '../presentation/components/Skeleton';
 import { useLangStore } from '../domain/stores/lang';
 import { strings } from '../core/strings';
 import { MockNotificationRepo } from '../data/mock/MockNotificationRepo';
@@ -140,7 +140,7 @@ export default function InboxScreen({ navigation }: Props): React.ReactElement {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={styles.loader} color={color.accent} />
+        <InboxSkeleton />
       ) : (
         <SectionList
           sections={groups}
@@ -180,7 +180,6 @@ const styles = StyleSheet.create({
   headerRight: { minWidth: 60 },
   markAllBtn: { minWidth: 60, alignItems: 'flex-end', justifyContent: 'center', minHeight: 44 },
   markAllText: { color: color.accent },
-  loader: { flex: 1 },
   sectionHeader: {
     backgroundColor: color.bg,
     paddingHorizontal: space(2),

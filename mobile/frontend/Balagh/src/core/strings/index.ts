@@ -207,6 +207,59 @@ const ar = {
     banner: 'أنت غير متصل. سيتم إرسال بلاغاتك عند عودة الاتصال.',
     reconnected: 'اتصلت مجدداً. جارٍ إرسال بلاغاتك المعلّقة.',
   },
+  constitution: {
+    title: 'ميثاق الخصوصية',
+    subtitle: 'سبعة التزامات راسخة — هكذا نحمي هويتك',
+    updatedBadge: 'محدّث',
+    howWeEnsure: 'كيف نضمن ذلك؟',
+    rules: {
+      noPersonalData: {
+        title: 'لا نجمع أي بيانات شخصية',
+        ensure: 'لا يوجد حقل للاسم أو الهاتف أو البريد أو تسجيل الدخول في أي مكان بالتطبيق. الغياب التام لهذه الحقول هو الضمان.',
+      },
+      noAuthorities: {
+        title: 'لا علاقة بالشرطة أو أي جهة رسمية',
+        ensure: 'لا يتكامل التطبيق مع أي جهة حكومية أو أمنية. بلاغاتك تُعرض على المجتمع فقط.',
+      },
+      anonymous: {
+        title: 'بلاغاتك مجهولة المصدر بالكامل',
+        ensure: 'هويتك مجرد مفتاح عشوائي على جهازك. لا يمكن ربط أي بلاغ بك.',
+      },
+      onDevice: {
+        title: 'بياناتك تبقى على جهازك',
+        ensure: 'تُخزَّن إعداداتك ومعرّفك محلياً على الجهاز فقط، ولا تُرفع إلى أي خادم.',
+      },
+      minimalPermissions: {
+        title: 'أذونات الجهاز في حدها الأدنى',
+        ensure: 'الموقع أثناء الاستخدام والإنترنت والإشعارات فقط. لا كاميرا ولا ميكروفون ولا صور ولا جهات اتصال.',
+      },
+      noSound: {
+        title: 'صفر صوت — إطلاقاً',
+        ensure: 'لا يشغّل التطبيق أي صوت. فحص آلي يمنع إدراج أي ملف صوتي في الكود.',
+      },
+      openSource: {
+        title: 'مفتوح المصدر وقابل للتدقيق',
+        ensure: 'الكود متاح للجميع للمراجعة والتحقق من كل ما سبق بأنفسهم.',
+      },
+    },
+  },
+  about: {
+    title: 'حول بلاغ',
+    tagline: 'منصة تقارير مجتمعية تحمي الخصوصية',
+    versionLabel: 'الإصدار',
+    licenseTitle: 'الرخصة',
+    license: 'Apache License 2.0',
+    licenseNote: 'هذا التطبيق برمجية حرّة مفتوحة المصدر.',
+    sourceTitle: 'الكود المصدري',
+    sourceLabel: 'عرض على GitHub',
+    acknowledgements: 'شكر وتقدير',
+    ossNote: 'بُني بلاغ باستخدام المكتبات مفتوحة المصدر التالية:',
+  },
+  updateGate: {
+    title: 'يلزم تحديث التطبيق',
+    message: 'هذه النسخة لم تعد مدعومة. يرجى التحديث للمتابعة باستخدام بلاغ.',
+    cta: 'تحديث الآن',
+  },
 };
 
 const he: typeof ar = {
@@ -387,6 +440,59 @@ const he: typeof ar = {
     banner: 'אינך מחובר. הדיווחים שלך יישלחו עם חזרת החיבור.',
     reconnected: 'התחברת מחדש. שולח את הדיווחים הממתינים שלך.',
   },
+  constitution: {
+    title: 'מגילת הפרטיות',
+    subtitle: 'שבע התחייבויות איתנות — כך אנו מגנים על זהותך',
+    updatedBadge: 'עודכן',
+    howWeEnsure: 'איך אנו מבטיחים זאת?',
+    rules: {
+      noPersonalData: {
+        title: 'איננו אוספים מידע אישי',
+        ensure: 'אין שדה לשם, טלפון, אימייל או התחברות בשום מקום באפליקציה. ההיעדר המוחלט שלהם הוא הערובה.',
+      },
+      noAuthorities: {
+        title: 'אין קשר למשטרה או לרשויות',
+        ensure: 'האפליקציה אינה משתלבת עם אף גורם ממשלתי או ביטחוני. הדיווחים שלך מוצגים לקהילה בלבד.',
+      },
+      anonymous: {
+        title: 'הדיווחים שלך אנונימיים לחלוטין',
+        ensure: 'הזהות שלך היא מפתח אקראי במכשירך. לא ניתן לקשר אף דיווח אליך.',
+      },
+      onDevice: {
+        title: 'הנתונים שלך נשארים במכשירך',
+        ensure: 'ההגדרות והמזהה שלך נשמרים מקומית במכשיר בלבד ואינם נשלחים לאף שרת.',
+      },
+      minimalPermissions: {
+        title: 'הרשאות מכשיר מינימליות',
+        ensure: 'מיקום בזמן שימוש, אינטרנט והתראות בלבד. ללא מצלמה, מיקרופון, תמונות או אנשי קשר.',
+      },
+      noSound: {
+        title: 'אפס צליל — אף פעם',
+        ensure: 'האפליקציה אינה מנגנת שום צליל. בדיקה אוטומטית מונעת ייבוא של קובץ שמע כלשהו בקוד.',
+      },
+      openSource: {
+        title: 'קוד פתוח וניתן לביקורת',
+        ensure: 'הקוד זמין לכולם לבדיקה ולאימות עצמאי של כל האמור לעיל.',
+      },
+    },
+  },
+  about: {
+    title: "אודות בלאג'",
+    tagline: 'פלטפורמת דיווח קהילתי ששומרת על פרטיות',
+    versionLabel: 'גרסה',
+    licenseTitle: 'רישיון',
+    license: 'Apache License 2.0',
+    licenseNote: 'אפליקציה זו היא תוכנה חופשית בקוד פתוח.',
+    sourceTitle: 'קוד המקור',
+    sourceLabel: 'צפה ב-GitHub',
+    acknowledgements: 'תודות',
+    ossNote: "בלאג' נבנה באמצעות ספריות הקוד הפתוח הבאות:",
+  },
+  updateGate: {
+    title: 'נדרש עדכון לאפליקציה',
+    message: 'גרסה זו אינה נתמכת עוד. אנא עדכן כדי להמשיך.',
+    cta: 'עדכן עכשיו',
+  },
 };
 
 const en: typeof ar = {
@@ -566,6 +672,59 @@ const en: typeof ar = {
   offline: {
     banner: 'You are offline. Reports will be sent when connection is restored.',
     reconnected: 'Reconnected. Sending your pending reports.',
+  },
+  constitution: {
+    title: 'Privacy Constitution',
+    subtitle: 'Seven firm commitments — how we protect your identity',
+    updatedBadge: 'Updated',
+    howWeEnsure: 'How do we ensure this?',
+    rules: {
+      noPersonalData: {
+        title: 'We collect no personal data',
+        ensure: 'There is no name, phone, email, or login field anywhere in the app. Their complete absence is the guarantee.',
+      },
+      noAuthorities: {
+        title: 'No police or government connection',
+        ensure: 'The app does not integrate with any government or security authority. Your reports are shown to the community only.',
+      },
+      anonymous: {
+        title: 'Your reports are fully anonymous',
+        ensure: 'Your identity is just a random key on your device. No report can be linked back to you.',
+      },
+      onDevice: {
+        title: 'Your data stays on your device',
+        ensure: 'Your settings and identifier are stored locally on the device only, never uploaded to any server.',
+      },
+      minimalPermissions: {
+        title: 'Minimal device permissions',
+        ensure: 'Only location while-in-use, internet, and notifications. No camera, microphone, photos, or contacts.',
+      },
+      noSound: {
+        title: 'Zero sound — ever',
+        ensure: 'The app plays no audio. An automated check prevents importing any audio file in the code.',
+      },
+      openSource: {
+        title: 'Open source and auditable',
+        ensure: 'The code is available for anyone to review and verify all of the above for themselves.',
+      },
+    },
+  },
+  about: {
+    title: 'About Balagh',
+    tagline: 'A privacy-protecting community reporting platform',
+    versionLabel: 'Version',
+    licenseTitle: 'License',
+    license: 'Apache License 2.0',
+    licenseNote: 'This app is free and open-source software.',
+    sourceTitle: 'Source Code',
+    sourceLabel: 'View on GitHub',
+    acknowledgements: 'Acknowledgements',
+    ossNote: 'Balagh is built with the following open-source libraries:',
+  },
+  updateGate: {
+    title: 'App Update Required',
+    message: 'This version is no longer supported. Please update to continue using Balagh.',
+    cta: 'Update Now',
   },
 };
 

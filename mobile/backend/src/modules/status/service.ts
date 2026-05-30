@@ -84,3 +84,21 @@ export async function getStatus(
 
   return calculateStatus(rows, lat, lng);
 }
+
+// Compute status at a location without upsert side effect.
+// Used by the vote route to broadcast status.changed after a vote.
+export async function computeStatusAt(lat: number, lng: number): Promise<StatusResponse> {
+  const { rows } = await pool.query<StatusIncidentRow>(
+    `SELECT lat, lng, confirmations, created_at
+     FROM incidents
+     WHERE resolved_at IS NULL
+       AND NOT hidden
+       AND ST_DWithin(
+         geom,
+         ST_SetSRID(ST_MakePoint($2::float8, $1::float8), 4326)::geography,
+         $3::float8 * 1000
+       )`,
+    [lat, lng, WATCH_RADIUS_KM],
+  );
+  return calculateStatus(rows, lat, lng);
+}

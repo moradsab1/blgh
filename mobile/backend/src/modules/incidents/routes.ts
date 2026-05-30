@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { AppError } from '../../lib/errors';
+import { broadcastGeo, broadcastToDevice } from '../../lib/events';
+import { computeStatusAt } from '../status/service';
 import * as service from './service';
 
 // ── Validation schemas ───────────────────────────────────────────────────────
@@ -89,7 +91,19 @@ const incidentsRoutes: FastifyPluginAsync = async app => {
       body.description,
       body.idempotencyKey,
     );
-    // fanOut is stored for Phase 3 WS broadcast — ignored here
+
+    // Broadcast new incident to subscribers within range (skip on idempotent replay)
+    if (result.incident) {
+      broadcastGeo(
+        { t: 'incident.created', incident: result.incident },
+        result.incident.lat,
+        result.incident.lng,
+      );
+      for (const { deviceId: targetId, notification } of result.fanOut) {
+        broadcastToDevice({ t: 'notification.new', notification }, targetId);
+      }
+    }
+
     return reply.status(201).send({ id: result.id, ref: result.ref });
   });
 
@@ -97,7 +111,24 @@ const incidentsRoutes: FastifyPluginAsync = async app => {
   app.post<{ Params: { id: string } }>('/incidents/:id/vote', async request => {
     const deviceId = requireDeviceId(request.headers as Record<string, string | undefined>);
     const body = parseBody(voteBodySchema, request.body);
-    return service.vote(deviceId, request.params.id, body.vote);
+    const updated = await service.vote(deviceId, request.params.id, body.vote);
+
+    // Broadcast updated vote counts to geo subscribers
+    broadcastGeo(
+      { t: 'vote.updated', id: updated.id, confirmations: updated.confirmations, denials: updated.denials },
+      updated.lat,
+      updated.lng,
+    );
+
+    // Recompute and broadcast area status after vote
+    const status = await computeStatusAt(updated.lat, updated.lng);
+    broadcastGeo(
+      { t: 'status.changed', state: status.state, reason: status.reason },
+      updated.lat,
+      updated.lng,
+    );
+
+    return updated;
   });
 
   // GET /incidents/:id/comments

@@ -171,6 +171,7 @@ export async function getIncident(deviceId: string, id: string): Promise<Inciden
 export interface SubmitResult {
   id: string;
   ref: string;
+  incident?: Incident;
   fanOut: Array<{ deviceId: string; notification: AppNotification }>;
 }
 
@@ -242,8 +243,24 @@ export async function submitReport(
     fanOut.push({ deviceId: device_id, notification: rowToNotification(notifRow) });
   }
 
-  // Attach myVote=null since this is a new report (reporter hasn't voted)
-  return { id: row.id, ref: row.ref, fanOut };
+  // Build the full Incident shape (used by incident.created WS broadcast)
+  const incident: Incident = {
+    id: row.id,
+    ref: row.ref,
+    category: row.category as Incident['category'],
+    severity: row.severity as Incident['severity'],
+    description: row.description ?? undefined,
+    lat: row.lat,
+    lng: row.lng,
+    localityId: row.locality_id ?? '',
+    createdAt: row.created_at,
+    confirmations: 0,
+    denials: 0,
+    commentCount: 0,
+    myVote: null,
+  };
+
+  return { id: row.id, ref: row.ref, incident, fanOut };
 }
 
 export async function vote(

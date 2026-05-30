@@ -1,12 +1,15 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import websocket from '@fastify/websocket';
 import { config } from './config';
 import { errorHandler } from './lib/errors';
 import { pool } from './db/client';
 import localitiesRoutes from './modules/localities/routes';
 import incidentsRoutes from './modules/incidents/routes';
 import statusRoutes from './modules/status/routes';
+import wsRoutes from './realtime/ws';
+import adminRoutes from './modules/admin/routes';
 
 async function build() {
   const app = Fastify({
@@ -21,6 +24,7 @@ async function build() {
 
   // Plugins
   await app.register(cors, { origin: true });
+  await app.register(websocket);
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
@@ -43,6 +47,8 @@ async function build() {
   await app.register(localitiesRoutes);
   await app.register(incidentsRoutes);
   await app.register(statusRoutes);
+  await app.register(wsRoutes);
+  await app.register(adminRoutes);
 
   return app;
 }

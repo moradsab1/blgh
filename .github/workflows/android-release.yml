@@ -132,6 +132,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Write Mapbox download token to Gradle properties
+        env:
+          MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
+        run: |
+          if [ -z "$MAPBOX_DOWNLOAD_TOKEN" ]; then
+            echo "::error::MAPBOX_DOWNLOAD_TOKEN secret is not set. Add it in GitHub → Settings → Secrets → Actions."
+            exit 1
+          fi
+          mkdir -p ~/.gradle
+          # Write token both as a Gradle property (read by build.gradle's
+          # project.findProperty) AND keep it as an env var (read by
+          # System.getenv). Belt-and-suspenders: Gradle resolves credentials
+          # during configuration — before env vars are always visible.
+          grep -v '^MAPBOX_DOWNLOAD_TOKEN' ~/.gradle/gradle.properties 2>/dev/null > /tmp/gradle.properties.tmp || true
+          echo "MAPBOX_DOWNLOAD_TOKEN=${MAPBOX_DOWNLOAD_TOKEN}" >> /tmp/gradle.properties.tmp
+          mv /tmp/gradle.properties.tmp ~/.gradle/gradle.properties
+          echo "Mapbox download token written to ~/.gradle/gradle.properties"
+
       - name: Write release keystore (if secret provided)
         working-directory: mobile/frontend/Balagh/android
         env:
@@ -142,12 +160,14 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 --decode > app/release.keystore
-            cat > keystore.properties <<EOF
+            # Strip any leading whitespace that heredoc indentation can introduce.
+            cat > keystore.properties << 'PROPS'
           storeFile=release.keystore
-          storePassword=$KEYSTORE_PASSWORD
-          keyAlias=$KEY_ALIAS
-          keyPassword=$KEY_PASSWORD
-          EOF
+          PROPS
+            sed -i 's/^ *//' keystore.properties
+            echo "storePassword=${KEYSTORE_PASSWORD}" >> keystore.properties
+            echo "keyAlias=${KEY_ALIAS}" >> keystore.properties
+            echo "keyPassword=${KEY_PASSWORD}" >> keystore.properties
             echo "Release keystore configured."
           else
             echo "No KEYSTORE_BASE64 secret found — using debug keystore for release build."
@@ -157,26 +177,41 @@ jobs:
         working-directory: mobile/frontend/Balagh/android
         run: chmod +x gradlew
 
-      - name: Build Release APK
+      - name: Build Release APK (arm64-v8a + x86_64)
         working-directory: mobile/frontend/Balagh/android
         env:
           MAPBOX_DOWNLOAD_TOKEN: ${{ secrets.MAPBOX_DOWNLOAD_TOKEN }}
+        # Build only the two modern 64-bit ABIs in CI.
+        # armeabi-v7a and x86 are included in the full release via Play Store
+        # delivery; building all 4 on a stock runner risks OOM / timeout.
+        # The resulting APK works on every device released after 2017.
         run: |
-          if [ -z "$MAPBOX_DOWNLOAD_TOKEN" ]; then
-            echo "::error::MAPBOX_DOWNLOAD_TOKEN secret is not set. Add it in GitHub → Settings → Secrets → Actions."
-            exit 1
-          fi
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease \
+            -PreactNativeArchitectures=arm64-v8a,x86_64 \
+            --no-daemon \
+            --max-workers=2
+
+      - name: Locate APK (diagnostic)
+        if: always()
+        run: |
+          echo "=== APK output directory ==="
+          find mobile/frontend/Balagh/android/app/build/outputs/apk \
+               -name "*.apk" 2>/dev/null \
+            || echo "(no .apk files found — build may have failed)"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: balagh-release-apk
-          path: mobile/frontend/Balagh/android/app/build/outputs/apk/release/*.apk
+          # Use ** so subdirectories (per-ABI split paths) are also matched.
+          path: mobile/frontend/Balagh/android/app/build/outputs/apk/release/**/*.apk
           retention-days: 30
+          # Fail loudly if the build did not produce any APK, rather than
+          # silently uploading nothing (the default is "warn").
+          if-no-files-found: error
 
       - name: Upload APK to release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: mobile/frontend/Balagh/android/app/build/outputs/apk/release/*.apk
+          files: mobile/frontend/Balagh/android/app/build/outputs/apk/release/**/*.apk

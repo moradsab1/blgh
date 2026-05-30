@@ -1,6 +1,7 @@
 import type { IIncidentRepository } from '../repositories/interfaces';
 import type { Incident, Comment } from '../../core/types';
 import { db } from './db';
+import { wsEventEmitter } from './eventEmitter';
 import { deriveEmojis, getPublicKeyHex } from '../../core/identity';
 
 const sleep = (ms: number): Promise<void> =>
@@ -58,6 +59,7 @@ export class MockIncidentRepo implements IIncidentRepository {
       myVote: null,
     };
     db.incidents.add(incident);
+    wsEventEmitter.emit({ t: 'incident.created', incident });
     return { id, ref };
   }
 

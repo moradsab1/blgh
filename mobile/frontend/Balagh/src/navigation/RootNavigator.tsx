@@ -13,6 +13,13 @@ import SettingsScreen from '../screens/settings/Settings';
 import MapScreen from '../screens/Map';
 import FeedScreen from '../screens/Feed';
 import IncidentDetailScreen from '../screens/IncidentDetail';
+import ReportCategoryScreen from '../screens/ReportCategory';
+import ReportDetailsScreen from '../screens/ReportDetails';
+import ReportSuccessScreen from '../screens/ReportSuccess';
+import CrisisReassureScreen from '../screens/crisis/CrisisReassure';
+import CrisisCategoryScreen from '../screens/crisis/CrisisCategory';
+import CrisisConfirmScreen from '../screens/crisis/CrisisConfirm';
+import CrisisSuccessScreen from '../screens/crisis/CrisisSuccess';
 
 const StubScreen = (): React.ReactElement => (
   <View style={stubStyles.c}>
@@ -59,13 +66,13 @@ export const RootNavigator = (): React.ReactElement => (
       options={{ animation: 'slide_from_right' }}
     />
     <Stack.Screen name="Inbox" component={StubScreen} />
-    <Stack.Screen name="ReportCategory" component={StubScreen} />
-    <Stack.Screen name="ReportDetails" component={StubScreen} initialParams={{ category: '' }} />
-    <Stack.Screen name="ReportSuccess" component={StubScreen} initialParams={{ ref: '' }} />
-    <Stack.Screen name="CrisisReassure" component={StubScreen} />
-    <Stack.Screen name="CrisisCategory" component={StubScreen} />
-    <Stack.Screen name="CrisisConfirm" component={StubScreen} initialParams={{ category: '' }} />
-    <Stack.Screen name="CrisisSuccess" component={StubScreen} initialParams={{ ref: '' }} />
+    <Stack.Screen name="ReportCategory" component={ReportCategoryScreen} />
+    <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} initialParams={{ category: '' }} />
+    <Stack.Screen name="ReportSuccess" component={ReportSuccessScreen} initialParams={{ ref: '' }} />
+    <Stack.Screen name="CrisisReassure" component={CrisisReassureScreen} />
+    <Stack.Screen name="CrisisCategory" component={CrisisCategoryScreen} />
+    <Stack.Screen name="CrisisConfirm" component={CrisisConfirmScreen} initialParams={{ category: '' }} />
+    <Stack.Screen name="CrisisSuccess" component={CrisisSuccessScreen} initialParams={{ ref: '' }} />
     <Stack.Screen name="FollowUp" component={StubScreen} initialParams={{ ref: '' }} />
     <Stack.Screen name="PrivacyConstitution" component={StubScreen} />
     <Stack.Screen name="About" component={StubScreen} />

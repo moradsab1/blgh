@@ -15,8 +15,9 @@ function getDeviceId(): string {
   return id;
 }
 
-async function fetchIncidents(lat: number, lng: number, radiusKm: number): Promise<Incident[]> {
+async function fetchIncidents(lat: number | null, lng: number | null, radiusKm: number): Promise<Incident[]> {
   if (USE_MOCK) return mockApi.getIncidents(lat, lng, radiusKm);
+  if (lat === null || lng === null) return [];
   return api.get<Incident[]>(`/incidents?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`);
 }
 
@@ -29,17 +30,18 @@ interface Params {
 
 export function useIncidents({ lat, lng, radiusKm, onWsState }: Params) {
   const queryClient = useQueryClient();
-  const enabled = lat !== null && lng !== null;
+  const hasCoords = lat !== null && lng !== null;
 
   const query = useQuery({
     queryKey: qk.incidents(lat ?? 0, lng ?? 0, radiusKm),
-    queryFn: () => fetchIncidents(lat!, lng!, radiusKm),
-    enabled,
+    queryFn: () => fetchIncidents(lat, lng, radiusKm),
+    // Always fetch in mock (global view); require coords in real mode
+    enabled: USE_MOCK || hasCoords,
   });
 
-  // WebSocket → cache bridge (real mode only; mock uses polling)
+  // WebSocket → cache bridge (real mode only)
   useEffect(() => {
-    if (USE_MOCK || !enabled) return;
+    if (USE_MOCK || !hasCoords) return;
 
     const handleEvent = (event: WsEvent) => {
       const key = qk.incidents(lat!, lng!, radiusKm);
@@ -81,7 +83,7 @@ export function useIncidents({ lat, lng, radiusKm, onWsState }: Params) {
     client.subscribe({ lat: lat!, lng: lng!, radiusKm });
 
     return () => client.destroy();
-  }, [lat, lng, radiusKm, enabled, queryClient, onWsState]);
+  }, [lat, lng, radiusKm, hasCoords, queryClient, onWsState]);
 
   return query;
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { Locality } from '../lib/contracts';
 import LocalityPicker from '../features/localities/LocalityPicker';
 import { useStatus } from '../features/status/useStatus';
@@ -9,148 +9,203 @@ import CaseList from '../features/cases/CaseList';
 import IncidentMap from '../features/map/IncidentMap';
 import type { CaseFiltersState } from '../features/cases/CaseFilters';
 import LiveIndicator from '../components/LiveIndicator';
-import StatChip from '../components/StatChip';
 import Spinner from '../components/Spinner';
 import ErrorState from '../components/ErrorState';
 import Drawer from '../components/Drawer';
 import IncidentDetail from '../features/incident/IncidentDetail';
 import { useAdminActions } from '../features/incident/useAdminActions';
 import OfflineBanner from '../components/OfflineBanner';
+import { mockLocalities } from '../mock/db';
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 20];
 const DEFAULT_RADIUS = 5;
 
 type WsState = 'connected' | 'reconnecting' | 'offline';
 
+const SEVERITY_STATS = [
+  { key: 'critical', label: 'بالغ',   color: '#E5484D' },
+  { key: 'high',     label: 'مرتفع',  color: '#F76808' },
+  { key: 'medium',   label: 'متوسط',  color: '#FFB224' },
+  { key: 'low',      label: 'منخفض',  color: '#3B82F6' },
+] as const;
+
+// Build locality id → Arabic name map from mock data
+// (real mode would source this from the locality query)
+const LOCALITY_NAMES: Record<string, string> = Object.fromEntries(
+  mockLocalities.map((l) => [l.id, l.nameAr]),
+);
+
 export default function Console() {
-  const [locality, setLocality] = useState<Locality | null>(null);
-  const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS);
+  const [locality, setLocality]   = useState<Locality | null>(null);
+  const [radiusKm, setRadiusKm]   = useState(DEFAULT_RADIUS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [wsState, setWsState] = useState<WsState>('offline');
-  const [filters, setFilters] = useState<CaseFiltersState>({
+  const [wsState, setWsState]     = useState<WsState>('offline');
+  const [filters, setFilters]     = useState<CaseFiltersState>({
     tab: 'active',
     severities: new Set(),
     text: '',
   });
 
-  const lat = locality?.lat ?? 0;
-  const lng = locality?.lng ?? 0;
-  const hasLocality = locality !== null;
+  const lat = locality?.lat ?? null;
+  const lng = locality?.lng ?? null;
 
-  const { data: status } = useStatus(hasLocality ? lat : null, hasLocality ? lng : null);
+  const { data: status } = useStatus(lat, lng);
 
   const {
     data: incidents = [],
-    isLoading: incidentsLoading,
-    isError: incidentsError,
-    refetch: refetchIncidents,
+    isLoading,
+    isError,
+    refetch,
   } = useIncidents({
-    lat: hasLocality ? lat : null,
-    lng: hasLocality ? lng : null,
+    lat,
+    lng,
     radiusKm,
     onWsState: useCallback((s: WsState) => setWsState(s), [setWsState]),
   });
 
   const { perform: adminAction } = useAdminActions({
-    lat,
-    lng,
+    lat: lat ?? 0,
+    lng: lng ?? 0,
     radiusKm,
     onUnauthorized: useCallback(() => {
-      // Dispatch event so TokenGate re-opens
       window.dispatchEvent(new CustomEvent('balagh:unauthorized'));
     }, []),
   });
 
-  const activeCount = incidents.filter((i) => !i.resolvedAt).length;
-  const criticalCount = incidents.filter((i) => i.severity === 'critical' && !i.resolvedAt).length;
+  // Stats: always computed over all fetched incidents
+  const activeIncidents = useMemo(() => incidents.filter((i) => !i.resolvedAt), [incidents]);
+  const severityCounts  = useMemo(
+    () =>
+      SEVERITY_STATS.map(({ key, label, color }) => ({
+        key, label, color,
+        count: activeIncidents.filter((i) => i.severity === key).length,
+      })),
+    [activeIncidents],
+  );
 
   const selectedIncident = incidents.find((i) => i.id === selectedId);
 
   return (
     <div className="flex flex-col h-screen bg-bg text-text-primary overflow-hidden">
-      {/* Offline banner */}
-      <OfflineBanner visible={hasLocality && wsState === 'offline'} />
+      <OfflineBanner visible={locality !== null && wsState === 'offline'} />
 
-      {/* Header */}
-      <header className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-border bg-surface">
+      {/* ── Header ────────────────────────────────────────────── */}
+      <header className="flex-shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border bg-surface">
         {/* Brand */}
-        <div className="flex items-center gap-2 me-2">
-          <span className="text-[color:var(--accent)] font-bold text-sm tracking-wide">بلاغ</span>
-          <span className="text-text-muted text-xs">|</span>
-          <span className="text-text-muted text-xs">لوحة التحكم</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span
+            className="h-6 w-6 rounded flex items-center justify-center text-white text-xs font-bold"
+            style={{ backgroundColor: 'var(--accent)' }}
+          >
+            ب
+          </span>
+          <span className="text-sm font-semibold text-text-primary">بلاغ</span>
+          <span className="text-border text-xs">|</span>
+          <span className="text-text-muted text-xs hidden sm:block">لوحة التحكم</span>
         </div>
 
         {/* Locality picker */}
         <LocalityPicker selected={locality} onSelect={setLocality} />
 
-        {/* Radius selector */}
-        <div className="flex items-center gap-1">
-          {RADIUS_OPTIONS.map((r) => (
-            <button
-              key={r}
-              onClick={() => setRadiusKm(r)}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                radiusKm === r
-                  ? 'bg-[color:var(--accent)] text-white'
-                  : 'text-text-muted hover:text-text-secondary'
-              }`}
-            >
-              {r} كم
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Status badge */}
-        {status && <StatusBadge state={status.state} />}
-
-        {/* Stat strip */}
-        {hasLocality && (
-          <div className="flex items-center gap-2">
-            <StatChip label="نشطة" value={activeCount} />
-            <StatChip label="بالغة" value={criticalCount} color="#E5484D" />
+        {/* Radius (only meaningful when locality is selected) */}
+        {locality && (
+          <div className="flex items-center gap-0.5 bg-surface-alt rounded-lg p-0.5">
+            {RADIUS_OPTIONS.map((r) => (
+              <button
+                key={r}
+                onClick={() => setRadiusKm(r)}
+                className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-colors ${
+                  radiusKm === r
+                    ? 'bg-[color:var(--accent)] text-white'
+                    : 'text-text-muted hover:text-text-secondary'
+                }`}
+              >
+                {r}كم
+              </button>
+            ))}
           </div>
         )}
 
-        {/* WS indicator */}
-        {hasLocality && <LiveIndicator state={wsState} />}
+        <div className="flex-1" />
+
+        {/* Status badge (only when locality selected) */}
+        {status && locality && <StatusBadge state={status.state} />}
+
+        {/* Live indicator */}
+        {locality && <LiveIndicator state={wsState} />}
       </header>
 
-      {/* Body */}
+      {/* ── Stats bar ─────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-px bg-surface border-b border-border overflow-x-auto">
+        {/* Total */}
+        <div className="flex flex-col items-center px-4 py-2 min-w-[64px]">
+          <span className="text-base font-bold text-text-primary tabular-nums leading-none">
+            {activeIncidents.length}
+          </span>
+          <span className="text-[9px] text-text-muted mt-0.5 uppercase tracking-wide">مجموع</span>
+        </div>
+
+        <div className="w-px h-8 bg-border flex-shrink-0" />
+
+        {/* Per-severity counts */}
+        {severityCounts.map(({ key, label, color, count }) => (
+          <button
+            key={key}
+            onClick={() => {
+              const next = new Set(filters.severities);
+              if (next.has(key as 'critical')) next.delete(key as 'critical');
+              else next.add(key as 'critical');
+              setFilters((f) => ({ ...f, severities: next }));
+            }}
+            className={`flex flex-col items-center px-4 py-2 min-w-[60px] transition-colors hover:bg-surface-alt ${
+              filters.severities.has(key as 'critical') ? 'bg-surface-alt' : ''
+            }`}
+          >
+            <span
+              className="text-base font-bold tabular-nums leading-none"
+              style={{ color }}
+            >
+              {count}
+            </span>
+            <span className="text-[9px] text-text-muted mt-0.5" style={{ color: `${color}99` }}>
+              {label}
+            </span>
+          </button>
+        ))}
+
+        <div className="flex-1" />
+
+        {/* Area label */}
+        <div className="px-4 py-2 text-xs text-text-muted flex-shrink-0">
+          {locality
+            ? <span>📍 <span className="text-text-secondary">{locality.nameAr}</span> · {radiusKm} كم</span>
+            : <span className="text-text-muted">جميع المناطق</span>
+          }
+        </div>
+      </div>
+
+      {/* ── Body ──────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Triage rail */}
-        <aside className="w-80 flex-shrink-0 flex flex-col border-e border-border bg-surface overflow-hidden">
-          {!hasLocality ? (
-            <div className="flex flex-col items-center justify-center flex-1 p-6 text-center gap-2">
-              <span className="text-3xl">🗺️</span>
-              <p className="text-text-muted text-sm">اختر منطقة لعرض الحوادث</p>
+        <aside className="w-72 flex-shrink-0 flex flex-col border-e border-border bg-surface overflow-hidden">
+          <CaseFilters filters={filters} onChange={setFilters} />
+
+          {isLoading && (
+            <div className="flex justify-center py-10">
+              <Spinner />
             </div>
-          ) : (
-            <>
-              <CaseFilters filters={filters} onChange={setFilters} />
-              <div className="flex-1 overflow-hidden flex flex-col">
-                {incidentsLoading && (
-                  <div className="flex justify-center py-8">
-                    <Spinner />
-                  </div>
-                )}
-                {incidentsError && !incidentsLoading && (
-                  <ErrorState
-                    message="تعذّر تحميل الحوادث"
-                    onRetry={() => refetchIncidents()}
-                  />
-                )}
-                {!incidentsLoading && !incidentsError && (
-                  <CaseList
-                    incidents={incidents}
-                    filters={filters}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                  />
-                )}
-              </div>
-            </>
+          )}
+          {isError && !isLoading && (
+            <ErrorState message="تعذّر تحميل الحوادث" onRetry={() => refetch()} />
+          )}
+          {!isLoading && !isError && (
+            <CaseList
+              incidents={incidents}
+              filters={filters}
+              localityNames={LOCALITY_NAMES}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
           )}
         </aside>
 
@@ -158,7 +213,7 @@ export default function Console() {
         <main className="flex-1 relative">
           <IncidentMap
             locality={locality}
-            incidents={incidents}
+            incidents={activeIncidents}
             selectedId={selectedId}
             onSelectIncident={setSelectedId}
           />
@@ -169,15 +224,10 @@ export default function Console() {
       <Drawer
         open={selectedId !== null}
         onClose={() => setSelectedId(null)}
-        title={selectedIncident
-          ? `حادثة ${selectedIncident.ref}`
-          : 'تفاصيل الحادثة'}
+        title={selectedIncident ? `حادثة ${selectedIncident.ref}` : 'تفاصيل الحادثة'}
       >
         {selectedId && (
-          <IncidentDetail
-            incidentId={selectedId}
-            onAdminAction={adminAction}
-          />
+          <IncidentDetail incidentId={selectedId} onAdminAction={adminAction} />
         )}
       </Drawer>
     </div>

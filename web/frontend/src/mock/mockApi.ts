@@ -2,7 +2,6 @@ import type { Incident, Locality, Comment, StatusResponse } from '../lib/contrac
 import { mockLocalities, mockIncidents, mockComments } from './db';
 import { calculateStatus } from './statusLogic';
 
-// In-memory mutable state
 let incidents = [...mockIncidents];
 
 const delay = (ms = 200) => new Promise<void>((r) => setTimeout(r, ms));
@@ -18,14 +17,12 @@ export const mockApi = {
     if (!q) return mockLocalities;
     const lower = q.toLowerCase();
     return mockLocalities.filter(
-      (l) =>
-        l.nameAr.includes(q) ||
-        l.nameHe.includes(q) ||
-        l.nameEn.toLowerCase().includes(lower),
+      (l) => l.nameAr.includes(q) || l.nameHe.includes(q) || l.nameEn.toLowerCase().includes(lower),
     );
   },
 
-  async getIncidents(_lat: number, _lng: number, _radiusKm: number): Promise<Incident[]> {
+  // lat/lng null → global view (all active incidents)
+  async getIncidents(_lat: number | null, _lng: number | null, _radiusKm: number): Promise<Incident[]> {
     await delay(200);
     return incidents.filter((i) => !i.resolvedAt);
   },

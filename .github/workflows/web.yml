@@ -1,4 +1,4 @@
-name: Web Dashboard CI
+name: Web Dashboard CI / Deploy
 
 on:
   push:
@@ -11,6 +11,17 @@ on:
     paths:
       - 'web/frontend/**'
       - '.github/workflows/web.yml'
+
+# Required for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment at a time
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 defaults:
   run:
@@ -58,10 +69,6 @@ jobs:
     needs: ci
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-
-    permissions:
-      pages: write
-      id-token: write
 
     environment:
       name: github-pages

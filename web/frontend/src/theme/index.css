@@ -2,33 +2,34 @@
 
 /* CSS custom properties for tier theming */
 :root {
-  --accent: #A83231; /* Council-Private default */
+  --accent: #C23B3A;
+  --accent-subtle: rgba(194, 59, 58, 0.15);
   --font-arabic: 'IBM Plex Sans Arabic', sans-serif;
   --font-sans: 'Inter', 'IBM Plex Sans Arabic', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-[data-tier="council"]  { --accent: #A83231; }
-[data-tier="coalition"] { --accent: #5A6E3F; }
-[data-tier="operator"]  { --accent: #1F2818; }
+[data-tier="council"]   { --accent: #C23B3A; --accent-subtle: rgba(194,59,58,0.15); }
+[data-tier="coalition"] { --accent: #6A8B4A; --accent-subtle: rgba(106,139,74,0.15); }
+[data-tier="operator"]  { --accent: #2E4430; --accent-subtle: rgba(46,68,48,0.15); }
 
 /* RTL base reset */
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background-color: #0E1116;
-  color: #E6EDF3;
+  background-color: #0D1117;
+  color: #E9F0F8;
   font-family: var(--font-arabic);
   direction: rtl;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Scrollbar styling */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #161B22; }
-::-webkit-scrollbar-thumb { background: #2A323D; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #404B5A; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #0D1117; }
+::-webkit-scrollbar-thumb { background: #2E3F58; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3E5270; }
 
 /* MapLibre canvas full-size */
 .maplibregl-canvas { display: block; }

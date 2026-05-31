@@ -86,24 +86,11 @@ export default function Console() {
   const selectedIncident = incidents.find((i) => i.id === selectedId);
 
   return (
-    <div className="flex flex-col h-screen bg-bg text-text-primary overflow-hidden">
+    <div className="flex flex-col flex-1 min-h-0 bg-bg text-text-primary overflow-hidden">
       <OfflineBanner visible={locality !== null && wsState === 'offline'} />
 
       {/* ── Header ────────────────────────────────────────────── */}
       <header className="flex-shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border bg-surface">
-        {/* Brand */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span
-            className="h-6 w-6 rounded flex items-center justify-center text-white text-xs font-bold"
-            style={{ backgroundColor: 'var(--accent)' }}
-          >
-            ب
-          </span>
-          <span className="text-sm font-semibold text-text-primary">بلاغ</span>
-          <span className="text-border text-xs">|</span>
-          <span className="text-text-muted text-xs hidden sm:block">لوحة التحكم</span>
-        </div>
-
         {/* Locality picker */}
         <LocalityPicker selected={locality} onSelect={setLocality} />
 

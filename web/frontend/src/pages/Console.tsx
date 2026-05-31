@@ -12,6 +12,8 @@ import LiveIndicator from '../components/LiveIndicator';
 import StatChip from '../components/StatChip';
 import Spinner from '../components/Spinner';
 import ErrorState from '../components/ErrorState';
+import Drawer from '../components/Drawer';
+import IncidentDetail from '../features/incident/IncidentDetail';
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 20];
 const DEFAULT_RADIUS = 5;
@@ -48,6 +50,8 @@ export default function Console() {
 
   const activeCount = incidents.filter((i) => !i.resolvedAt).length;
   const criticalCount = incidents.filter((i) => i.severity === 'critical' && !i.resolvedAt).length;
+
+  const selectedIncident = incidents.find((i) => i.id === selectedId);
 
   return (
     <div className="flex flex-col h-screen bg-bg text-text-primary overflow-hidden">
@@ -144,6 +148,17 @@ export default function Console() {
           />
         </main>
       </div>
+
+      {/* Detail drawer */}
+      <Drawer
+        open={selectedId !== null}
+        onClose={() => setSelectedId(null)}
+        title={selectedIncident
+          ? `حادثة ${selectedIncident.ref}`
+          : 'تفاصيل الحادثة'}
+      >
+        {selectedId && <IncidentDetail incidentId={selectedId} />}
+      </Drawer>
     </div>
   );
 }

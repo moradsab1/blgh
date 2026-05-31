@@ -676,4 +676,3 @@ Each item lists the **backend capability** it is blocked on, so the dashboard wo
 | Abuse Detection (threat scores, 4-eyes) | velocity/anomaly scoring + policy engine + dual-approval workflow |
 | RBAC + three-tier theming switch | role-based auth (sessions, roles) replacing the single ADMIN_TOKEN |
 | Audit log | append-only signed audit endpoint |
-```

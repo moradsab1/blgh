@@ -7,8 +7,10 @@ exports[`Design tokens snapshot — palette is stable 1`] = `
   "border": "#334155",
   "card": "#1E293B",
   "cardElevated": "#263347",
+  "crisisAccent": "#B91C1C",
   "error": "#DC2626",
   "overlay": "rgba(11, 18, 32, 0.8)",
+  "reportAccent": "#F97316",
   "severity": {
     "critical": "#DC2626",
     "high": "#EA580C",

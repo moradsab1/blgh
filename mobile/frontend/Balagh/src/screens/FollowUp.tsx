@@ -4,11 +4,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Linking,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button } from '../core/theme/components';
 import { color, space, radius, fontSize } from '../core/theme/tokens';
 import { ChevronLeft } from '../core/icons';
@@ -121,11 +121,20 @@ export default function FollowUpScreen({ navigation, route }: Props): React.Reac
   const set = <K extends keyof Details>(key: K, value: Details[K]): void =>
     setDetails(prev => ({ ...prev, [key]: value }));
 
+  // Internal sub-screen back: details/resources → gate, gate → parent stack
+  const handleBack = (): void => {
+    if (screen === 'gate') {
+      navigation.goBack();
+    } else {
+      setScreen('gate');
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={color.bg} />
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
+        <Pressable onPress={handleBack} hitSlop={12} style={styles.backBtn}>
           <ChevronLeft size={20} color={color.textPrimary} />
         </Pressable>
         <Text variant="heading" style={styles.headerTitle}>{s.followup.title}</Text>
@@ -232,9 +241,12 @@ export default function FollowUpScreen({ navigation, route }: Props): React.Reac
             </Pressable>
           </View>
 
-          <View style={[styles.resourceCard, styles.resourceCardLast]}>
+          <View style={[styles.resourceCard, styles.resourceCardLast, styles.civilCard]}>
             <View style={styles.resourceInfo}>
               <Text variant="label">{s.followup.civilLabel}</Text>
+              <Text secondary variant="caption" style={styles.civilNote}>
+                {s.followup.civilNote}
+              </Text>
             </View>
           </View>
 
@@ -319,6 +331,13 @@ const styles = StyleSheet.create({
     borderColor: color.border,
   },
   resourceCardLast: { borderBottomWidth: StyleSheet.hairlineWidth },
+  civilCard: {
+    alignItems: 'flex-start',
+  },
+  civilNote: {
+    lineHeight: 18,
+    marginTop: 2,
+  },
   resourceInfo: { flex: 1, gap: 4 },
   resourceNumber: {
     fontSize: fontSize.xl,

@@ -5,10 +5,10 @@ import {
   Easing,
   Pressable,
   StyleSheet,
-  SafeAreaView,
   Share,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button } from '../core/theme/components';
 import { color, space, radius, font, fontSize, motion } from '../core/theme/tokens';
 import { Check } from '../core/icons';
@@ -45,7 +45,7 @@ export default function ReportSuccessScreen({ navigation, route }: Props): React
   };
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={color.bg} />
       <View style={styles.content}>
         <Animated.View style={[styles.checkCircle, { transform: [{ scale }] }]}>
@@ -72,6 +72,12 @@ export default function ReportSuccessScreen({ navigation, route }: Props): React
       </View>
 
       <View style={styles.footer}>
+        <Button
+          label={s.followup.followUpCta}
+          variant="secondary"
+          fullWidth
+          onPress={() => navigation.navigate('FollowUp', { ref })}
+        />
         <Button
           label={s.report.backToMap}
           variant="primary"
@@ -130,5 +136,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: space(2),
     paddingBottom: space(3),
+    gap: space(1),
   },
 });

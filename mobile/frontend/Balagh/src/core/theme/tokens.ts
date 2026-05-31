@@ -7,6 +7,11 @@ export const color = {
   textSecondary: '#94A3B8',
   textMuted: '#64748B',
   accent: '#DC2626',
+  // Report FAB / call-to-action color, distinct from critical/danger red so a
+  // demo viewer can read "I want to file a report" vs "active threat".
+  reportAccent: '#F97316',
+  // Crisis-mode chrome accent, deeper than `accent` to read as "emergency".
+  crisisAccent: '#B91C1C',
   overlay: 'rgba(11, 18, 32, 0.8)',
   severity: {
     critical: '#DC2626',

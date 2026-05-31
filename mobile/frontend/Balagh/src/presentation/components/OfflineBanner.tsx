@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Platform } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '../../core/theme/components';
 import { color, space, fontSize } from '../../core/theme/tokens';
 import { strings } from '../../core/strings';
@@ -24,6 +25,7 @@ const RECONNECT_TOAST_MS = 3000;
 // root so every screen inherits it.
 const OfflineBanner = (): React.ReactElement | null => {
   const { lang } = useLangStore();
+  const insets = useSafeAreaInsets();
   const o = strings[lang].offline;
   const isConnected = useNetStore(s => s.isConnected);
   const wasOffline = useNetStore(s => s.wasOffline);
@@ -71,7 +73,7 @@ const OfflineBanner = (): React.ReactElement | null => {
       pointerEvents="none"
       style={[
         styles.banner,
-        { opacity, backgroundColor: isOffline ? color.textMuted : color.success },
+        { top: insets.top, opacity, backgroundColor: isOffline ? color.textMuted : color.success },
       ]}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite">
@@ -85,7 +87,6 @@ const OfflineBanner = (): React.ReactElement | null => {
 const styles = StyleSheet.create({
   banner: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 52 : 0,
     left: 0,
     right: 0,
     paddingHorizontal: space(2),

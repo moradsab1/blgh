@@ -3,14 +3,15 @@ import {
   View,
   Pressable,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../../core/theme/components';
 import { color, space } from '../../core/theme/tokens';
 import { ChevronLeft } from '../../core/icons';
 import { CategoryGrid } from '../../presentation/components/CategoryGrid';
+import CrisisModeBadge from '../../presentation/components/CrisisModeBadge';
 import { useLangStore } from '../../domain/stores/lang';
 import { strings } from '../../core/strings';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -24,8 +25,9 @@ export default function CrisisCategoryScreen({ navigation }: Props): React.React
   const s = strings[lang];
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={color.bg} />
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={color.crisisAccent} />
+      <CrisisModeBadge />
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
           <ChevronLeft size={20} color={color.textPrimary} />

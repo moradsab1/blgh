@@ -47,7 +47,7 @@ import { computeStatus, haversineKm } from '../domain/status';
 import { db, LOCALITIES } from '../data/mock/db';
 import { wsEventEmitter, startMockEmitter, stopMockEmitter } from '../data/mock/eventEmitter';
 import store, { StorageKeys } from '../core/storage';
-import type { Incident, SafetyState } from '../core/types';
+import type { Incident, SafetyState, AppNotification } from '../core/types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -324,6 +324,9 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
   const [mapKey, setMapKey] = useState(0);
   const [mapError, setMapError] = useState(false);
   const [pulseOpaque, setPulseOpaque] = useState(true);
+  // Live unread-incident counter so the toolbar bell shows a real-time badge
+  // when the mock emitter creates a new incident or notification.
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Animation timestamp for GeoJSON opacity calculation
   const [animNow, setAnimNow] = useState(() => Date.now());
@@ -551,9 +554,9 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
     const unsub = wsEventEmitter.subscribe(event => {
       if (event.t === 'incident.created') {
         const inc = event.incident;
-        db.incidents.add(inc);
         newIdsRef.current.set(inc.id, Date.now());
         setIncidents(db.incidents.getAll());
+        setUnreadCount(c => c + 1);
         haptics.impact();
       } else if (event.t === 'incident.resolved') {
         db.incidents.resolve(event.id);
@@ -561,6 +564,9 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         setIncidents(db.incidents.getAll());
       } else if (event.t === 'status.changed') {
         setSafetyState(event.state as SafetyState);
+      } else if (event.t === 'notification.new') {
+        // Bump the bell badge so demo viewers see the inbox come alive.
+        setUnreadCount(c => c + 1);
       }
     });
     return unsub;
@@ -892,10 +898,20 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         ]}>
         <TouchableOpacity
           style={styles.toolbarBtn}
-          onPress={() => navigation.navigate('Inbox')}
+          onPress={() => {
+            setUnreadCount(0);
+            navigation.navigate('Inbox');
+          }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           testID="toolbar-inbox-btn">
           <Text style={styles.toolbarIcon}>🔔</Text>
+          {unreadCount > 0 && (
+            <View style={styles.badge} testID="toolbar-inbox-badge">
+              <Text style={styles.badgeText}>
+                {unreadCount > 9 ? '9+' : String(unreadCount)}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.toolbarBtn}
@@ -912,11 +928,11 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           style={[styles.deniedBanner, { top: insets.top + space(1) + 48 }]}
           testID="location-denied-banner">
           <Text style={styles.deniedBannerText}>
-            لم تُمنح صلاحية الموقع —{' '}
+            {s.map.locationDenied} —{' '}
           </Text>
           <TouchableOpacity onPress={() => Linking.openSettings()}>
             <Text style={[styles.deniedBannerText, styles.deniedBannerLink]}>
-              الإعدادات
+              {s.map.locationDeniedAction}
             </Text>
           </TouchableOpacity>
         </View>
@@ -927,7 +943,8 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         <TouchableOpacity
           style={[
             styles.recenterFab,
-            { bottom: insets.bottom + space(10) + space(2) },
+            // Lifted clear of the action tray height (~80) on short devices.
+            { bottom: insets.bottom + 96 + space(2) },
           ]}
           onPress={handleRecenter}
           activeOpacity={0.8}
@@ -952,11 +969,17 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           <Text style={styles.feedPillIcon}>📰</Text>
         </TouchableOpacity>
 
-        {/* Report FAB */}
+        {/* Report FAB — long-press routes to the Crisis fast-path. */}
         <Animated.View style={{ transform: [{ scale: breatheAnim }] }}>
           <TouchableOpacity
             style={styles.reportFab}
             onPress={() => navigation.navigate('ReportCategory')}
+            onLongPress={() => {
+              haptics.impact();
+              navigation.navigate('CrisisReassure');
+            }}
+            delayLongPress={350}
+            accessibilityHint={s.map.longPressForCrisis}
             activeOpacity={0.8}
             testID="report-fab">
             <Text style={styles.reportFabIcon}>🚨</Text>
@@ -1033,6 +1056,26 @@ const styles = StyleSheet.create({
   toolbarIcon: {
     fontSize: 20,
   },
+  badge: {
+    position: 'absolute',
+    top: 2,
+    right: 0,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: color.accent,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: color.bg,
+  },
+  badgeText: {
+    color: color.textPrimary,
+    fontSize: 10,
+    fontFamily: font.arabicSemiBold,
+    lineHeight: 12,
+  },
 
   // Denied banner
   deniedBanner: {
@@ -1108,10 +1151,15 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: color.accent,
+    backgroundColor: color.reportAccent,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: space(1),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   reportFabIcon: {
     fontSize: 28,

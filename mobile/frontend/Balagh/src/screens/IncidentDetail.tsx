@@ -21,7 +21,7 @@ import MapboxGL from '@rnmapbox/maps';
 import type { IncidentDetailProps } from '../navigation/types';
 import { color, fontSize, font, radius, space, formatNumber } from '../core/theme/tokens';
 import { Text, SeverityPill, Button } from '../core/theme/components';
-import { CATEGORY_ICON } from '../core/icons';
+import { CATEGORY_ICON, MessageCircle } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
 import { relativeTime } from '../core/format/time';
 import { haptics } from '../core/haptics';
@@ -186,7 +186,8 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
         <Text style={styles.description}>{incident.description}</Text>
       ) : null}
 
-      {/* Non-interactive 140 pt map snippet */}
+      {/* Non-interactive 140 pt map snippet. Attribution kept on to comply
+          with Mapbox ToS even though the snippet is a static preview. */}
       <View style={styles.snippet} pointerEvents="none" testID="detail-map-snippet">
         <MapboxGL.MapView
           style={StyleSheet.absoluteFill}
@@ -196,7 +197,7 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
           rotateEnabled={false}
           pitchEnabled={false}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          {...({ logoEnabled: false, attributionEnabled: false, compassEnabled: false } as any)}>
+          {...({ compassEnabled: false } as any)}>
           <MapboxGL.Camera
             centerCoordinate={[incident.lng, incident.lat]}
             zoomLevel={14}
@@ -282,7 +283,13 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text secondary style={styles.noComments}>{s.detail.noComments}</Text>
+          <View style={styles.noCommentsBox}>
+            <MessageCircle size={28} />
+            <Text secondary style={styles.noCommentsTitle}>{s.detail.noComments}</Text>
+            <Text muted variant="caption" style={styles.noCommentsSub}>
+              {s.detail.composerPlaceholder}
+            </Text>
+          </View>
         }
       />
 
@@ -388,8 +395,20 @@ const styles = StyleSheet.create({
     marginTop: space(2.5),
     marginBottom: space(0.5),
   },
-  noComments: {
-    paddingVertical: space(2),
+  noCommentsBox: {
+    alignItems: 'center',
+    paddingVertical: space(3),
+    gap: space(0.75),
+    backgroundColor: color.card,
+    borderRadius: radius.md,
+    paddingHorizontal: space(2),
+  },
+  noCommentsTitle: {
+    textAlign: 'center',
+  },
+  noCommentsSub: {
+    textAlign: 'center',
+    paddingHorizontal: space(2),
   },
   comment: {
     flexDirection: 'row',

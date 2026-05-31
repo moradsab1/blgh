@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Animated,
   FlatList,
+  RefreshControl,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -20,8 +21,9 @@ import {
 import type { FeedProps } from '../navigation/types';
 import { color, fontSize, font, radius, space } from '../core/theme/tokens';
 import { Text, SeverityPill, Chip } from '../core/theme/components';
-import { Search, Bookmark, MessageCircle, CATEGORY_ICON } from '../core/icons';
+import { Search, BookmarkFilled, BookmarkOutline, MessageCircle, CATEGORY_ICON } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
+import { FeedSkeleton } from '../presentation/components/Skeleton';
 import { relativeTime } from '../core/format/time';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
@@ -35,7 +37,11 @@ import type { Incident } from '../core/types';
 
 const repo = new MockIncidentRepo();
 
-type FilterKey = 'all' | 'reports' | 'safety' | 'mediation' | 'initiatives';
+// Only the filters with real seeded content are surfaced; "Safety tips",
+// "Mediation", and "Initiatives" were always-empty dead UI before content
+// exists to back them.
+type FilterKey = 'all' | 'reports';
+const FILTERS: FilterKey[] = ['all', 'reports'];
 
 const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   const { lang } = useLangStore();
@@ -46,11 +52,29 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   const [filter, setFilter] = useState<FilterKey>('all');
   const [, setTick] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const toastOpacity = useMemo(() => new Animated.Value(0), []);
 
   const bookmarks = useBookmarksStore();
 
   const refresh = useCallback(() => setIncidents(db.incidents.getAll()), []);
+
+  // Brief skeleton flash on first mount so the list reads as actively loading
+  // even when mock data is instantly available.
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 320);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    haptics.toggle();
+    setTimeout(() => {
+      refresh();
+      setRefreshing(false);
+    }, 600);
+  }, [refresh]);
 
   // Live updates from the shared mock db keep feed ↔ map in sync.
   useEffect(() => {
@@ -81,9 +105,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   );
 
   const visible = useMemo(() => {
-    // Only "all" and "reports" surface incident data in the mock; the other
-    // filters (safety/mediation/initiatives) have no seeded content yet.
-    let list = filter === 'all' || filter === 'reports' ? incidents : [];
+    let list = incidents;
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -94,7 +116,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
       );
     }
     return list;
-  }, [incidents, filter, query, s]);
+  }, [incidents, query, s]);
 
   const handleVote = useCallback(
     async (incident: Incident, vote: 'confirm' | 'deny') => {
@@ -196,10 +218,11 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
               }}
               testID={`feed-bookmark-${item.id}`}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Bookmark
-                size={18}
-                style={isBookmarked ? styles.bookmarkActive : styles.bookmarkInactive}
-              />
+              {isBookmarked ? (
+                <BookmarkFilled size={20} color={color.severity.medium} />
+              ) : (
+                <BookmarkOutline size={20} color={color.textMuted} />
+              )}
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -232,7 +255,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
           />
         </View>
         <View style={styles.chipsRow}>
-          {(['all', 'reports', 'safety', 'mediation', 'initiatives'] as FilterKey[]).map(key => (
+          {FILTERS.map(key => (
             <Chip
               key={key}
               label={s.feed.filters[key]}
@@ -248,21 +271,33 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
         </View>
       </View>
 
-      <FlatList
-        data={visible}
-        keyExtractor={item => item.id}
-        renderItem={renderCard}
-        contentContainerStyle={styles.list}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.empty} testID="feed-empty">
-            <Text style={styles.emptyIcon}>🛡️</Text>
-            <Text secondary style={styles.emptyTitle}>{s.feed.empty}</Text>
-            <Text muted variant="caption" style={styles.emptySub}>{s.feed.emptySub}</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <FeedSkeleton />
+      ) : (
+        <FlatList
+          data={visible}
+          keyExtractor={item => item.id}
+          renderItem={renderCard}
+          contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={color.textSecondary}
+              colors={[color.accent]}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.empty} testID="feed-empty">
+              <Text style={styles.emptyIcon}>🛡️</Text>
+              <Text secondary style={styles.emptyTitle}>{s.feed.empty}</Text>
+              <Text muted variant="caption" style={styles.emptySub}>{s.feed.emptySub}</Text>
+            </View>
+          }
+        />
+      )}
 
       {toast ? (
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
@@ -363,12 +398,6 @@ const styles = StyleSheet.create({
   },
   spacer: {
     flex: 1,
-  },
-  bookmarkActive: {
-    opacity: 1,
-  },
-  bookmarkInactive: {
-    opacity: 0.4,
   },
   empty: {
     alignItems: 'center',

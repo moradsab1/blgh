@@ -4,9 +4,9 @@ import {
   View,
   Pressable,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../core/theme/components';
 import { color, space, fontSize } from '../core/theme/tokens';
 import { ChevronLeft, Shield, Siren, Check, Radio, MessageCircle } from '../core/icons';
@@ -15,6 +15,7 @@ import { useLangStore } from '../domain/stores/lang';
 import { strings } from '../core/strings';
 import { MockNotificationRepo } from '../data/mock/MockNotificationRepo';
 import { wsEventEmitter } from '../data/mock/eventEmitter';
+import { db } from '../data/mock/db';
 import { groupNotifications } from '../domain/utils/notifications';
 import { relativeTime } from '../core/format/time';
 import type { AppNotification, WsEvent } from '../core/types';
@@ -100,14 +101,14 @@ export default function InboxScreen({ navigation }: Props): React.ReactElement {
         prev.map(n => n.id === item.id ? { ...n, read: true } : n),
       );
     }
-    if (item.incidentRef) {
-      const incident = notifications.find(n => n.incidentRef === item.incidentRef);
-      if (incident) {
-        // Navigate to incident detail if we have an id — use ref as fallback id
-        navigation.navigate('IncidentDetail', { id: item.incidentRef });
-      }
+    if (!item.incidentRef) return;
+    // Resolve the incident's numeric id from the ref so IncidentDetail's
+    // by-id lookup succeeds (refs like BLG-XXXXXX are not valid ids).
+    const incident = db.incidents.getAll().find(i => i.ref === item.incidentRef);
+    if (incident) {
+      navigation.navigate('IncidentDetail', { id: incident.id });
     }
-  }, [navigation, notifications]);
+  }, [navigation]);
 
   const handleMarkAllRead = useCallback(async () => {
     await repo.markAllRead();

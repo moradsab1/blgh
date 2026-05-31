@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import { View, StyleSheet, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button } from '../../core/theme/components';
 import { color, space, fontSize } from '../../core/theme/tokens';
 import { Siren } from '../../core/icons';
 import { useLangStore } from '../../domain/stores/lang';
 import { strings } from '../../core/strings';
+import CrisisModeBadge from '../../presentation/components/CrisisModeBadge';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 
@@ -15,8 +17,9 @@ export default function CrisisReassureScreen({ navigation }: Props): React.React
   const s = strings[lang];
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={color.bg} />
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={color.crisisAccent} />
+      <CrisisModeBadge />
       <View style={styles.content}>
         <Siren size={72} />
         <Text variant="heading" style={[styles.title, { fontSize: fontSize.xl }]}>

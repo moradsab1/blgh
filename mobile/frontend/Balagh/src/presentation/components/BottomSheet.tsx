@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { color, radius, space } from '../../core/theme/tokens';
 import { useReduceMotion } from '../../core/a11y/useReduceMotion';
+import { strings } from '../../core/strings';
+import { useLangStore } from '../../domain/stores/lang';
 
 // ── BottomSheet ─────────────────────────────────────────────────────────────
 // A draggable bottom sheet built with plain RN Animated + PanResponder
@@ -35,6 +37,7 @@ export const BottomSheet = ({
   testID,
 }: BottomSheetProps): React.ReactElement => {
   const reduceMotion = useReduceMotion();
+  const { lang } = useLangStore();
   const screenH = Dimensions.get('window').height;
 
   const sorted = useMemo(
@@ -56,16 +59,28 @@ export const BottomSheet = ({
   const currentSnapRef = useRef(sorted[startIndex]);
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
+  // Spring gives the sheet a native, organic snap rather than the mechanical
+  // feel of linear timing — measurable difference next to UIKit sheets.
   const animateTo = (toValue: number, opacity: number): void => {
+    if (reduceMotion) {
+      translateY.setValue(toValue);
+      backdropOpacity.setValue(opacity);
+      return;
+    }
     Animated.parallel([
-      Animated.timing(translateY, {
+      Animated.spring(translateY, {
         toValue,
-        duration: reduceMotion ? 0 : 240,
         useNativeDriver: true,
+        damping: 22,
+        stiffness: 240,
+        mass: 1,
+        overshootClamping: false,
+        restDisplacementThreshold: 0.5,
+        restSpeedThreshold: 0.5,
       }),
       Animated.timing(backdropOpacity, {
         toValue: opacity,
-        duration: reduceMotion ? 0 : 240,
+        duration: 240,
         useNativeDriver: true,
       }),
     ]).start();
@@ -151,7 +166,7 @@ export const BottomSheet = ({
           onPress={dismiss}
           testID="bottomsheet-backdrop"
           accessibilityRole="button"
-          accessibilityLabel="إغلاق"
+          accessibilityLabel={strings[lang].common.close}
         />
       </Animated.View>
 

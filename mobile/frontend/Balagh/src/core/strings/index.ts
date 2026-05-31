@@ -54,6 +54,9 @@ const ar = {
     status: { calm: 'هادئ', watch: 'يقظة', active: 'خطر نشط' },
     feed: 'قائمة الحوادث',
     report: 'بلاغ',
+    locationDenied: 'لم تُمنح صلاحية الموقع',
+    locationDeniedAction: 'الإعدادات',
+    longPressForCrisis: 'اضغط مطولاً للبلاغ الفوري',
   },
   report: {
     title: 'أبلغ عن حادثة',
@@ -69,6 +72,7 @@ const ar = {
     backToMap: 'العودة إلى الخريطة',
   },
   crisis: {
+    modeBadge: 'وضع الطوارئ',
     reassureTitle: 'بلاغ فوري',
     reassureSubtitle: 'معلوماتك مجهولة المصدر تماماً ولا تُشارك مع أي جهة',
     reassureCta: 'ابلّغ الآن',
@@ -182,9 +186,11 @@ const ar = {
     resourcesNote: 'لن نسألك أي أسئلة إضافية. سلامتك تأتي أولاً.',
     mdaLabel: 'إسعاف مدى (MDA)',
     mdaNumber: '101',
-    civilLabel: 'تواصل مع اللجنة الأهلية في بلدتك',
+    civilLabel: 'اللجنة الأهلية في بلدتك',
+    civilNote: 'تواصل مع لجنة الحي المحلية للمتابعة المجتمعية والدعم',
     done: 'العودة إلى الخريطة',
     call: 'اتصال',
+    followUpCta: 'متابعة البلاغ',
   },
   common: {
     retry: 'إعادة المحاولة',
@@ -298,6 +304,9 @@ const he: typeof ar = {
     status: { calm: 'רגוע', watch: 'ערנות', active: 'סכנה פעילה' },
     feed: 'רשימת אירועים',
     report: 'דיווח',
+    locationDenied: 'הרשאת מיקום לא ניתנה',
+    locationDeniedAction: 'הגדרות',
+    longPressForCrisis: 'לחץ לחיצה ארוכה לדיווח מיידי',
   },
   report: {
     title: 'דווח על אירוע',
@@ -313,6 +322,7 @@ const he: typeof ar = {
     backToMap: 'חזרה למפה',
   },
   crisis: {
+    modeBadge: 'מצב חירום',
     reassureTitle: 'דיווח מיידי',
     reassureSubtitle: 'המידע שלך אנונימי לחלוטין ואינו משותף עם אף גורם',
     reassureCta: 'דווח עכשיו',
@@ -415,9 +425,11 @@ const he: typeof ar = {
     resourcesNote: 'לא נשאל שאלות נוספות. הבטיחות שלך קודמת.',
     mdaLabel: 'מגן דוד אדום (MDA)',
     mdaNumber: '101',
-    civilLabel: 'פנה לוועד המקומי בישובך',
+    civilLabel: 'ועד מקומי ביישובך',
+    civilNote: 'פנה לוועד השכונה למעקב קהילתי ולתמיכה',
     done: 'חזרה למפה',
     call: 'חייג',
+    followUpCta: 'מעקב אחר הדיווח',
   },
   common: {
     retry: 'נסה שוב',
@@ -531,6 +543,9 @@ const en: typeof ar = {
     status: { calm: 'Calm', watch: 'Watch', active: 'Active Danger' },
     feed: 'Incident Feed',
     report: 'Report',
+    locationDenied: 'Location permission not granted',
+    locationDeniedAction: 'Settings',
+    longPressForCrisis: 'Long press for immediate report',
   },
   report: {
     title: 'Report an Incident',
@@ -546,6 +561,7 @@ const en: typeof ar = {
     backToMap: 'Back to Map',
   },
   crisis: {
+    modeBadge: 'Emergency Mode',
     reassureTitle: 'Emergency Report',
     reassureSubtitle: 'Your information is completely anonymous and will not be shared with any authority',
     reassureCta: 'Report Now',
@@ -648,9 +664,11 @@ const en: typeof ar = {
     resourcesNote: 'We will not ask any further questions. Your safety comes first.',
     mdaLabel: 'Magen David Adom (MDA)',
     mdaNumber: '101',
-    civilLabel: 'Contact your local community committee',
+    civilLabel: 'Local Community Committee',
+    civilNote: 'Reach out to your neighborhood committee for community follow-up and support',
     done: 'Back to Map',
     call: 'Call',
+    followUpCta: 'Follow up on report',
   },
   common: {
     retry: 'Retry',

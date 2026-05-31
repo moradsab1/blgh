@@ -63,7 +63,12 @@ export const Mail = makeIcon('✉️', false);
 export const Copy = makeIcon('📋', false);
 export const Newspaper = makeIcon('📰', false);
 export const Siren = makeIcon('🚨', false);
-export const Bookmark = makeIcon('🔖', false);
+// Mono bookmark glyphs so the active/inactive color difference is visible.
+// Emoji ignore the color prop, so we pair a filled vs outline character with
+// an explicit color difference instead of relying on opacity alone.
+export const Bookmark = makeIcon('★', true);
+export const BookmarkFilled = makeIcon('★', true);
+export const BookmarkOutline = makeIcon('☆', true);
 export const MessageCircle = makeIcon('💬', false);
 export const Compass = makeIcon('🧭', false);
 export const Settings = makeIcon('⚙️', false);

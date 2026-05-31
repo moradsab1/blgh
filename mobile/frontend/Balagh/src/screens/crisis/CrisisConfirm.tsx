@@ -2,15 +2,16 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   ActivityIndicator,
   Pressable,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapboxGL from '@rnmapbox/maps';
 import { Text, Button } from '../../core/theme/components';
 import { color, space, radius } from '../../core/theme/tokens';
 import { CATEGORY_ICON, ChevronLeft } from '../../core/icons';
+import CrisisModeBadge from '../../presentation/components/CrisisModeBadge';
 import { useLangStore } from '../../domain/stores/lang';
 import { strings } from '../../core/strings';
 import { MockIncidentRepo } from '../../data/mock/MockIncidentRepo';
@@ -74,8 +75,9 @@ export default function CrisisConfirmScreen({ navigation, route }: Props): React
   const tint = SEVERITY_TINT[category];
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={color.bg} />
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={color.crisisAccent} />
+      <CrisisModeBadge />
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
           <ChevronLeft size={20} color={color.textPrimary} />
@@ -91,9 +93,7 @@ export default function CrisisConfirmScreen({ navigation, route }: Props): React
           rotateEnabled={false}
           pitchEnabled={false}
           scrollEnabled={false}
-          zoomEnabled={false}
-          logoEnabled={false}
-          attributionEnabled={false}>
+          zoomEnabled={false}>
           <MapboxGL.Camera
             centerCoordinate={[coords.lng, coords.lat]}
             zoomLevel={14}

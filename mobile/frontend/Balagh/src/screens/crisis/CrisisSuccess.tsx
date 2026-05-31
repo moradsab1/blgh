@@ -5,13 +5,14 @@ import {
   Easing,
   Pressable,
   StyleSheet,
-  SafeAreaView,
   Share,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button } from '../../core/theme/components';
 import { color, space, radius, font, fontSize, motion } from '../../core/theme/tokens';
 import { Check } from '../../core/icons';
+import CrisisModeBadge from '../../presentation/components/CrisisModeBadge';
 import { useLangStore } from '../../domain/stores/lang';
 import { strings } from '../../core/strings';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -45,8 +46,9 @@ export default function CrisisSuccessScreen({ navigation, route }: Props): React
   };
 
   return (
-    <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={color.bg} />
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={color.crisisAccent} />
+      <CrisisModeBadge />
       <View style={styles.content}>
         <Animated.View style={[styles.checkCircle, { transform: [{ scale }] }]}>
           <Check size={48} color="#fff" />

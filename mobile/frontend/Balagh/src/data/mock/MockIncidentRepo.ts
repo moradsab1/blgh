@@ -3,6 +3,7 @@ import type { Incident, Comment } from '../../core/types';
 import { db } from './db';
 import { wsEventEmitter } from './eventEmitter';
 import { deriveEmojis, getPublicKeyHex } from '../../core/identity';
+import store, { StorageKeys } from '../../core/storage';
 
 const sleep = (ms: number): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, ms));
@@ -43,6 +44,7 @@ export class MockIncidentRepo implements IIncidentRepository {
     await sleep(latency());
     const id = String(Date.now());
     const ref = `BLG-${(++_refCounter).toString(36).toUpperCase().padStart(6, '0')}`;
+    const localityId = store.getString(StorageKeys.LOCALITY_ID) ?? 'umm-al-fahm';
     const incident: Incident = {
       id,
       ref,
@@ -51,7 +53,7 @@ export class MockIncidentRepo implements IIncidentRepository {
       description,
       lat,
       lng,
-      localityId: 'umm-al-fahm',
+      localityId,
       createdAt: new Date().toISOString(),
       confirmations: 0,
       denials: 0,

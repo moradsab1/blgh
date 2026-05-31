@@ -15,6 +15,7 @@ import ErrorState from '../components/ErrorState';
 import Drawer from '../components/Drawer';
 import IncidentDetail from '../features/incident/IncidentDetail';
 import { useAdminActions } from '../features/incident/useAdminActions';
+import OfflineBanner from '../components/OfflineBanner';
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 20];
 const DEFAULT_RADIUS = 5;
@@ -67,6 +68,9 @@ export default function Console() {
 
   return (
     <div className="flex flex-col h-screen bg-bg text-text-primary overflow-hidden">
+      {/* Offline banner */}
+      <OfflineBanner visible={hasLocality && wsState === 'offline'} />
+
       {/* Header */}
       <header className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-border bg-surface">
         {/* Brand */}

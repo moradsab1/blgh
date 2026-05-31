@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+/* CSS custom properties for tier theming */
+:root {
+  --accent: #A83231; /* Council-Private default */
+  --font-arabic: 'IBM Plex Sans Arabic', sans-serif;
+  --font-sans: 'Inter', 'IBM Plex Sans Arabic', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+[data-tier="council"]  { --accent: #A83231; }
+[data-tier="coalition"] { --accent: #5A6E3F; }
+[data-tier="operator"]  { --accent: #1F2818; }
+
+/* RTL base reset */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background-color: #0E1116;
+  color: #E6EDF3;
+  font-family: var(--font-arabic);
+  direction: rtl;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #161B22; }
+::-webkit-scrollbar-thumb { background: #2A323D; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #404B5A; }
+
+/* MapLibre canvas full-size */
+.maplibregl-canvas { display: block; }
+.maplibregl-map { font-family: var(--font-arabic) !important; }

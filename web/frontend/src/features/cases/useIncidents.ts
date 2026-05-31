@@ -5,6 +5,7 @@ import { USE_MOCK } from '../../config';
 import { mockApi } from '../../mock/mockApi';
 import { api } from '../../lib/api';
 import { createWsClient } from '../../lib/ws';
+import { getToken } from '../../auth/token';
 import type { Incident, WsEvent } from '../../lib/contracts';
 
 function getDeviceId(): string {
@@ -17,7 +18,9 @@ function getDeviceId(): string {
 
 async function fetchIncidents(lat: number | null, lng: number | null, radiusKm: number): Promise<Incident[]> {
   if (USE_MOCK) return mockApi.getIncidents(lat, lng, radiusKm);
-  if (lat === null || lng === null) return [];
+  // No locality selected → global view (all active incidents)
+  if (lat === null || lng === null) return api.get<Incident[]>('/incidents');
+  // Locality selected → geo-scoped view
   return api.get<Incident[]>(`/incidents?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`);
 }
 
@@ -35,16 +38,17 @@ export function useIncidents({ lat, lng, radiusKm, onWsState }: Params) {
   const query = useQuery({
     queryKey: qk.incidents(lat ?? 0, lng ?? 0, radiusKm),
     queryFn: () => fetchIncidents(lat, lng, radiusKm),
-    // Always fetch in mock (global view); require coords in real mode
-    enabled: USE_MOCK || hasCoords,
+    enabled: true,
+    // Poll for new incidents created by mobile/backend (cross-process; no live push)
+    refetchInterval: USE_MOCK ? false : 20_000,
   });
 
   // WebSocket → cache bridge (real mode only)
   useEffect(() => {
-    if (USE_MOCK || !hasCoords) return;
+    if (USE_MOCK) return;
 
     const handleEvent = (event: WsEvent) => {
-      const key = qk.incidents(lat!, lng!, radiusKm);
+      const key = qk.incidents(lat ?? 0, lng ?? 0, radiusKm);
 
       if (event.t === 'incident.created') {
         queryClient.setQueryData<Incident[]>(key, (prev = []) =>
@@ -68,7 +72,7 @@ export function useIncidents({ lat, lng, radiusKm, onWsState }: Params) {
         );
       }
       if (event.t === 'status.changed') {
-        queryClient.setQueryData(qk.status(lat!, lng!), {
+        queryClient.setQueryData(qk.status(lat ?? 0, lng ?? 0), {
           state: event.state,
           reason: event.reason,
         });
@@ -77,10 +81,13 @@ export function useIncidents({ lat, lng, radiusKm, onWsState }: Params) {
 
     const client = createWsClient({
       deviceId: getDeviceId(),
+      token: getToken() ?? undefined,
       onEvent: handleEvent,
       onStateChange: onWsState ?? (() => {}),
     });
-    client.subscribe({ lat: lat!, lng: lng!, radiusKm });
+    if (hasCoords) {
+      client.subscribe({ lat: lat!, lng: lng!, radiusKm });
+    }
 
     return () => client.destroy();
   }, [lat, lng, radiusKm, hasCoords, queryClient, onWsState]);

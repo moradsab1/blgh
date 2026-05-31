@@ -11,6 +11,7 @@ interface SubscribeFrame {
 
 interface WsOptions {
   deviceId: string;
+  token?: string; // operator Bearer token — sent in auth frame, never in URL
   onEvent: (event: WsEvent) => void;
   onStateChange: (state: WsState) => void;
 }
@@ -21,27 +22,49 @@ export function createWsClient(opts: WsOptions) {
   let backoff = 1000;
   let currentFrame: SubscribeFrame | null = null;
   let destroyed = false;
+  let authed = false;
+
+  function sendSubscribeIfReady() {
+    if (currentFrame && ws?.readyState === WebSocket.OPEN && authed) {
+      ws.send(JSON.stringify({ type: 'subscribe', ...currentFrame }));
+    }
+  }
 
   function connect() {
     if (destroyed) return;
+    authed = false;
     opts.onStateChange('reconnecting');
-    ws = new WebSocket(`${WS_URL}?deviceId=${opts.deviceId}`);
+    // Never put the token in the URL query string
+    ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
       backoff = 1000;
-      opts.onStateChange('connected');
-      if (currentFrame) {
-        ws?.send(JSON.stringify({ type: 'subscribe', ...currentFrame }));
+      if (opts.token) {
+        // Authenticate via first frame — token never leaves HTTP headers / WS frames
+        ws?.send(JSON.stringify({ type: 'auth', token: opts.token }));
+      } else {
+        authed = true;
+        opts.onStateChange('connected');
+        sendSubscribeIfReady();
       }
     };
 
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data as string) as { type?: string } & WsEvent;
-        if ('type' in msg && msg.type === 'ping') {
+
+        if (msg.type === 'auth_ok') {
+          authed = true;
+          opts.onStateChange('connected');
+          sendSubscribeIfReady();
+          return;
+        }
+
+        if (msg.type === 'ping') {
           ws?.send(JSON.stringify({ type: 'pong' }));
           return;
         }
+
         if ('t' in msg) {
           opts.onEvent(msg as WsEvent);
         }
@@ -69,9 +92,7 @@ export function createWsClient(opts: WsOptions) {
 
   function subscribe(frame: SubscribeFrame) {
     currentFrame = frame;
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'subscribe', ...frame }));
-    }
+    sendSubscribeIfReady();
   }
 
   function destroy() {

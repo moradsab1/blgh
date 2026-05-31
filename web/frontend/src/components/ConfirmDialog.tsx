@@ -40,7 +40,7 @@ export default function ConfirmDialog({
   return (
     <>
       <div
-        className="fixed inset-0 z-60 bg-black/60"
+        className="fixed inset-0 z-60 bg-slate-900/30 backdrop-blur-sm"
         aria-hidden="true"
         onClick={onCancel}
       />

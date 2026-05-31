@@ -19,17 +19,17 @@ export default function CasePage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-bg overflow-hidden">
       {/* Page header */}
-      <div className="flex-shrink-0 flex items-center gap-3 h-12 px-4 border-b border-white/5 bg-surface">
+      <div className="flex-shrink-0 flex items-center gap-3 h-14 px-4 border-b border-border bg-surface shadow-sm">
         <button
           onClick={() => navigate('/console')}
-          className="flex items-center gap-1.5 text-white/40 hover:text-white/70 text-xs transition-colors"
+          className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary text-xs transition-colors px-2 py-1 rounded-md hover:bg-surface-alt"
           aria-label="العودة إلى لوحة التحكم"
         >
           ← العودة
         </button>
-        <span className="text-white/20 text-xs">|</span>
-        <span className="text-xs text-white/50">تفاصيل الحادثة</span>
-        <span className="font-mono text-xs text-white/40">{id}</span>
+        <div className="w-px h-4 bg-border" />
+        <span className="text-xs text-text-muted">تفاصيل الحادثة</span>
+        <span className="font-mono text-xs text-text-secondary bg-surface-alt px-1.5 py-0.5 rounded">{id}</span>
       </div>
 
       {/* Detail (scrollable, full area) */}

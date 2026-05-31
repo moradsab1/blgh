@@ -34,7 +34,7 @@ export default function Drawer({ open, onClose, title, children }: Props) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/40"
+        className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm"
         aria-hidden="true"
         onClick={onClose}
       />

@@ -2,35 +2,57 @@
 
 /* CSS custom properties for tier theming */
 :root {
-  --accent: #C23B3A;
-  --accent-subtle: rgba(194, 59, 58, 0.15);
+  --accent:        #DC2626;
+  --accent-light:  rgba(220, 38, 38, 0.08);
+  --accent-border: rgba(220, 38, 38, 0.25);
   --font-arabic: 'IBM Plex Sans Arabic', sans-serif;
-  --font-sans: 'Inter', 'IBM Plex Sans Arabic', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans:   'Inter', 'IBM Plex Sans Arabic', sans-serif;
+  --font-mono:   'JetBrains Mono', monospace;
 }
 
-[data-tier="council"]   { --accent: #C23B3A; --accent-subtle: rgba(194,59,58,0.15); }
-[data-tier="coalition"] { --accent: #6A8B4A; --accent-subtle: rgba(106,139,74,0.15); }
-[data-tier="operator"]  { --accent: #2E4430; --accent-subtle: rgba(46,68,48,0.15); }
+[data-tier="council"]   {
+  --accent:        #DC2626;
+  --accent-light:  rgba(220,38,38,0.08);
+  --accent-border: rgba(220,38,38,0.25);
+}
+[data-tier="coalition"] {
+  --accent:        #16A34A;
+  --accent-light:  rgba(22,163,74,0.08);
+  --accent-border: rgba(22,163,74,0.25);
+}
+[data-tier="operator"]  {
+  --accent:        #2563EB;
+  --accent-light:  rgba(37,99,235,0.08);
+  --accent-border: rgba(37,99,235,0.25);
+}
 
 /* RTL base reset */
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background-color: #0D1117;
-  color: #E9F0F8;
+  background-color: #F1F5F9;
+  color: #0F172A;
   font-family: var(--font-arabic);
   direction: rtl;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Scrollbar styling */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #0D1117; }
-::-webkit-scrollbar-thumb { background: #2E3F58; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #3E5270; }
+::-webkit-scrollbar         { width: 5px; height: 5px; }
+::-webkit-scrollbar-track   { background: #F1F5F9; }
+::-webkit-scrollbar-thumb   { background: #CBD5E1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
 /* MapLibre canvas full-size */
 .maplibregl-canvas { display: block; }
-.maplibregl-map { font-family: var(--font-arabic) !important; }
+.maplibregl-map    { font-family: var(--font-arabic) !important; }
+
+/* MapLibre controls — restyle for light theme */
+.maplibregl-ctrl button {
+  background-color: #fff !important;
+  border: 1px solid #E2E8F0 !important;
+}
+.maplibregl-ctrl button:hover {
+  background-color: #F8FAFC !important;
+}

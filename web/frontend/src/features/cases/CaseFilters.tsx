@@ -20,7 +20,7 @@ interface Props {
 }
 
 function severityColor(s: Severity): string {
-  return ({ critical: '#E5484D', high: '#F76808', medium: '#FFB224', low: '#3B82F6' } as const)[s];
+  return ({ critical: '#DC2626', high: '#EA580C', medium: '#D97706', low: '#2563EB' } as const)[s];
 }
 
 export default function CaseFilters({ filters, onChange }: Props) {

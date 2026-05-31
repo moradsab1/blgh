@@ -1,10 +1,10 @@
 import type { Severity } from '../../lib/contracts';
 
 export const SEVERITY_COLOR: Record<Severity, string> = {
-  critical: '#E5484D',
-  high:     '#F76808',
-  medium:   '#FFB224',
-  low:      '#3B82F6',
+  critical: '#DC2626',
+  high:     '#EA580C',
+  medium:   '#D97706',
+  low:      '#2563EB',
 };
 
 export function pinColor(severity: Severity): string {
@@ -13,13 +13,17 @@ export function pinColor(severity: Severity): string {
 
 export function pinSvg(severity: Severity, selected = false): string {
   const fill = pinColor(severity);
-  const scale = selected ? 1.3 : 1;
-  const size = Math.round(28 * scale);
+  const scale = selected ? 1.25 : 1;
+  const size = Math.round(32 * scale);
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 28 28">
-      <circle cx="14" cy="14" r="10" fill="${fill}" opacity="0.25"/>
-      <circle cx="14" cy="14" r="6" fill="${fill}"/>
-      ${selected ? `<circle cx="14" cy="14" r="10" fill="none" stroke="${fill}" stroke-width="2"/>` : ''}
+    <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 32 32">
+      <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%">
+        <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="${fill}" flood-opacity="0.35"/>
+      </filter>
+      <circle cx="16" cy="16" r="11" fill="${fill}" opacity="0.18" filter="url(#shadow)"/>
+      <circle cx="16" cy="16" r="7" fill="${fill}"/>
+      <circle cx="16" cy="16" r="3" fill="white" opacity="0.9"/>
+      ${selected ? `<circle cx="16" cy="16" r="11" fill="none" stroke="${fill}" stroke-width="1.5" opacity="0.6"/>` : ''}
     </svg>
   `.trim();
 }

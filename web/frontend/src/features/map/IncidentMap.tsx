@@ -11,7 +11,7 @@ interface Props {
   onSelectIncident: (id: string) => void;
 }
 
-const TILE_URL = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const TILE_URL = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 
 export default function IncidentMap({ locality, incidents, selectedId, onSelectIncident }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -111,8 +111,8 @@ export default function IncidentMap({ locality, incidents, selectedId, onSelectI
         `}</style>
       )}
       <div
-        className="absolute bottom-4 start-4 text-xs text-text-muted bg-surface/80 rounded px-2 py-1"
-        style={{ backdropFilter: 'blur(4px)' }}
+        className="absolute bottom-4 start-4 text-xs text-text-secondary bg-white/90 rounded-lg px-2.5 py-1.5 shadow-card border border-border"
+        style={{ backdropFilter: 'blur(8px)' }}
       >
         {incidents.length} حادثة نشطة
       </div>

@@ -25,10 +25,10 @@ const SEVERITY_LABEL: Record<string, string> = {
 };
 
 const SEVERITY_COLOR: Record<string, string> = {
-  critical: '#E5484D',
-  high: '#F76808',
-  medium: '#FFB224',
-  low: '#3B82F6',
+  critical: '#DC2626',
+  high:     '#EA580C',
+  medium:   '#D97706',
+  low:      '#2563EB',
 };
 
 function formatDate(iso: string) {

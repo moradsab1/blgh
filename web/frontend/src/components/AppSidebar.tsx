@@ -12,27 +12,87 @@ interface Surface {
 }
 
 const TIER_COLOR: Record<Tier, string> = {
-  council:   '#C23B3A',
-  coalition: '#6A8B4A',
-  operator:  '#2E4430',
+  council:   '#DC2626',
+  coalition: '#16A34A',
+  operator:  '#2563EB',
+};
+
+const TIER_BG: Record<Tier, string> = {
+  council:   'rgba(220,38,38,0.08)',
+  coalition: 'rgba(22,163,74,0.08)',
+  operator:  'rgba(37,99,235,0.08)',
 };
 
 const TIER_LABEL: Record<Tier, string> = {
-  council:   'المجلس',
-  coalition: 'التحالف',
+  council:   'المجلس البلدي',
+  coalition: 'التحالف الداخلي',
   operator:  'المشغّل',
 };
 
+const TIER_ICON: Record<Tier, string> = {
+  council:   '🏛️',
+  coalition: '🤝',
+  operator:  '⚙️',
+};
+
 const SURFACES: Surface[] = [
-  { path: '/console',       icon: '⬡',  labelAr: 'خارطة الأحداث الحية',          tier: 'council',   ready: true  },
-  { path: '/mayors-brief',  icon: '📊', labelAr: 'موجز رئيس السلطة المحلية',      tier: 'council',   ready: false, blockedOn: 'analytics + export' },
+  {
+    path: '/console',
+    icon: '🗺️',
+    labelAr: 'خارطة الأحداث',
+    tier: 'council',
+    ready: true,
+  },
+  {
+    path: '/mayors-brief',
+    icon: '📊',
+    labelAr: 'موجز الرئيس',
+    tier: 'council',
+    ready: false,
+    blockedOn: 'analytics + export',
+  },
 
-  { path: '/national',      icon: '🌐', labelAr: 'لوحة المؤشرات الوطنية',         tier: 'coalition', ready: false, blockedOn: 'analytics pipeline' },
-  { path: '/trends',        icon: '📈', labelAr: 'استوديو دراسة الاتجاهات',       tier: 'coalition', ready: false, blockedOn: 'analytics pipeline' },
-  { path: '/partners',      icon: '🤝', labelAr: 'مساحة عمل الشركاء',             tier: 'coalition', ready: false, blockedOn: 'messaging system'   },
+  {
+    path: '/national',
+    icon: '🌐',
+    labelAr: 'المؤشرات الوطنية',
+    tier: 'coalition',
+    ready: false,
+    blockedOn: 'analytics pipeline',
+  },
+  {
+    path: '/trends',
+    icon: '📈',
+    labelAr: 'استوديو الاتجاهات',
+    tier: 'coalition',
+    ready: false,
+    blockedOn: 'analytics pipeline',
+  },
+  {
+    path: '/partners',
+    icon: '🏢',
+    labelAr: 'مساحة الشركاء',
+    tier: 'coalition',
+    ready: false,
+    blockedOn: 'messaging system',
+  },
 
-  { path: '/moderation',    icon: '🛡',  labelAr: 'كونسول مراجعة البلاغات',        tier: 'operator',  ready: false, blockedOn: 'moderation queue + PII detection' },
-  { path: '/abuse',         icon: '⚠',  labelAr: 'لوحة مكافحة إساءة الاستخدام',  tier: 'operator',  ready: false, blockedOn: 'threat scoring + policy engine' },
+  {
+    path: '/moderation',
+    icon: '🛡️',
+    labelAr: 'مراجعة البلاغات',
+    tier: 'operator',
+    ready: false,
+    blockedOn: 'moderation queue',
+  },
+  {
+    path: '/abuse',
+    icon: '🔍',
+    labelAr: 'مكافحة الإساءة',
+    tier: 'operator',
+    ready: false,
+    blockedOn: 'threat scoring',
+  },
 ];
 
 const GROUPS: Tier[] = ['council', 'coalition', 'operator'];
@@ -43,33 +103,45 @@ export default function AppSidebar() {
   return (
     <nav
       aria-label="التنقل الرئيسي"
-      className="flex-shrink-0 w-12 flex flex-col bg-[#0A0F18] border-e border-[#1E2D42]"
+      className="flex-shrink-0 w-56 flex flex-col bg-surface border-e border-border shadow-card overflow-y-auto overflow-x-hidden"
     >
-      {/* Brand mark */}
-      <div className="h-12 flex items-center justify-center flex-shrink-0 border-b border-[#1E2D42]">
+      {/* Brand */}
+      <div className="flex items-center gap-3 px-4 h-14 border-b border-border flex-shrink-0">
         <span
-          className="h-7 w-7 rounded-lg text-white text-sm font-bold flex items-center justify-center shadow-md"
+          className="h-8 w-8 rounded-lg text-white text-sm font-bold flex items-center justify-center shadow-sm flex-shrink-0"
           style={{ backgroundColor: TIER_COLOR.council }}
         >
           ب
         </span>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-text-primary leading-none">بلاغ</p>
+          <p className="text-[10px] text-text-muted mt-0.5">لوحة التحكم</p>
+        </div>
       </div>
 
       {/* Surface groups */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden py-2 space-y-0.5">
+      <div className="flex-1 py-3 space-y-1">
         {GROUPS.map((tier, gi) => {
           const items = SURFACES.filter((s) => s.tier === tier);
           return (
             <div key={tier}>
-              {gi > 0 && (
-                <div className="mx-2 my-2 h-px bg-[#1E2D42]" />
-              )}
-              {/* Tier label strip */}
-              <div
-                className="mx-2 mb-1 h-[2px] rounded-full"
-                style={{ backgroundColor: `${TIER_COLOR[tier]}60` }}
-                title={TIER_LABEL[tier]}
-              />
+              {gi > 0 && <div className="h-px bg-border mx-4 my-3" />}
+
+              {/* Tier heading */}
+              <div className="flex items-center gap-2 px-4 mb-1.5">
+                <span
+                  className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
+                  style={{
+                    color: TIER_COLOR[tier],
+                    backgroundColor: TIER_BG[tier],
+                  }}
+                >
+                  <span>{TIER_ICON[tier]}</span>
+                  {TIER_LABEL[tier]}
+                </span>
+              </div>
+
+              {/* Nav items */}
               {items.map((surface) => {
                 const isActive =
                   location.pathname === surface.path ||
@@ -79,12 +151,12 @@ export default function AppSidebar() {
                   return (
                     <div
                       key={surface.path}
-                      title={`${surface.labelAr}\n🔒 قيد التطوير — يتطلب: ${surface.blockedOn}`}
-                      className="relative flex items-center justify-center h-9 w-9 mx-auto my-0.5 rounded-lg cursor-not-allowed select-none"
-                      style={{ opacity: 0.25 }}
+                      title={`قيد التطوير — يتطلب: ${surface.blockedOn}`}
+                      className="flex items-center gap-3 mx-2 px-3 py-2 rounded-lg cursor-not-allowed select-none opacity-35"
                     >
-                      <span className="text-base leading-none">{surface.icon}</span>
-                      <span className="absolute bottom-0 end-0 text-[7px] leading-none">🔒</span>
+                      <span className="text-base w-5 text-center flex-shrink-0">{surface.icon}</span>
+                      <span className="text-xs text-text-secondary truncate flex-1">{surface.labelAr}</span>
+                      <span className="text-[9px] text-text-muted flex-shrink-0">🔒</span>
                     </div>
                   );
                 }
@@ -93,12 +165,18 @@ export default function AppSidebar() {
                   <NavLink
                     key={surface.path}
                     to={surface.path}
-                    title={surface.labelAr}
-                    className={`relative flex items-center justify-center h-9 w-9 mx-auto my-0.5 rounded-lg transition-all duration-150 ${
+                    className={() =>
+                      `flex items-center gap-3 mx-2 px-3 py-2 rounded-lg transition-all duration-150 relative group ${
+                        isActive
+                          ? 'text-text-primary font-semibold shadow-sm'
+                          : 'text-text-secondary hover:text-text-primary hover:bg-surface-alt'
+                      }`
+                    }
+                    style={
                       isActive
-                        ? 'bg-white/10 ring-1 ring-white/10'
-                        : 'hover:bg-white/6 text-white/50 hover:text-white/80'
-                    }`}
+                        ? { backgroundColor: TIER_BG[tier], color: TIER_COLOR[tier] }
+                        : undefined
+                    }
                   >
                     {isActive && (
                       <div
@@ -107,14 +185,12 @@ export default function AppSidebar() {
                       />
                     )}
                     <span
-                      className="text-base leading-none"
-                      style={{
-                        filter: isActive ? 'brightness(1.4) saturate(1.2)' : undefined,
-                        color: isActive ? 'rgba(255,255,255,0.9)' : undefined,
-                      }}
+                      className="text-base w-5 text-center flex-shrink-0"
+                      style={isActive ? { filter: 'saturate(1.2)' } : undefined}
                     >
                       {surface.icon}
                     </span>
+                    <span className="text-xs truncate flex-1">{surface.labelAr}</span>
                   </NavLink>
                 );
               })}
@@ -123,9 +199,9 @@ export default function AppSidebar() {
         })}
       </div>
 
-      {/* Version */}
-      <div className="h-10 flex items-center justify-center border-t border-[#1E2D42]">
-        <span className="text-[9px] text-white/15 font-mono" title="إصدار التطبيق">v1</span>
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-border flex-shrink-0">
+        <p className="text-[10px] text-text-muted font-mono">v1 · mock</p>
       </div>
     </nav>
   );

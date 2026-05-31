@@ -23,10 +23,10 @@ const DEFAULT_RADIUS = 5;
 type WsState = 'connected' | 'reconnecting' | 'offline';
 
 const SEVERITY_STATS = [
-  { key: 'critical', label: 'بالغ',   color: '#E5484D' },
-  { key: 'high',     label: 'مرتفع',  color: '#F76808' },
-  { key: 'medium',   label: 'متوسط',  color: '#FFB224' },
-  { key: 'low',      label: 'منخفض',  color: '#3B82F6' },
+  { key: 'critical', label: 'بالغ',   color: '#DC2626', icon: '🔴' },
+  { key: 'high',     label: 'مرتفع',  color: '#EA580C', icon: '🟠' },
+  { key: 'medium',   label: 'متوسط',  color: '#D97706', icon: '🟡' },
+  { key: 'low',      label: 'منخفض',  color: '#2563EB', icon: '🔵' },
 ] as const;
 
 // Build locality id → Arabic name map from mock data
@@ -76,8 +76,8 @@ export default function Console() {
   const activeIncidents = useMemo(() => incidents.filter((i) => !i.resolvedAt), [incidents]);
   const severityCounts  = useMemo(
     () =>
-      SEVERITY_STATS.map(({ key, label, color }) => ({
-        key, label, color,
+      SEVERITY_STATS.map(({ key, label, color, icon }) => ({
+        key, label, color, icon,
         count: activeIncidents.filter((i) => i.severity === key).length,
       })),
     [activeIncidents],
@@ -90,7 +90,13 @@ export default function Console() {
       <OfflineBanner visible={locality !== null && wsState === 'offline'} />
 
       {/* ── Header ────────────────────────────────────────────── */}
-      <header className="flex-shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border bg-surface">
+      <header className="flex-shrink-0 flex items-center gap-3 px-4 h-14 border-b border-border bg-surface shadow-sm">
+        {/* Page title */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-lg">🗺️</span>
+          <span className="text-sm font-semibold text-text-primary">خارطة الأحداث</span>
+        </div>
+        <div className="w-px h-5 bg-border flex-shrink-0" />
         {/* Locality picker */}
         <LocalityPicker selected={locality} onSelect={setLocality} />
 
@@ -123,19 +129,20 @@ export default function Console() {
       </header>
 
       {/* ── Stats bar ─────────────────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-px bg-surface border-b border-border overflow-x-auto">
-        {/* Total */}
-        <div className="flex flex-col items-center px-4 py-2 min-w-[64px]">
-          <span className="text-base font-bold text-text-primary tabular-nums leading-none">
-            {activeIncidents.length}
-          </span>
-          <span className="text-[9px] text-text-muted mt-0.5 uppercase tracking-wide">مجموع</span>
+      <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-bg border-b border-border overflow-x-auto">
+        {/* Total chip */}
+        <div className="flex items-center gap-2 bg-surface rounded-lg px-3 py-2 border border-border shadow-card flex-shrink-0">
+          <span className="text-base leading-none">📋</span>
+          <div>
+            <span className="text-sm font-bold text-text-primary tabular-nums">{activeIncidents.length}</span>
+            <span className="text-[10px] text-text-muted ms-1">حادثة</span>
+          </div>
         </div>
 
-        <div className="w-px h-8 bg-border flex-shrink-0" />
+        <div className="w-px h-7 bg-border flex-shrink-0" />
 
-        {/* Per-severity counts */}
-        {severityCounts.map(({ key, label, color, count }) => (
+        {/* Per-severity chips */}
+        {severityCounts.map(({ key, label, color, icon, count }) => (
           <button
             key={key}
             onClick={() => {
@@ -144,29 +151,30 @@ export default function Console() {
               else next.add(key as 'critical');
               setFilters((f) => ({ ...f, severities: next }));
             }}
-            className={`flex flex-col items-center px-4 py-2 min-w-[60px] transition-colors hover:bg-surface-alt ${
-              filters.severities.has(key as 'critical') ? 'bg-surface-alt' : ''
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-all duration-150 flex-shrink-0 ${
+              filters.severities.has(key as 'critical')
+                ? 'shadow-sm'
+                : 'bg-surface hover:shadow-card border-border'
             }`}
+            style={
+              filters.severities.has(key as 'critical')
+                ? { backgroundColor: `${color}12`, borderColor: `${color}40` }
+                : undefined
+            }
           >
-            <span
-              className="text-base font-bold tabular-nums leading-none"
-              style={{ color }}
-            >
-              {count}
-            </span>
-            <span className="text-[9px] text-text-muted mt-0.5" style={{ color: `${color}99` }}>
-              {label}
-            </span>
+            <span className="text-sm leading-none">{icon}</span>
+            <span className="text-sm font-bold tabular-nums" style={{ color }}>{count}</span>
+            <span className="text-[10px] text-text-muted">{label}</span>
           </button>
         ))}
 
         <div className="flex-1" />
 
         {/* Area label */}
-        <div className="px-4 py-2 text-xs text-text-muted flex-shrink-0">
+        <div className="text-xs text-text-muted flex-shrink-0">
           {locality
-            ? <span>📍 <span className="text-text-secondary">{locality.nameAr}</span> · {radiusKm} كم</span>
-            : <span className="text-text-muted">جميع المناطق</span>
+            ? <span className="flex items-center gap-1">📍 <span className="text-text-secondary font-medium">{locality.nameAr}</span> <span className="text-border">·</span> {radiusKm} كم</span>
+            : <span className="flex items-center gap-1">🌍 <span>جميع المناطق</span></span>
           }
         </div>
       </div>
@@ -174,7 +182,7 @@ export default function Console() {
       {/* ── Body ──────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Triage rail */}
-        <aside className="w-72 flex-shrink-0 flex flex-col border-e border-border bg-surface overflow-hidden">
+        <aside className="w-72 flex-shrink-0 flex flex-col border-e border-border bg-surface overflow-hidden shadow-sm">
           <CaseFilters filters={filters} onChange={setFilters} />
 
           {isLoading && (

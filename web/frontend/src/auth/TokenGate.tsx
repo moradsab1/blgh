@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { setToken, hasToken } from './token';
+import { setToken, hasToken, clearToken } from './token';
 import { onUpdateRequired } from '../lib/api';
 
 interface Props {
@@ -14,6 +14,16 @@ export default function TokenGate({ children }: Props) {
 
   useEffect(() => {
     return onUpdateRequired(() => setUpdateRequired(true));
+  }, []);
+
+  useEffect(() => {
+    function onUnauthorized() {
+      clearToken();
+      setAuthed(false);
+      setError('رمز الوصول غير صحيح');
+    }
+    window.addEventListener('balagh:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('balagh:unauthorized', onUnauthorized);
   }, []);
 
   if (updateRequired) {

@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { useIncident } from './useIncident';
 import { useComments } from './useComments';
 import Spinner from '../../components/Spinner';
 import ErrorState from '../../components/ErrorState';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import type { Incident, Comment } from '../../lib/contracts';
+import type { AdminAction } from './useAdminActions';
+import { hasToken } from '../../auth/token';
 
 const CATEGORY_AR: Record<string, string> = {
   GUNFIRE: 'إطلاق نار',
@@ -50,9 +54,28 @@ function CommentItem({ comment }: { comment: Comment }) {
   );
 }
 
-function IncidentBody({ incident }: { incident: Incident }) {
+interface BodyProps {
+  incident: Incident;
+  onAdminAction: (action: AdminAction, id: string) => Promise<void>;
+}
+
+function IncidentBody({ incident, onAdminAction }: BodyProps) {
   const color = SEVERITY_COLOR[incident.severity] ?? '#9AA7B4';
   const { data: comments = [], isLoading: commentsLoading } = useComments(incident.id);
+  const [pending, setPending] = useState<AdminAction | null>(null);
+  const [busy, setBusy] = useState(false);
+  const isAdmin = hasToken();
+
+  async function handleConfirm() {
+    if (!pending) return;
+    setBusy(true);
+    try {
+      await onAdminAction(pending, incident.id);
+    } finally {
+      setBusy(false);
+      setPending(null);
+    }
+  }
 
   return (
     <div className="px-4 py-4 space-y-5">
@@ -109,6 +132,26 @@ function IncidentBody({ incident }: { incident: Incident }) {
         </div>
       </section>
 
+      {/* Admin actions */}
+      {isAdmin && !incident.resolvedAt && (
+        <section aria-label="إجراءات الإشراف" className="flex gap-2">
+          <button
+            onClick={() => setPending('resolve')}
+            disabled={busy}
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-state-calm/10 text-state-calm border border-state-calm/30 hover:bg-state-calm/20 transition-colors disabled:opacity-50"
+          >
+            ✓ حل الحادثة
+          </button>
+          <button
+            onClick={() => setPending('hide')}
+            disabled={busy}
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-surface-alt text-text-muted border border-border hover:bg-border transition-colors disabled:opacity-50"
+          >
+            ✕ إخفاء
+          </button>
+        </section>
+      )}
+
       {/* Deferred: assignee selector stub */}
       <section aria-label="الإسناد" className="space-y-1.5">
         <p className="text-[10px] text-text-muted uppercase tracking-wide">إسناد المهمة</p>
@@ -152,15 +195,31 @@ function IncidentBody({ incident }: { incident: Incident }) {
           <CommentItem key={c.id} comment={c} />
         ))}
       </section>
+
+      {/* Confirm dialog */}
+      <ConfirmDialog
+        open={pending !== null}
+        title={pending === 'resolve' ? 'تأكيد حل الحادثة' : 'تأكيد إخفاء الحادثة'}
+        description={
+          pending === 'resolve'
+            ? 'ستُنقل الحادثة إلى قسم المؤرشفة.'
+            : 'ستُزال الحادثة من القائمة النشطة فوراً.'
+        }
+        confirmLabel={pending === 'resolve' ? 'حل' : 'إخفاء'}
+        confirmDestructive={pending === 'hide'}
+        onConfirm={handleConfirm}
+        onCancel={() => setPending(null)}
+      />
     </div>
   );
 }
 
 interface Props {
   incidentId: string;
+  onAdminAction: (action: AdminAction, id: string) => Promise<void>;
 }
 
-export default function IncidentDetail({ incidentId }: Props) {
+export default function IncidentDetail({ incidentId, onAdminAction }: Props) {
   const { data: incident, isLoading, isError, refetch } = useIncident(incidentId);
 
   if (isLoading) {
@@ -180,5 +239,5 @@ export default function IncidentDetail({ incidentId }: Props) {
     );
   }
 
-  return <IncidentBody incident={incident} />;
+  return <IncidentBody incident={incident} onAdminAction={onAdminAction} />;
 }

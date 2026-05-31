@@ -14,6 +14,7 @@ import Spinner from '../components/Spinner';
 import ErrorState from '../components/ErrorState';
 import Drawer from '../components/Drawer';
 import IncidentDetail from '../features/incident/IncidentDetail';
+import { useAdminActions } from '../features/incident/useAdminActions';
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 20];
 const DEFAULT_RADIUS = 5;
@@ -31,10 +32,11 @@ export default function Console() {
     text: '',
   });
 
-  const lat = locality?.lat ?? null;
-  const lng = locality?.lng ?? null;
+  const lat = locality?.lat ?? 0;
+  const lng = locality?.lng ?? 0;
+  const hasLocality = locality !== null;
 
-  const { data: status } = useStatus(lat, lng);
+  const { data: status } = useStatus(hasLocality ? lat : null, hasLocality ? lng : null);
 
   const {
     data: incidents = [],
@@ -42,10 +44,20 @@ export default function Console() {
     isError: incidentsError,
     refetch: refetchIncidents,
   } = useIncidents({
+    lat: hasLocality ? lat : null,
+    lng: hasLocality ? lng : null,
+    radiusKm,
+    onWsState: useCallback((s: WsState) => setWsState(s), [setWsState]),
+  });
+
+  const { perform: adminAction } = useAdminActions({
     lat,
     lng,
     radiusKm,
-    onWsState: useCallback((s: WsState) => setWsState(s), [setWsState]),
+    onUnauthorized: useCallback(() => {
+      // Dispatch event so TokenGate re-opens
+      window.dispatchEvent(new CustomEvent('balagh:unauthorized'));
+    }, []),
   });
 
   const activeCount = incidents.filter((i) => !i.resolvedAt).length;
@@ -90,7 +102,7 @@ export default function Console() {
         {status && <StatusBadge state={status.state} />}
 
         {/* Stat strip */}
-        {lat !== null && (
+        {hasLocality && (
           <div className="flex items-center gap-2">
             <StatChip label="نشطة" value={activeCount} />
             <StatChip label="بالغة" value={criticalCount} color="#E5484D" />
@@ -98,14 +110,14 @@ export default function Console() {
         )}
 
         {/* WS indicator */}
-        {lat !== null && <LiveIndicator state={wsState} />}
+        {hasLocality && <LiveIndicator state={wsState} />}
       </header>
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
         {/* Triage rail */}
         <aside className="w-80 flex-shrink-0 flex flex-col border-e border-border bg-surface overflow-hidden">
-          {lat === null ? (
+          {!hasLocality ? (
             <div className="flex flex-col items-center justify-center flex-1 p-6 text-center gap-2">
               <span className="text-3xl">🗺️</span>
               <p className="text-text-muted text-sm">اختر منطقة لعرض الحوادث</p>
@@ -157,7 +169,12 @@ export default function Console() {
           ? `حادثة ${selectedIncident.ref}`
           : 'تفاصيل الحادثة'}
       >
-        {selectedId && <IncidentDetail incidentId={selectedId} />}
+        {selectedId && (
+          <IncidentDetail
+            incidentId={selectedId}
+            onAdminAction={adminAction}
+          />
+        )}
       </Drawer>
     </div>
   );

@@ -1,7 +1,7 @@
 import { pool } from '../../db/client';
 import { deriveEmojis } from '../../lib/identity';
 import { notFound, conflict, AppError } from '../../lib/errors';
-import { WATCH_RADIUS_KM } from '../../lib/constants';
+import { WATCH_RADIUS_KM, ACTIVE_THRESHOLD } from '../../lib/constants';
 import type { Incident, Comment, AppNotification, Category, Severity } from '../../lib/contracts';
 
 // Ported verbatim from MockIncidentRepo.ts
@@ -263,11 +263,16 @@ export async function submitReport(
   return { id: row.id, ref: row.ref, incident, fanOut };
 }
 
+export interface VoteResult {
+  incident: Incident;
+  verificationNotif?: { deviceId: string; notification: AppNotification };
+}
+
 export async function vote(
   deviceId: string,
   incidentId: string,
   voteValue: 'confirm' | 'deny',
-): Promise<Incident> {
+): Promise<VoteResult> {
   // Verify incident exists
   const { rows: existing } = await pool.query(
     'SELECT id FROM incidents WHERE id = $1 AND NOT hidden',
@@ -304,7 +309,29 @@ export async function vote(
     ],
   );
 
-  return { ...rowToIncident(updated), myVote: voteValue };
+  const incident: Incident = { ...rowToIncident(updated), myVote: voteValue };
+
+  // When confirmations cross ACTIVE_THRESHOLD, notify the original reporter
+  if (voteValue === 'confirm' && updated.confirmations === ACTIVE_THRESHOLD) {
+    const { rows: [reporter] } = await pool.query<{ device_id: string }>(
+      'SELECT device_id FROM incidents WHERE id = $1',
+      [incidentId],
+    );
+    if (reporter) {
+      const { rows: [notifRow] } = await pool.query<NotificationRow>(
+        `INSERT INTO notifications (device_id, type, title, body, incident_ref)
+         VALUES ($1, 'verification', 'تم التحقق من البلاغ', $2, $3)
+         RETURNING id, device_id, type, title, body, incident_ref, read, created_at`,
+        [reporter.device_id, updated.ref, updated.ref],
+      );
+      return {
+        incident,
+        verificationNotif: { deviceId: reporter.device_id, notification: rowToNotification(notifRow) },
+      };
+    }
+  }
+
+  return { incident };
 }
 
 export async function getComments(incidentId: string): Promise<Comment[]> {

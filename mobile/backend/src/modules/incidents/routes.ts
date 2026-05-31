@@ -111,24 +111,33 @@ const incidentsRoutes: FastifyPluginAsync = async app => {
   app.post<{ Params: { id: string } }>('/incidents/:id/vote', async request => {
     const deviceId = requireDeviceId(request.headers as Record<string, string | undefined>);
     const body = parseBody(voteBodySchema, request.body);
-    const updated = await service.vote(deviceId, request.params.id, body.vote);
+    const result = await service.vote(deviceId, request.params.id, body.vote);
+    const { incident } = result;
 
     // Broadcast updated vote counts to geo subscribers
     broadcastGeo(
-      { t: 'vote.updated', id: updated.id, confirmations: updated.confirmations, denials: updated.denials },
-      updated.lat,
-      updated.lng,
+      { t: 'vote.updated', id: incident.id, confirmations: incident.confirmations, denials: incident.denials },
+      incident.lat,
+      incident.lng,
     );
 
     // Recompute and broadcast area status after vote
-    const status = await computeStatusAt(updated.lat, updated.lng);
+    const status = await computeStatusAt(incident.lat, incident.lng);
     broadcastGeo(
       { t: 'status.changed', state: status.state, reason: status.reason },
-      updated.lat,
-      updated.lng,
+      incident.lat,
+      incident.lng,
     );
 
-    return updated;
+    // Notify the original reporter when confirmations cross the active threshold
+    if (result.verificationNotif) {
+      broadcastToDevice(
+        { t: 'notification.new', notification: result.verificationNotif.notification },
+        result.verificationNotif.deviceId,
+      );
+    }
+
+    return incident;
   });
 
   // GET /incidents/:id/comments

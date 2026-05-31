@@ -10,6 +10,8 @@ import incidentsRoutes from './modules/incidents/routes';
 import statusRoutes from './modules/status/routes';
 import wsRoutes from './realtime/ws';
 import adminRoutes from './modules/admin/routes';
+import notificationsRoutes from './modules/notifications/routes';
+import followUpsRoutes from './modules/followups/routes';
 
 async function build() {
   const app = Fastify({
@@ -49,6 +51,8 @@ async function build() {
   await app.register(statusRoutes);
   await app.register(wsRoutes);
   await app.register(adminRoutes);
+  await app.register(notificationsRoutes);
+  await app.register(followUpsRoutes);
 
   return app;
 }

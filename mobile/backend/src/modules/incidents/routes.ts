@@ -13,11 +13,6 @@ const incidentsQuerySchema = z.object({
   radiusKm: z.coerce.number().min(0.1).max(10),
 });
 
-const statusQuerySchema = z.object({
-  lat: z.coerce.number().min(-90).max(90),
-  lng: z.coerce.number().min(-180).max(180),
-});
-
 const submitBodySchema = z.object({
   category: z.enum(['GUNFIRE', 'STABBING', 'ASSAULT', 'ROBBERY', 'SUSPICIOUS', 'OTHER']),
   lat: z.number().min(-90).max(90),
@@ -79,8 +74,8 @@ const incidentsRoutes: FastifyPluginAsync = async app => {
     return service.getIncident(deviceId, request.params.id);
   });
 
-  // POST /incidents
-  app.post('/incidents', async (request, reply) => {
+  // POST /incidents  — tighter limit: report submission
+  app.post('/incidents', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const deviceId = requireDeviceId(request.headers as Record<string, string | undefined>);
     const body = parseBody(submitBodySchema, request.body);
     const result = await service.submitReport(
@@ -108,7 +103,7 @@ const incidentsRoutes: FastifyPluginAsync = async app => {
   });
 
   // POST /incidents/:id/vote
-  app.post<{ Params: { id: string } }>('/incidents/:id/vote', async request => {
+  app.post<{ Params: { id: string } }>('/incidents/:id/vote', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async request => {
     const deviceId = requireDeviceId(request.headers as Record<string, string | undefined>);
     const body = parseBody(voteBodySchema, request.body);
     const result = await service.vote(deviceId, request.params.id, body.vote);
@@ -146,7 +141,7 @@ const incidentsRoutes: FastifyPluginAsync = async app => {
   });
 
   // POST /incidents/:id/comments
-  app.post<{ Params: { id: string } }>('/incidents/:id/comments', async (request, reply) => {
+  app.post<{ Params: { id: string } }>('/incidents/:id/comments', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const deviceId = requireDeviceId(request.headers as Record<string, string | undefined>);
     const body = parseBody(commentBodySchema, request.body);
     const comment = await service.addComment(deviceId, request.params.id, body.body);

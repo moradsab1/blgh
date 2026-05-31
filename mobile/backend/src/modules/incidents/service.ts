@@ -1,6 +1,6 @@
 import { pool } from '../../db/client';
 import { deriveEmojis } from '../../lib/identity';
-import { notFound, conflict, AppError } from '../../lib/errors';
+import { notFound, conflict } from '../../lib/errors';
 import { WATCH_RADIUS_KM, ACTIVE_THRESHOLD } from '../../lib/constants';
 import type { Incident, Comment, AppNotification, Category, Severity } from '../../lib/contracts';
 

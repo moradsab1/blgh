@@ -149,6 +149,7 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
           label={s.settings.account.locality}
           onPress={() => navigation.navigate('Locality', { fromSettings: true })}
           chevron={<ChevronIcon size={18} color={color.textMuted} />}
+          isFirst
         />
         <SettingsRow
           icon={<Globe size={20} color={color.textSecondary} />}
@@ -178,6 +179,7 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
           label={s.settings.privacy.constitution}
           onPress={() => navigation.navigate('PrivacyConstitution')}
           chevron={<ChevronIcon size={18} color={color.textMuted} />}
+          isFirst
         />
         <SettingsRow
           icon={<Trash2 size={20} color={color.error} />}
@@ -194,6 +196,7 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
           label={s.settings.notifications.nearby}
           value={notifNearby}
           onValueChange={v => handleToggle(StorageKeys.NOTIFICATION_NEARBY, v, setNotifNearby)}
+          isFirst
         />
         <ToggleRow
           icon={<Bell size={20} color={color.textSecondary} />}
@@ -216,6 +219,7 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
           value={APP_VERSION}
           onPress={() => navigation.navigate('About')}
           chevron={<ChevronIcon size={18} color={color.textMuted} />}
+          isFirst
           isLast
         />
 
@@ -225,6 +229,7 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
           label={s.settings.support.howItWorks}
           onPress={() => navigation.navigate('PrivacyConstitution')}
           chevron={<ChevronIcon size={18} color={color.textMuted} />}
+          isFirst
         />
         <SettingsRow
           icon={<Mail size={20} color={color.textSecondary} />}
@@ -252,14 +257,15 @@ interface SettingsRowProps {
   value?: string;
   onPress: () => void;
   chevron?: React.ReactNode;
+  isFirst?: boolean;
   isLast?: boolean;
 }
 
 const SettingsRow = ({
-  icon, label, labelStyle, value, onPress, chevron, isLast,
+  icon, label, labelStyle, value, onPress, chevron, isFirst, isLast,
 }: SettingsRowProps): React.ReactElement => (
   <TouchableOpacity
-    style={[styles.row, isLast && styles.rowLast]}
+    style={[styles.row, isFirst && styles.rowFirst, isLast && styles.rowLast]}
     onPress={onPress}
     activeOpacity={0.7}>
     {icon}
@@ -276,13 +282,14 @@ interface ToggleRowProps {
   label: string;
   value: boolean;
   onValueChange: (v: boolean) => void;
+  isFirst?: boolean;
   isLast?: boolean;
 }
 
 const ToggleRow = ({
-  icon, label, value, onValueChange, isLast,
+  icon, label, value, onValueChange, isFirst, isLast,
 }: ToggleRowProps): React.ReactElement => (
-  <View style={[styles.row, isLast && styles.rowLast]}>
+  <View style={[styles.row, isFirst && styles.rowFirst, isLast && styles.rowLast]}>
     {icon}
     <View style={styles.rowBody}>
       <Text>{label}</Text>
@@ -319,15 +326,18 @@ const styles = StyleSheet.create({
     paddingBottom: space(8),
   },
   sectionHeader: {
-    paddingHorizontal: space(3),
+    paddingHorizontal: space(4),
     paddingTop: space(3),
     paddingBottom: space(1),
     letterSpacing: 0.8,
   },
+  // Inset-grouped rows (iOS Settings style): white cards floating on the
+  // light background, first/last rows rounded.
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: color.card,
+    marginHorizontal: space(2),
     paddingHorizontal: space(2),
     paddingVertical: space(1.5),
     minHeight: 56,
@@ -335,10 +345,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: color.border,
   },
+  rowFirst: {
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+  },
   rowLast: {
     borderBottomWidth: 0,
-    borderBottomLeftRadius: radius.md,
-    borderBottomRightRadius: radius.md,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
   },
   rowBody: {
     flex: 1,

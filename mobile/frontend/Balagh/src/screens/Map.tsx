@@ -40,6 +40,7 @@ import type { MapProps } from '../navigation/types';
 import { color, fontSize, font, motion, radius, shadow, space } from '../core/theme/tokens';
 import { Text } from '../core/theme/components';
 import { List, Locate, Mail, Plus, Settings, Shield } from '../core/icons';
+import ArabicLabels from '../presentation/components/ArabicLabels';
 import { useReduceMotion } from '../core/a11y/useReduceMotion';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
@@ -61,9 +62,9 @@ const getGeo = (): any => (global as any)?.navigator?.geolocation;
 
 // Streets style — Mapbox's most complete, continuously-updated road network
 // (every named road carries a label, unlike the minimal light style). Labels
-// are localized to Arabic via `localizeLabels` on the MapView.
+// are localized to Arabic with a fallback chain via <ArabicLabels /> so roads
+// whose names exist only in Hebrew still show a label.
 const MAPBOX_STYLE = 'mapbox://styles/mapbox/streets-v12';
-const MAP_LOCALE = { locale: 'ar' } as const;
 const INITIAL_ZOOM = 13;
 const USER_ZOOM = 14;
 const CLUSTER_RADIUS = 50;
@@ -776,7 +777,6 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         testID="mapbox-map-view"
         style={styles.map}
         styleURL={MAPBOX_STYLE}
-        localizeLabels={MAP_LOCALE}
         logoEnabled={false}
         attributionEnabled={false}
         scaleBarEnabled={false}
@@ -785,6 +785,9 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         onDidFinishLoadingMap={handleMapLoaded}
         onMapLoadingError={() => setMapError(true)}
         onRegionDidChange={handleRegionDidChange}>
+
+        {/* Arabic labels with name → name_en fallback (never blank) */}
+        <ArabicLabels />
 
         {/* Camera — starts at locality, flies to user on first GPS fix */}
         <MapboxGL.Camera
@@ -1039,14 +1042,14 @@ const styles = StyleSheet.create({
     left: space(2),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: color.overlay,
+    gap: 7,
+    backgroundColor: color.card,
     borderRadius: radius.pill,
-    paddingHorizontal: space(1.5),
-    paddingVertical: 6,
+    paddingHorizontal: space(1.75),
+    minHeight: 42,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.border,
-    ...shadow.card,
+    ...shadow.float,
   },
   statusDot: {
     width: 8,
@@ -1058,30 +1061,28 @@ const styles = StyleSheet.create({
     fontFamily: font.arabicSemiBold,
   },
 
-  // Floating toolbar
+  // Floating toolbar — two detached circular buttons, Google-Maps style
   toolbar: {
     position: 'absolute',
     right: space(2),
     flexDirection: 'row',
     gap: space(1),
-    backgroundColor: color.overlay,
-    borderRadius: radius.pill,
-    paddingHorizontal: space(1),
-    paddingVertical: 6,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.border,
-    ...shadow.card,
   },
   toolbarBtn: {
-    width: 36,
-    height: 36,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: color.card,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+    ...shadow.float,
   },
   badge: {
     position: 'absolute',
-    top: 2,
-    right: 0,
+    top: -3,
+    right: -3,
     minWidth: 18,
     height: 18,
     borderRadius: 9,

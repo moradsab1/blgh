@@ -19,7 +19,7 @@ import {
   View,
 } from 'react-native';
 import type { FeedProps } from '../navigation/types';
-import { color, fontSize, font, radius, space } from '../core/theme/tokens';
+import { color, fontSize, font, radius, shadow, space } from '../core/theme/tokens';
 import { Text, SeverityPill, Chip } from '../core/theme/components';
 import { Search, BookmarkFilled, BookmarkOutline, CATEGORY_ICON, ShieldCheck } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
@@ -346,11 +346,12 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: color.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: space(2),
     gap: space(1),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.border,
+    ...shadow.card,
   },
   cardTop: {
     flexDirection: 'row',

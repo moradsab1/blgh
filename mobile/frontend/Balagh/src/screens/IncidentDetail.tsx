@@ -20,6 +20,7 @@ import { color, radius, space, formatNumber } from '../core/theme/tokens';
 import { Text, SeverityPill } from '../core/theme/components';
 import { CATEGORY_ICON, MapPin } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
+import ArabicLabels from '../presentation/components/ArabicLabels';
 import { relativeTime } from '../core/format/time';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
@@ -34,7 +35,6 @@ import type { Incident } from '../core/types';
 
 const repo = new MockIncidentRepo();
 const SNIPPET_STYLE = 'mapbox://styles/mapbox/streets-v12';
-const SNIPPET_LOCALE = { locale: 'ar' } as const;
 
 const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React.ReactElement => {
   const { id } = route.params;
@@ -183,7 +183,6 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
           <MapboxGL.MapView
             style={StyleSheet.absoluteFill}
             styleURL={SNIPPET_STYLE}
-            localizeLabels={SNIPPET_LOCALE}
             logoEnabled={false}
             attributionEnabled={false}
             scaleBarEnabled={false}
@@ -193,6 +192,7 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
             pitchEnabled={false}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             {...({ compassEnabled: false } as any)}>
+            <ArabicLabels />
             <MapboxGL.Camera
               centerCoordinate={[incident.lng, incident.lat]}
               zoomLevel={14}

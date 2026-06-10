@@ -12,6 +12,7 @@ import { Text, Button } from '../../core/theme/components';
 import { color, space, radius } from '../../core/theme/tokens';
 import { CATEGORY_ICON, ChevronLeft } from '../../core/icons';
 import CrisisModeBadge from '../../presentation/components/CrisisModeBadge';
+import ArabicLabels from '../../presentation/components/ArabicLabels';
 import { useLangStore } from '../../domain/stores/lang';
 import { strings } from '../../core/strings';
 import { MockIncidentRepo } from '../../data/mock/MockIncidentRepo';
@@ -90,7 +91,6 @@ export default function CrisisConfirmScreen({ navigation, route }: Props): React
         <MapboxGL.MapView
           style={styles.map}
           styleURL={MapboxGL.StyleURL.Street}
-          localizeLabels={{ locale: 'ar' }}
           logoEnabled={false}
           attributionEnabled={false}
           scaleBarEnabled={false}
@@ -98,6 +98,7 @@ export default function CrisisConfirmScreen({ navigation, route }: Props): React
           pitchEnabled={false}
           scrollEnabled={false}
           zoomEnabled={false}>
+          <ArabicLabels />
           <MapboxGL.Camera
             centerCoordinate={[coords.lng, coords.lat]}
             zoomLevel={14}

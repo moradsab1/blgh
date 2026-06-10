@@ -202,7 +202,7 @@ export const SeverityPill = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space(3),

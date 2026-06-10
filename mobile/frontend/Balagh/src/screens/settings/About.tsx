@@ -58,7 +58,7 @@ const AboutScreen = ({ navigation }: Props): React.ReactElement => {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Shield size={48} />
+          <Shield size={48} color={color.accent} />
           <Text variant="heading" style={styles.appName}>{a.title}</Text>
           <Text secondary style={styles.tagline}>{a.tagline}</Text>
           <Text muted variant="caption" style={styles.version}>
@@ -82,7 +82,7 @@ const AboutScreen = ({ navigation }: Props): React.ReactElement => {
           onPress={openGithub}
           accessibilityRole="link"
           accessibilityLabel={a.sourceLabel}>
-          <Globe size={20} />
+          <Globe size={20} color={color.textSecondary} />
           <Text style={styles.linkLabel}>{a.sourceLabel}</Text>
           {isRTL ? (
             <ChevronLeft size={18} color={color.textMuted} />

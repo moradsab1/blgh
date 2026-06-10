@@ -41,7 +41,7 @@ export function CategoryGrid({ onSelect }: Props): React.ReactElement {
             onPress={() => onSelect(cat)}
             accessibilityRole="button"
             accessibilityLabel={s.category[cat]}>
-            <Icon size={36} />
+            <Icon size={36} color={tint} />
             <Text variant="label" style={[styles.cardLabel, { color: tint }]}>
               {s.category[cat]}
             </Text>

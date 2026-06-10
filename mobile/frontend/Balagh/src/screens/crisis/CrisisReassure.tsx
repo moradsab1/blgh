@@ -21,7 +21,7 @@ export default function CrisisReassureScreen({ navigation }: Props): React.React
       <StatusBar barStyle="light-content" backgroundColor={color.crisisAccent} />
       <CrisisModeBadge />
       <View style={styles.content}>
-        <Siren size={72} />
+        <Siren size={72} color={color.crisisAccent} />
         <Text variant="heading" style={[styles.title, { fontSize: fontSize.xl }]}>
           {s.crisis.reassureTitle}
         </Text>

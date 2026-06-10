@@ -1,7 +1,7 @@
 # Balagh (بلاغ) — Complete Product, UI, Architecture & Build Spec (Bare React Native)
 
 > **Target:** **Bare React Native CLI** (no Expo) · iOS + Android · Mock API (contract defined here) · Phased build · TypeScript strict · **New Architecture (mandatory)**
-> **Simplified to a minimal dependency set (2026-05-29).** The architecture was deliberately stripped from a heavy native stack to a minimal one to fix cold-start crashes (see §16). Only **8 runtime dependencies** remain; persistence is AsyncStorage, icons are pure-JS text glyphs, i18n is a plain strings object, and Mapbox is deferred.
+> **Simplified to a minimal dependency set (2026-05-29).** The architecture was deliberately stripped from a heavy native stack to a minimal one to fix cold-start crashes (see §16). Only a minimal runtime dependency set remains; persistence is AsyncStorage, icons are **lucide-react-native** SVG vectors, i18n is a plain strings object.
 > **Stack validated against live docs:** 28 May 2026. Every native module below is confirmed New-Architecture-compatible. See the compatibility matrix in §6.4.
 > **Single source of truth:** product principles → full UI spec → architecture → native config → mock API → phased plan → the AI build prompt.
 
@@ -92,7 +92,7 @@ Exactly **one** runtime permission (Location, "while using"). The app **never** 
 
 > In the current minimal build the haptic API (`core/haptics`) is a set of **no-op stubs** — the semantic surface (`haptics.success()` etc.) exists so callers stay stable, but no native haptic library is installed. On Android the OS provides implicit touch feedback via ripples. A real haptics implementation can be wired later behind the same API.
 
-**Icons:** Pure-JS **`<Text>`-glyph** icons (`core/icons`). A small drop-in set (ChevronRight, MapPin, Shield, Bell, …) mimics the Lucide API (`<IconName size color style />`) but renders monochrome text symbols and emoji instead of SVG — no `react-native-svg` native module, no CMake/NDK build. Directional glyphs (chevrons, arrows) mirror under RTL.
+**Icons:** **`lucide-react-native`** SVG vector icons (over `react-native-svg`), re-exported through `core/icons` so screens keep importing the same names (`<IconName size color style />`). All icons are monochrome strokes tinted via the `color` prop — no emoji anywhere in the UI. Category icons map to Crosshair / Slice / HandFist / Wallet / Eye / TriangleAlert. Directional icons (chevrons, arrows) are chosen per `I18nManager.isRTL` at call sites.
 
 ---
 
@@ -135,7 +135,7 @@ Single home screen. Everything else slides over it as sheets/modals. *(This is t
 
 > **Current implementation (Mapbox deferred):** The Map screen (`src/screens/Map.tsx`) is currently a basic **incident-feed preview**, not a live map. It shows the locality name (from storage), a derived **calm / watch / active** status dot computed from incident severity, a `FlatList` of mock incidents (severity pill + category + relative time-ago + confirm/deny counts + monospace reference), a settings gear, and a Report FAB. The full-bleed Mapbox canvas, pins/clusters, recenter, and offline regions below are deferred to a later phase (§14).
 
-**Map canvas (target):** full-bleed light map (`mapbox://styles/mapbox/light-v11`) with street/place labels localized to **Arabic** via `localizeLabels`, user location dot, **north-up fixed**.
+**Map canvas (target):** full-bleed streets map (`mapbox://styles/mapbox/streets-v12` — Mapbox's most complete, continuously-updated road network) with street/place labels localized to **Arabic** via `localizeLabels`, Mapbox logo/attribution/scale-bar hidden, user location dot, **north-up fixed**.
 
 **Incident pins:**
 - Lower zoom: cluster bubbles tinted to highest-severity member, with count.
@@ -272,13 +272,14 @@ Bare RN has no `expo install` to auto-resolve SDK-matched versions. The replacem
 
 **Why minimal was chosen.** The architecture was deliberately stripped to a small, JS-first dependency set: **lighter** install and bundle, **no native module initialization at cold start** (the class of bug that crashed the app — §16), **no CMake/NDK build step** at install time, and **fewer crash surfaces** to audit. Anything that needed a heavy native module was replaced by a JS-only equivalent or deferred.
 
-These are the **only 8 runtime dependencies** (everything else lives in `devDependencies`):
+These are the **only 10 runtime dependencies** (everything else lives in `devDependencies`):
 
 | Purpose | Package | Note |
 |---|---|---|
 | Navigation | `@react-navigation/native` v7 + `@react-navigation/native-stack` | Needs `react-native-screens` + `react-native-safe-area-context`. Typed param lists; deep-link config (`balagh://`) is ready for the crisis shortcut. `enableScreens()` is called in `index.js` (§7.3, §16). |
 | Screens / safe area | `react-native-screens` (^4) + `react-native-safe-area-context` (5.8.0) | React Navigation native deps. The only two non-trivial native modules left, both Fabric-clean and well-behaved at startup. |
 | UI / app state | `zustand` (^5) | All app state: language, onboarding progress, map/feed selection, connectivity. JS-only. |
+| Icons | `lucide-react-native` (^1) + `react-native-svg` (^15) | Professional SVG vector icons, re-exported through `core/icons`. `react-native-svg` is Fabric-clean and does no startup init. |
 | Local persistence | `@react-native-async-storage/async-storage` (^2.2) | A thin, well-tested key/value store (no Nitro/JSI native layer to crash on cold boot like MMKV). Async-only; fronted by a synchronous in-memory cache (§9, `core/storage`). |
 | Core | `react` (**19.2.3**) + `react-native` (0.85.3) | Hermes + New Architecture. `react` is pinned to RN's bundled renderer version — see §6.2 / §16. |
 
@@ -289,7 +290,6 @@ Replacements for the libraries that were removed (all JS-only, no native init):
 | MMKV / Keychain (persistence + key store) | `core/storage` over **AsyncStorage** | One async `multiGet` hydrates an in-memory cache at startup (`hydrateStorage()`); reads are synchronous, writes are fire-and-forget. The device identity lives here under `PRIVATE_KEY`. |
 | `@noble/ed25519` + `@noble/hashes` + `react-native-get-random-values` (crypto identity) | `core/identity` over Hermes' built-in `crypto.getRandomValues` | A persistent random 32-byte hex string (RN 0.73+ ships `crypto.getRandomValues` in Hermes). No ed25519, no keychain. `signRequest()` is a **stub** (empty signature) until a backend exists. |
 | `i18next` + `react-i18next` + `react-native-localize` | `core/strings` (plain TS object) | `ar` / `he` / `en` string tables + `applyRTL()` / `isRTL()` / `SUPPORTED_LANGUAGES` over `I18nManager`. No i18n runtime. |
-| `lucide-react-native` + `react-native-svg` | `core/icons` (pure-JS `<Text>` glyphs) | Drop-in components mimicking the Lucide API; monochrome symbols + emoji, no SVG native module (§4). |
 | `react-native-haptic-feedback` | `core/haptics` (no-op stubs) | Semantic API kept; no native haptics installed (§4, §12.4). |
 | `@tanstack/react-query` + `axios` + WS client | `data/mock` (in-memory mock DB) + `zustand` | An in-memory `db` (incidents / notifications) + `LOCALITIES` (18 cities) feeds the UI directly. A mock `wsEventEmitter` / `startMockEmitter` exists but isn't wired into screens yet. |
 | `@react-native-firebase/*` + `@notifee/react-native` | *(deferred)* | No remote/local push yet. Notification toggles persist to AsyncStorage; no native push library is installed (their Android `ContentProvider`s ran native init at startup — §16). |
@@ -315,7 +315,7 @@ Replacements for the libraries that were removed (all JS-only, no native init):
 | react-native-reanimated / -worklets | ⛔ removed | — | Avoids the heavy CMake native build at install (§16) |
 | react-native-gesture-handler | ⛔ removed | — | Not needed without bottom-sheet/maps |
 | @gorhom/bottom-sheet | ⛔ removed | — | Sheets deferred |
-| react-native-svg / lucide-react-native | ⛔ removed | — | Icons are pure-JS `<Text>` glyphs (`core/icons`) |
+| react-native-svg ^15 + lucide-react-native ^1 | ✅ in use | Fabric | SVG vector icons re-exported via `core/icons` |
 | @tanstack/react-query | ⛔ removed | — | Data via in-memory mock DB + zustand |
 | react-native-mmkv / -nitro-modules | ⛔ removed | — | Persistence via AsyncStorage |
 | react-native-keychain | ⛔ removed | — | Its `KeychainModule.kt` ran blocking DataStore I/O on the main thread at startup → crash (§16) |
@@ -336,7 +336,7 @@ No remote/local push is installed in the minimal build. The notification **toggl
 
 ### 6.6 Maps (Phase 2)
 
-The Map screen currently ships as an incident-feed preview (§5.5); **Phase 2 (§14) replaces it with the real Mapbox surface.** Target: `@rnmapbox/maps` (Mapbox Maps SDK v11) — the light style (`light-v11`) with labels localized to Arabic via `localizeLabels`, north-up fixed (rotation/pitch off), `ShapeSource` clustering tinted to the highest-severity member, individual severity teardrop pins at high zoom rendering the mock `db.incidents`, a `LocationPuck` after permission, and offline regions around the chosen locality. Keep the secret download token out of git (Gradle property / `.netrc`); set the public token at runtime via `Mapbox.setAccessToken()`. Verify the New-Arch badge and a clean release-build cold start before merging.
+The Map screen currently ships as an incident-feed preview (§5.5); **Phase 2 (§14) replaces it with the real Mapbox surface.** Target: `@rnmapbox/maps` (Mapbox Maps SDK v11) — the streets style (`streets-v12`, full road-name coverage) with labels localized to Arabic via `localizeLabels`, logo/attribution hidden, north-up fixed (rotation/pitch off), `ShapeSource` clustering tinted to the highest-severity member, individual severity teardrop pins at high zoom rendering the mock `db.incidents`, a `LocationPuck` after permission, and offline regions around the chosen locality. Keep the secret download token out of git (Gradle property / `.netrc`); set the public token at runtime via `Mapbox.setAccessToken()`. Verify the New-Arch badge and a clean release-build cold start before merging.
 
 ---
 
@@ -429,7 +429,7 @@ balagh/
    │  ├─ strings/               # plain TS string tables (ar/he/en) + applyRTL/isRTL/SUPPORTED_LANGUAGES
    │  ├─ identity/              # random 32-byte hex via Hermes crypto.getRandomValues; signRequest() stub
    │  ├─ storage/               # AsyncStorage + synchronous in-memory cache (hydrateStorage, StorageKeys)
-   │  ├─ icons/                 # pure-JS <Text>-glyph icon set (Lucide-like API)
+   │  ├─ icons/                 # lucide-react-native re-exports + category icon map
    │  ├─ haptics/               # no-op stubs (kept as a semantic API surface)
    │  ├─ a11y/                  # useReduceMotion
    │  ├─ config.ts              # USE_MOCK_API, env
@@ -441,7 +441,7 @@ balagh/
       └─ stores/               # zustand: lang.ts, map.ts, onboarding.ts, net.ts
 ```
 
-> Not present yet (deferred to later phases): `data/api` (HTTP), `data/ws` (WebSocket), `data/notifications`, `data/queries` (react-query), `domain/queue` (offline write-queue), `presentation/` (the few shared widgets live in `core/theme/components.tsx`). The `core/strings`, `core/icons`, and `core/storage` modules replace what used to be `core/i18n`, `lucide`+`svg`, and the MMKV wrapper.
+> Not present yet (deferred to later phases): `data/api` (HTTP), `data/ws` (WebSocket), `data/notifications`, `data/queries` (react-query), `domain/queue` (offline write-queue), `presentation/` (the few shared widgets live in `core/theme/components.tsx`). The `core/strings` and `core/storage` modules replace what used to be `core/i18n` and the MMKV wrapper; `core/icons` re-exports `lucide-react-native`.
 
 ### 9.2 Data flow (current)
 - **Read incidents:** screens call a `Mock*Repo` (or the `db` directly, as `Map.tsx` does) → in-memory data → rendered in a `FlatList`. No network, no cache layer.
@@ -574,7 +574,7 @@ On Android the OS still gives implicit ripple feedback. Wire a real library late
 
 ### 12.5 RTL & icons
 - RTL via `core/strings.applyRTL(lang)` → `I18nManager.forceRTL` on ar/he; relaunch may be required — handle first-run gracefully.
-- Directional `core/icons` glyphs: `transform: [{ scaleX: isRTL ? -1 : 1 }]`. Non-directional untouched.
+- Directional icons: call sites pick the mirrored variant (e.g. ChevronLeft vs ChevronRight) via `I18nManager.isRTL`. Non-directional icons untouched.
 
 ---
 
@@ -597,7 +597,7 @@ On Android the OS still gives implicit ripple feedback. Wire a real library late
 
 Each phase **must compile, run on a device/emulator (New Arch), and pass its tests** before the next. "No placeholders" — every in-scope screen is fully wired to the mock layer. Each phase lists its **native setup** explicitly (no config plugins to lean on).
 
-> **Where we are now:** Phases 0 and 1 are done on the minimal stack (the 8 deps of §6.3). The Map screen currently ships as an incident-feed preview (§5.5); **Phase 2 replaces it with the real Mapbox surface showing mock incident pins.** Each later phase adds exactly the native modules it needs — one at a time, each verified New-Arch-clean and doing no blocking work at startup (the lesson of §16). The **final phase (Phase 6) leaves the app fully working end-to-end** against the mock layer.
+> **Where we are now:** Phases 0 and 1 are done on the minimal stack (the 10 deps of §6.3). The Map screen currently ships as an incident-feed preview (§5.5); **Phase 2 replaces it with the real Mapbox surface showing mock incident pins.** Each later phase adds exactly the native modules it needs — one at a time, each verified New-Arch-clean and doing no blocking work at startup (the lesson of §16). The **final phase (Phase 6) leaves the app fully working end-to-end** against the mock layer.
 
 > **The discipline:** every phase that adds a native module must (a) confirm its New-Architecture badge on `reactnative.directory`, (b) keep `index.js` minimal — no blocking work before `AppRegistry`, (c) re-verify cold start on a release build, and (d) keep the permission allowlist at Location / Internet / Notifications.
 
@@ -618,7 +618,7 @@ Each phase **must compile, run on a device/emulator (New Arch), and pass its tes
 ### Phase 2 — Real Mapbox map *(this phase: implement the live map with mock pins)*
 Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real dashboard described in §5.5–§5.9.
 - **Native setup:** install `@rnmapbox/maps`; set the **secret download token** via a Gradle property (`~/.gradle/gradle.properties`) + the iOS `Podfile`/`.netrc` (keep it out of git); set the **public token** at runtime with `Mapbox.setAccessToken()` early in `App.tsx`. `pod install` for iOS; verify the Fabric component autolinks under New Arch. Confirm a **release-build cold start** is clean.
-- **Map canvas:** full-bleed light style (`mapbox://styles/mapbox/light-v11`) with street/place labels localized to Arabic via `localizeLabels={{ locale: 'ar' }}`, **north-up fixed** (rotation + pitch gestures disabled), user-location `LocationPuck` shown only after permission.
+- **Map canvas:** full-bleed streets style (`mapbox://styles/mapbox/streets-v12`) with street/place labels localized to Arabic via `localizeLabels={{ locale: 'ar' }}`, logo/attribution/scale-bar hidden, **north-up fixed** (rotation + pitch gestures disabled), user-location `LocationPuck` shown only after permission.
 - **Mock incident pins (the deliverable):** render the `db.incidents` mock data on the map. Each open incident → a teardrop pin in its severity color; the highest-priority active pin pulses. Use a `ShapeSource` with `cluster: true` + a `CircleLayer`/`SymbolLayer` so low zoom shows cluster bubbles tinted to the highest-severity member with a count, and high zoom shows individual severity pins. New pins scale-in over 320 ms; resolved incidents fade to 30% then drop after 30 s. Tap a pin → centers the map + opens the Incident Detail sheet (a stub sheet here; fully built in Phase 3). The mock `eventEmitter` (`startMockEmitter`) feeds live `incident.created` / `incident.resolved` so pins appear/disappear in real time.
 - **Location permission:** pre-prompt screen (why) → native **"while using"** request. On deny: center on the chosen locality, show the user no dot, and surface a settings banner. Background location is **never** requested.
 - **Surrounding UI:** the Safety Status pill (calm/watch/active, with the §5.6 radius/time rules computed in a `domain/status` helper from nearby incidents), the recenter FAB (appears when panned away), and the bottom action tray (Feed pill + breathing Report FAB that stops pulsing on Watch/Active).
@@ -684,10 +684,11 @@ EXACT VERSIONS (do not drift)
 - Android: kotlinVersion 2.1.20 (pinned), compileSdk/targetSdk 36, ndk 27.1.12297006.
 - Scaffold with `npx @react-native-community/cli@latest init Balagh`.
 
-THE 8 RUNTIME DEPENDENCIES (this is the whole runtime stack; everything else is a devDep)
+THE 10 RUNTIME DEPENDENCIES (this is the whole runtime stack; everything else is a devDep)
   @react-navigation/native 7.2.4, @react-navigation/native-stack ^7,
   react-native-screens ^4, react-native-safe-area-context 5.8.0,
   zustand ^5, @react-native-async-storage/async-storage ^2.2,
+  react-native-svg ^15 + lucide-react-native ^1 (icons),
   react 19.2.3, react-native 0.85.3.
 MINIMAL-STACK RULE: every extra native module is a cold-start crash surface and/or a
 CMake/NDK build cost. The default answer to "should I add a library?" is NO. A phase may
@@ -702,7 +703,7 @@ USE THESE JS-ONLY PATTERNS, NEVER THESE LIBRARIES
   crypto.getRandomValues (RN 0.73+). NOT @noble/ed25519, @noble/hashes, react-native-keychain,
   or react-native-get-random-values. signRequest() is a stub until a backend exists.
 - i18n: src/core/strings (plain TS string tables ar/he/en) + I18nManager. NOT i18next.
-- Icons: src/core/icons (pure-JS <Text>-glyph components, Lucide-like API). NOT svg/lucide.
+- Icons: src/core/icons re-exports lucide-react-native (SVG vectors over react-native-svg).
 - Clipboard / mailto: React Native's built-in Share API. NOT a clipboard module.
 - Data: an in-memory mock db + Mock*Repo + zustand. NOT react-query/axios/a WS client.
 - Haptics: src/core/haptics no-op stubs (kept as a stable semantic API).
@@ -808,7 +809,7 @@ Replace the Map incident-feed preview with the real Main Map Dashboard using @rn
 via a Gradle property (~/.gradle/gradle.properties) + the iOS Podfile/.netrc (keep it OUT of
 git); set the PUBLIC token at runtime via Mapbox.setAccessToken() early in App.tsx. Run pod
 install; confirm the Fabric component autolinks under New Arch; verify a RELEASE-build cold
-start is clean. Build: full-bleed light style (mapbox://styles/mapbox/light-v11) with
+start is clean. Build: full-bleed streets style (mapbox://styles/mapbox/streets-v12) with
 labels localized to Arabic (localizeLabels), north-up fixed (rotation + pitch gestures
 disabled), LocationPuck only after permission. RENDER THE MOCK INCIDENTS AS PINS: read db.incidents and draw a ShapeSource with
 cluster:true — low zoom = cluster bubbles tinted to the highest-severity member with a count;
@@ -941,10 +942,9 @@ The spec originally specced a large native stack; it was deliberately stripped t
 - **MMKV + Keychain** → `core/storage` over **AsyncStorage** (in-memory cache for sync reads); identity is a hex string stored there.
 - **@noble/ed25519 + @noble/hashes + react-native-get-random-values** → `core/identity` over Hermes' built-in `crypto.getRandomValues`; `signRequest()` is a stub until a backend exists.
 - **i18next + react-i18next + react-native-localize** → `core/strings` (plain TS tables) + `I18nManager`.
-- **lucide-react-native + react-native-svg** → `core/icons` (pure-JS `<Text>` glyphs).
 - **@tanstack/react-query + axios + WS client** → in-memory mock `db` + `zustand`.
 - **react-native-reanimated + react-native-worklets + @gorhom/bottom-sheet + react-native-gesture-handler** → removed (plain RN primitives; no CMake).
 - **@react-native-firebase/* + @notifee/react-native** → deferred (toggles persist to AsyncStorage; no native push).
 - **@rnmapbox/maps** → deferred; the Map screen is a mock incident-feed preview.
 - **react-native-haptic-feedback** → no-op stubs. **@react-native-clipboard/clipboard** → built-in `Share`. **@react-native-community/netinfo** + **react-native-bootsplash** → deferred (a plain `View` is the readiness gate).
-- **Result:** 8 runtime dependencies, no native init on the main thread at startup, no CMake/NDK build, and a clean cold start. See §16.1 for the specific crashes this resolved.
+- **Result:** a minimal runtime dependency set (now 10, after deliberately re-adding `react-native-svg` + `lucide-react-native` for professional vector icons), no native init on the main thread at startup, and a clean cold start. See §16.1 for the specific crashes this resolved.

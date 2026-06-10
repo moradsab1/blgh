@@ -32,7 +32,7 @@ const UpdateGate = (): React.ReactElement => {
   return (
     <View style={styles.overlay} accessibilityViewIsModal accessibilityRole="alert">
       <View style={styles.card}>
-        <Shield size={48} />
+        <Shield size={48} color={color.accent} />
         <Text variant="heading" style={styles.title}>{g.title}</Text>
         <Text secondary style={styles.message}>{g.message}</Text>
         <Button label={g.cta} variant="primary" fullWidth onPress={handleUpdate} />

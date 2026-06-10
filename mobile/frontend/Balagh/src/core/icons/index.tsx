@@ -1,93 +1,82 @@
+/**
+ * Icon set — thin wrapper over `lucide-react-native` (SVG vector icons).
+ *
+ * Exposes the same names the app has always imported (`<IconName size color
+ * style />`), so call sites don't care that the implementation moved from
+ * text glyphs to real vectors. All icons are monochrome strokes that honor
+ * the `color` prop and scale crisply at any size.
+ */
 import React from 'react';
-import { Text, StyleProp, TextStyle } from 'react-native';
-
-// ── Minimal icon set ─────────────────────────────────────────────────────────
-// Drop-in replacement for the handful of `lucide-react-native` icons the app
-// used. lucide depends on `react-native-svg` (a native module that needs a
-// CMake/NDK build and adds to startup), so for a few static glyphs we render
-// plain text instead — no native module, no SVG runtime.
-//
-// The public API matches lucide's: <IconName size={20} color="#fff" style={…} />
-//   • "mono" glyphs are monochrome text symbols and honor the `color` prop
-//     (used for chevrons / arrows / check where theming matters).
-//   • emoji glyphs render in their own colors (the `color` prop is ignored by
-//     the platform for emoji) — fine for the decorative / list icons.
-
-export interface IconProps {
-  size?: number;
-  color?: string;
-  style?: StyleProp<TextStyle>;
-}
-
-const makeIcon = (glyph: string, mono: boolean) => {
-  const Icon = ({ size = 24, color = '#000', style }: IconProps): React.ReactElement => (
-    <Text
-      allowFontScaling={false}
-      style={[
-        { fontSize: size, lineHeight: size * 1.15, textAlign: 'center' },
-        mono ? { color } : null,
-        style,
-      ]}>
-      {glyph}
-    </Text>
-  );
-  Icon.displayName = 'Icon';
-  return Icon;
-};
-
-// Monochrome — respect `color`. Codepoints with an emoji variant carry the
-// text-presentation selector (U+FE0E) so both platforms render them as plain,
-// tintable glyphs instead of colored emoji.
-export const ChevronRight = makeIcon('❯', true);
-export const ChevronLeft = makeIcon('❮', true);
-export const ArrowRight = makeIcon('→', true);
-export const ArrowLeft = makeIcon('←', true);
-export const Check = makeIcon('✓', true);
-export const X = makeIcon('✕', true);
-export const Plus = makeIcon('＋', true);
-export const Minus = makeIcon('－', true);
-export const Send = makeIcon('➤', true);
-export const ThumbsUp = makeIcon('✓', true);
-export const ThumbsDown = makeIcon('✕', true);
-export const Settings = makeIcon('⚙︎', true);
-export const Info = makeIcon('ℹ︎', true);
-export const Mail = makeIcon('✉︎', true);
-export const Copy = makeIcon('⧉', true);
-export const HelpCircle = makeIcon('?', true);
-export const List = makeIcon('☰', true);
-export const Locate = makeIcon('◎', true);
-
-// Emoji — colorful glyphs (no reliable monochrome equivalent in system fonts)
-export const Shield = makeIcon('🛡️', false);
-export const MapPin = makeIcon('📍', false);
-export const Radio = makeIcon('📡', false);
-export const Search = makeIcon('🔍', false);
-export const Globe = makeIcon('🌐', false);
-export const Key = makeIcon('🔑', false);
-export const Trash2 = makeIcon('🗑️', false);
-export const Bell = makeIcon('🔔', false);
-export const Newspaper = makeIcon('📰', false);
-export const Siren = makeIcon('🚨', false);
-// Mono bookmark glyphs so the active/inactive color difference is visible.
-// Emoji ignore the color prop, so we pair a filled vs outline character with
-// an explicit color difference instead of relying on opacity alone.
-export const Bookmark = makeIcon('★', true);
-export const BookmarkFilled = makeIcon('★', true);
-export const BookmarkOutline = makeIcon('☆', true);
-export const MessageCircle = makeIcon('💬', false);
-export const Compass = makeIcon('🧭', false);
-
-// Category glyphs (used by the feed + report category grid)
-export const CategoryGunfire = makeIcon('🔫', false);
-export const CategoryStabbing = makeIcon('🔪', false);
-export const CategoryAssault = makeIcon('👊', false);
-export const CategoryRobbery = makeIcon('🦹', false);
-export const CategorySuspicious = makeIcon('👁️', false);
-export const CategoryOther = makeIcon('⚠️', false);
+import type { LucideProps } from 'lucide-react-native';
+import {
+  Bookmark as LucideBookmark,
+  CircleQuestionMark,
+  Crosshair,
+  Eye,
+  HandFist,
+  Slice,
+  TriangleAlert,
+  Wallet,
+} from 'lucide-react-native';
 
 import type { Category } from '../types';
 
-export const CATEGORY_ICON: Record<Category, ReturnType<typeof makeIcon>> = {
+export type IconProps = LucideProps;
+
+export {
+  ArrowLeft,
+  ArrowRight,
+  Bell,
+  Bookmark,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Compass,
+  Copy,
+  Globe,
+  Info,
+  Key,
+  List,
+  Locate,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Minus,
+  Newspaper,
+  Plus,
+  Radio,
+  Search,
+  Send,
+  Settings,
+  Shield,
+  ShieldCheck,
+  Siren,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  X,
+} from 'lucide-react-native';
+
+export const HelpCircle = CircleQuestionMark;
+
+// Filled vs outline bookmark so the active state is unmistakable.
+export const BookmarkFilled = ({
+  color = '#000',
+  ...rest
+}: LucideProps): React.ReactElement => (
+  <LucideBookmark color={color} fill={color} {...rest} />
+);
+export const BookmarkOutline = LucideBookmark;
+
+// Category icons (feed, report + crisis category grids)
+export const CategoryGunfire = Crosshair;
+export const CategoryStabbing = Slice;
+export const CategoryAssault = HandFist;
+export const CategoryRobbery = Wallet;
+export const CategorySuspicious = Eye;
+export const CategoryOther = TriangleAlert;
+
+export const CATEGORY_ICON: Record<Category, React.ComponentType<LucideProps>> = {
   GUNFIRE: CategoryGunfire,
   STABBING: CategoryStabbing,
   ASSAULT: CategoryAssault,

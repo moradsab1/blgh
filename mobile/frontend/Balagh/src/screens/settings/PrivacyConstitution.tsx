@@ -80,7 +80,7 @@ const PrivacyConstitutionScreen = ({ navigation }: Props): React.ReactElement =>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.intro}>
-          <Shield size={32} />
+          <Shield size={32} color={color.accent} />
           <View style={styles.introBadge}>
             <Text variant="caption" style={styles.introBadgeText}>{c.updatedBadge}</Text>
           </View>

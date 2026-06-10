@@ -18,7 +18,7 @@ import MapboxGL from '@rnmapbox/maps';
 import type { IncidentDetailProps } from '../navigation/types';
 import { color, radius, space, formatNumber } from '../core/theme/tokens';
 import { Text, SeverityPill } from '../core/theme/components';
-import { CATEGORY_ICON } from '../core/icons';
+import { CATEGORY_ICON, MapPin } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
 import { relativeTime } from '../core/format/time';
 import { haptics } from '../core/haptics';
@@ -33,7 +33,7 @@ import store, { StorageKeys } from '../core/storage';
 import type { Incident } from '../core/types';
 
 const repo = new MockIncidentRepo();
-const SNIPPET_STYLE = 'mapbox://styles/mapbox/light-v11';
+const SNIPPET_STYLE = 'mapbox://styles/mapbox/streets-v12';
 const SNIPPET_LOCALE = { locale: 'ar' } as const;
 
 const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React.ReactElement => {
@@ -158,12 +158,15 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
         </View>
 
         <View style={styles.categoryRow}>
-          <CatIcon size={22} />
+          <CatIcon size={22} color={color.severity[incident.severity]} />
           <Text variant="heading">{s.category[incident.category]}</Text>
         </View>
 
         <View style={styles.localityRow}>
-          <Text variant="caption" secondary>📍 {localityName}</Text>
+          <View style={styles.localityName}>
+            <MapPin size={13} color={color.textSecondary} />
+            <Text variant="caption" secondary>{localityName}</Text>
+          </View>
           {distanceKm !== null ? (
             <Text variant="caption" muted>
               {s.detail.distanceAway} {formatNumber(distanceKm.toFixed(1))} {s.detail.km}
@@ -175,13 +178,15 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
           <Text style={styles.description}>{incident.description}</Text>
         ) : null}
 
-        {/* Non-interactive 140 pt map snippet. Attribution kept on to comply
-            with Mapbox ToS even though the snippet is a static preview. */}
+        {/* Non-interactive 140 pt map snippet. */}
         <View style={styles.snippet} pointerEvents="none" testID="detail-map-snippet">
           <MapboxGL.MapView
             style={StyleSheet.absoluteFill}
             styleURL={SNIPPET_STYLE}
             localizeLabels={SNIPPET_LOCALE}
+            logoEnabled={false}
+            attributionEnabled={false}
+            scaleBarEnabled={false}
             scrollEnabled={false}
             zoomEnabled={false}
             rotateEnabled={false}
@@ -278,6 +283,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: space(1),
+  },
+  localityName: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   description: {
     marginTop: space(1.5),

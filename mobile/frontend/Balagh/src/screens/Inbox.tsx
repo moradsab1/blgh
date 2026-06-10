@@ -27,10 +27,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Inbox'>;
 const repo = new MockNotificationRepo();
 
 const TYPE_ICON: Record<AppNotification['type'], React.ReactElement> = {
-  nearby: <Siren size={18} />,
+  nearby: <Siren size={18} color={color.accent} />,
   verification: <Check size={18} color={color.success} />,
-  status: <Radio size={18} />,
-  follow_up: <MessageCircle size={18} />,
+  status: <Radio size={18} color={color.warning} />,
+  follow_up: <MessageCircle size={18} color={color.textSecondary} />,
 };
 
 interface RowProps {

@@ -89,8 +89,11 @@ export default function CrisisConfirmScreen({ navigation, route }: Props): React
       <View style={styles.mapContainer}>
         <MapboxGL.MapView
           style={styles.map}
-          styleURL={MapboxGL.StyleURL.Light}
+          styleURL={MapboxGL.StyleURL.Street}
           localizeLabels={{ locale: 'ar' }}
+          logoEnabled={false}
+          attributionEnabled={false}
+          scaleBarEnabled={false}
           rotateEnabled={false}
           pitchEnabled={false}
           scrollEnabled={false}
@@ -106,7 +109,7 @@ export default function CrisisConfirmScreen({ navigation, route }: Props): React
 
       <View style={styles.content}>
         <View style={[styles.categoryBadge, { borderColor: tint }]}>
-          <Icon size={28} />
+          <Icon size={28} color={tint} />
           <Text variant="label" style={{ color: tint }}>{s.category[category]}</Text>
         </View>
         <Text secondary style={styles.confirmSubtitle}>{s.crisis.confirmSubtitle}</Text>

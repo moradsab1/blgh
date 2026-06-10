@@ -21,7 +21,7 @@ import {
 import type { FeedProps } from '../navigation/types';
 import { color, fontSize, font, radius, space } from '../core/theme/tokens';
 import { Text, SeverityPill, Chip } from '../core/theme/components';
-import { Search, BookmarkFilled, BookmarkOutline, CATEGORY_ICON } from '../core/icons';
+import { Search, BookmarkFilled, BookmarkOutline, CATEGORY_ICON, ShieldCheck } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
 import { FeedSkeleton } from '../presentation/components/Skeleton';
 import { relativeTime } from '../core/format/time';
@@ -173,7 +173,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
           </View>
 
           <View style={styles.cardCategory}>
-            <CatIcon size={18} />
+            <CatIcon size={18} color={color.severity[item.severity]} />
             <Text variant="label">{s.category[item.category]}</Text>
           </View>
 
@@ -286,7 +286,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
           }
           ListEmptyComponent={
             <View style={styles.empty} testID="feed-empty">
-              <Text style={styles.emptyIcon}>🛡️</Text>
+              <ShieldCheck size={40} color={color.status.calm} />
               <Text secondary style={styles.emptyTitle}>{s.feed.empty}</Text>
               <Text muted variant="caption" style={styles.emptySub}>{s.feed.emptySub}</Text>
             </View>
@@ -399,9 +399,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: space(6),
     gap: space(1),
-  },
-  emptyIcon: {
-    fontSize: 40,
   },
   emptyTitle: {
     fontSize: fontSize.md,

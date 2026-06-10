@@ -39,7 +39,7 @@ import MapboxGL from '@rnmapbox/maps';
 import type { MapProps } from '../navigation/types';
 import { color, fontSize, font, motion, radius, shadow, space } from '../core/theme/tokens';
 import { Text } from '../core/theme/components';
-import { List, Locate, Mail, Plus, Settings } from '../core/icons';
+import { List, Locate, Mail, Plus, Settings, Shield } from '../core/icons';
 import { useReduceMotion } from '../core/a11y/useReduceMotion';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
@@ -59,9 +59,10 @@ declare const global: Record<string, unknown>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getGeo = (): any => (global as any)?.navigator?.geolocation;
 
-// Light style for a clean, professional look; labels are localized to Arabic
-// via `localizeLabels` on the MapView.
-const MAPBOX_STYLE = 'mapbox://styles/mapbox/light-v11';
+// Streets style — Mapbox's most complete, continuously-updated road network
+// (every named road carries a label, unlike the minimal light style). Labels
+// are localized to Arabic via `localizeLabels` on the MapView.
+const MAPBOX_STYLE = 'mapbox://styles/mapbox/streets-v12';
 const MAP_LOCALE = { locale: 'ar' } as const;
 const INITIAL_ZOOM = 13;
 const USER_ZOOM = 14;
@@ -110,7 +111,9 @@ const LocationPermissionOverlay = ({
     <View style={ovStyles.backdrop}>
       <View style={ovStyles.card}>
         {/* Shield icon */}
-        <Text style={ovStyles.icon}>🛡️</Text>
+        <View style={ovStyles.iconCircle}>
+          <Shield size={32} color={color.accent} />
+        </View>
 
         {/* Title */}
         <Text style={ovStyles.title}>الموقع الجغرافي</Text>
@@ -164,8 +167,13 @@ const ovStyles = StyleSheet.create({
     maxWidth: 360,
     ...shadow.float,
   },
-  icon: {
-    fontSize: 56,
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: color.accent + '14',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: space(2),
   },
   title: {
@@ -769,6 +777,9 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         style={styles.map}
         styleURL={MAPBOX_STYLE}
         localizeLabels={MAP_LOCALE}
+        logoEnabled={false}
+        attributionEnabled={false}
+        scaleBarEnabled={false}
         rotateEnabled={false}
         pitchEnabled={false}
         onDidFinishLoadingMap={handleMapLoaded}

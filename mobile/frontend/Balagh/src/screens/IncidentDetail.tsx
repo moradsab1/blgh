@@ -3,25 +3,22 @@
  *
  * A 60 → 95 % bottom sheet over the map. Shows severity + timestamp + category,
  * locality + distance, full description, a 140 pt non-interactive Mapbox snippet,
- * a Confirm/Deny vote row (optimistic, one-way), and a comments thread where each
- * comment carries a deterministic 3-emoji identity tag (deriveEmojis) plus a
- * composer (≤280 chars).
+ * and a Confirm/Deny vote row (optimistic, one-way).
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Animated,
-  FlatList,
+  ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import type { IncidentDetailProps } from '../navigation/types';
-import { color, fontSize, font, radius, space, formatNumber } from '../core/theme/tokens';
-import { Text, SeverityPill, Button } from '../core/theme/components';
-import { CATEGORY_ICON, MessageCircle } from '../core/icons';
+import { color, radius, space, formatNumber } from '../core/theme/tokens';
+import { Text, SeverityPill } from '../core/theme/components';
+import { CATEGORY_ICON } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
 import { relativeTime } from '../core/format/time';
 import { haptics } from '../core/haptics';
@@ -33,11 +30,11 @@ import { db, LOCALITIES } from '../data/mock/db';
 import { MockIncidentRepo } from '../data/mock/MockIncidentRepo';
 import { wsEventEmitter } from '../data/mock/eventEmitter';
 import store, { StorageKeys } from '../core/storage';
-import type { Incident, Comment } from '../core/types';
+import type { Incident } from '../core/types';
 
 const repo = new MockIncidentRepo();
-const COMMENT_MAX = 280;
-const SNIPPET_STYLE = 'mapbox://styles/mapbox/dark-v11';
+const SNIPPET_STYLE = 'mapbox://styles/mapbox/light-v11';
+const SNIPPET_LOCALE = { locale: 'ar' } as const;
 
 const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React.ReactElement => {
   const { id } = route.params;
@@ -46,14 +43,11 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
   const { userLat, userLng } = useMapStore();
 
   const [incident, setIncident] = useState<Incident | undefined>(() => db.incidents.getById(id));
-  const [comments, setComments] = useState<Comment[]>(() => db.comments.getByIncident(id));
-  const [body, setBody] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const toastOpacity = useMemo(() => new Animated.Value(0), []);
 
   const refresh = useCallback(() => {
     setIncident(db.incidents.getById(id));
-    setComments(db.comments.getByIncident(id));
   }, [id]);
 
   useEffect(() => {
@@ -136,19 +130,6 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
     [incident, refresh, showToast, s],
   );
 
-  const handleSend = useCallback(async () => {
-    const trimmed = body.trim();
-    if (!trimmed || !incident) return;
-    setBody('');
-    haptics.press();
-    try {
-      await repo.addComment(incident.id, trimmed);
-    } catch {
-      // best-effort
-    }
-    refresh();
-  }, [body, incident, refresh]);
-
   if (!incident) {
     return (
       <BottomSheet snapPoints={[0.6, 0.95]} initialSnapIndex={0} onClose={() => navigation.goBack()}>
@@ -161,163 +142,106 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
 
   const CatIcon = CATEGORY_ICON[incident.category];
 
-  const header = (
-    <View>
-      <View style={styles.topRow}>
-        <SeverityPill severity={incident.severity} label={s.category[incident.category]} />
-        <Text variant="caption" muted>{relativeTime(incident.createdAt, lang)}</Text>
-      </View>
-
-      <View style={styles.categoryRow}>
-        <CatIcon size={22} />
-        <Text variant="heading">{s.category[incident.category]}</Text>
-      </View>
-
-      <View style={styles.localityRow}>
-        <Text variant="caption" secondary>📍 {localityName}</Text>
-        {distanceKm !== null ? (
-          <Text variant="caption" muted>
-            {s.detail.distanceAway} {formatNumber(distanceKm.toFixed(1))} {s.detail.km}
-          </Text>
-        ) : null}
-      </View>
-
-      {incident.description ? (
-        <Text style={styles.description}>{incident.description}</Text>
-      ) : null}
-
-      {/* Non-interactive 140 pt map snippet. Attribution kept on to comply
-          with Mapbox ToS even though the snippet is a static preview. */}
-      <View style={styles.snippet} pointerEvents="none" testID="detail-map-snippet">
-        <MapboxGL.MapView
-          style={StyleSheet.absoluteFill}
-          styleURL={SNIPPET_STYLE}
-          scrollEnabled={false}
-          zoomEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          {...({ compassEnabled: false } as any)}>
-          <MapboxGL.Camera
-            centerCoordinate={[incident.lng, incident.lat]}
-            zoomLevel={14}
-            animationDuration={0}
-          />
-          <MapboxGL.ShapeSource
-            id="detailSnippetSource"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            shape={{
-              type: 'FeatureCollection',
-              features: [
-                {
-                  type: 'Feature',
-                  properties: {},
-                  geometry: { type: 'Point', coordinates: [incident.lng, incident.lat] },
-                },
-              ],
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any}>
-            <MapboxGL.CircleLayer
-              id="detailSnippetPin"
-              style={{
-                circleColor: color.severity[incident.severity],
-                circleRadius: 9,
-                circleStrokeWidth: 2,
-                circleStrokeColor: 'rgba(255,255,255,0.4)',
-              }}
-            />
-          </MapboxGL.ShapeSource>
-        </MapboxGL.MapView>
-      </View>
-
-      {/* Vote row */}
-      <View style={styles.voteRow}>
-        <TouchableOpacity
-          style={[styles.voteBtn, incident.myVote === 'confirm' && styles.voteConfirm]}
-          onPress={() => handleVote('confirm')}
-          testID="detail-confirm"
-          activeOpacity={0.8}>
-          <Text variant="label" style={styles.voteLabel}>
-            ✓ {s.detail.confirm} · {formatNumber(incident.confirmations)}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.voteBtn, incident.myVote === 'deny' && styles.voteDeny]}
-          onPress={() => handleVote('deny')}
-          testID="detail-deny"
-          activeOpacity={0.8}>
-          <Text variant="label" style={styles.voteLabel}>
-            ✕ {s.detail.deny} · {formatNumber(incident.denials)}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text variant="label" style={styles.commentsTitle}>
-        {s.detail.commentsTitle} ({formatNumber(comments.length)})
-      </Text>
-    </View>
-  );
-
-  const renderComment = ({ item }: { item: Comment }): React.ReactElement => (
-    <View style={styles.comment} testID={`comment-${item.id}`}>
-      <Text style={styles.commentTag}>{item.identityTag.join(' ')}</Text>
-      <View style={styles.commentBody}>
-        <Text variant="caption" muted>{relativeTime(item.createdAt, lang)}</Text>
-        <Text style={styles.commentText}>{item.body}</Text>
-      </View>
-    </View>
-  );
-
   return (
     <BottomSheet
       snapPoints={[0.6, 0.95]}
       initialSnapIndex={0}
       onClose={() => navigation.goBack()}
       testID="detail-sheet">
-      <FlatList
-        data={comments}
-        keyExtractor={c => c.id}
-        renderItem={renderComment}
-        ListHeaderComponent={header}
+      <ScrollView
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.noCommentsBox}>
-            <MessageCircle size={28} />
-            <Text secondary style={styles.noCommentsTitle}>{s.detail.noComments}</Text>
-            <Text muted variant="caption" style={styles.noCommentsSub}>
-              {s.detail.composerPlaceholder}
-            </Text>
-          </View>
-        }
-      />
-
-      {/* Composer */}
-      <View style={styles.composer}>
-        <TextInput
-          style={styles.composerInput}
-          value={body}
-          onChangeText={t => setBody(t.slice(0, COMMENT_MAX))}
-          placeholder={s.detail.composerPlaceholder}
-          placeholderTextColor={color.textMuted}
-          multiline
-          maxLength={COMMENT_MAX}
-          testID="comment-composer"
-        />
-        <View style={styles.composerFooter}>
-          <Text variant="caption" muted>
-            {formatNumber(body.length)}/{formatNumber(COMMENT_MAX)}
-          </Text>
-          <Button
-            label={s.detail.send}
-            size="sm"
-            disabled={!body.trim()}
-            onPress={handleSend}
-            testID="comment-send"
-          />
+        showsVerticalScrollIndicator={false}>
+        <View style={styles.topRow}>
+          <SeverityPill severity={incident.severity} label={s.category[incident.category]} />
+          <Text variant="caption" muted>{relativeTime(incident.createdAt, lang)}</Text>
         </View>
-      </View>
+
+        <View style={styles.categoryRow}>
+          <CatIcon size={22} />
+          <Text variant="heading">{s.category[incident.category]}</Text>
+        </View>
+
+        <View style={styles.localityRow}>
+          <Text variant="caption" secondary>📍 {localityName}</Text>
+          {distanceKm !== null ? (
+            <Text variant="caption" muted>
+              {s.detail.distanceAway} {formatNumber(distanceKm.toFixed(1))} {s.detail.km}
+            </Text>
+          ) : null}
+        </View>
+
+        {incident.description ? (
+          <Text style={styles.description}>{incident.description}</Text>
+        ) : null}
+
+        {/* Non-interactive 140 pt map snippet. Attribution kept on to comply
+            with Mapbox ToS even though the snippet is a static preview. */}
+        <View style={styles.snippet} pointerEvents="none" testID="detail-map-snippet">
+          <MapboxGL.MapView
+            style={StyleSheet.absoluteFill}
+            styleURL={SNIPPET_STYLE}
+            localizeLabels={SNIPPET_LOCALE}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            {...({ compassEnabled: false } as any)}>
+            <MapboxGL.Camera
+              centerCoordinate={[incident.lng, incident.lat]}
+              zoomLevel={14}
+              animationDuration={0}
+            />
+            <MapboxGL.ShapeSource
+              id="detailSnippetSource"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              shape={{
+                type: 'FeatureCollection',
+                features: [
+                  {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: { type: 'Point', coordinates: [incident.lng, incident.lat] },
+                  },
+                ],
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              } as any}>
+              <MapboxGL.CircleLayer
+                id="detailSnippetPin"
+                style={{
+                  circleColor: color.severity[incident.severity],
+                  circleRadius: 9,
+                  circleStrokeWidth: 2.5,
+                  circleStrokeColor: '#FFFFFF',
+                }}
+              />
+            </MapboxGL.ShapeSource>
+          </MapboxGL.MapView>
+        </View>
+
+        {/* Vote row */}
+        <View style={styles.voteRow}>
+          <TouchableOpacity
+            style={[styles.voteBtn, incident.myVote === 'confirm' && styles.voteConfirm]}
+            onPress={() => handleVote('confirm')}
+            testID="detail-confirm"
+            activeOpacity={0.8}>
+            <Text variant="label" style={styles.voteLabel}>
+              ✓ {s.detail.confirm} · {formatNumber(incident.confirmations)}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.voteBtn, incident.myVote === 'deny' && styles.voteDeny]}
+            onPress={() => handleVote('deny')}
+            testID="detail-deny"
+            activeOpacity={0.8}>
+            <Text variant="label" style={styles.voteLabel}>
+              ✕ {s.detail.deny} · {formatNumber(incident.denials)}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
 
       {toast ? (
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
@@ -331,8 +255,7 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
 const styles = StyleSheet.create({
   list: {
     paddingHorizontal: space(2),
-    paddingBottom: space(2),
-    gap: space(1),
+    paddingBottom: space(3),
   },
   missing: {
     alignItems: 'center',
@@ -366,7 +289,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     overflow: 'hidden',
     marginTop: space(2),
-    backgroundColor: color.bg,
+    backgroundColor: color.cardElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
   },
   voteRow: {
     flexDirection: 'row',
@@ -376,6 +301,8 @@ const styles = StyleSheet.create({
   voteBtn: {
     flex: 1,
     backgroundColor: color.card,
+    borderWidth: 1,
+    borderColor: color.border,
     borderRadius: radius.md,
     paddingVertical: space(1.5),
     alignItems: 'center',
@@ -383,79 +310,21 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   voteConfirm: {
-    backgroundColor: color.status.calm + '33',
+    backgroundColor: color.status.calm + '1A',
+    borderColor: color.status.calm,
   },
   voteDeny: {
-    backgroundColor: color.accent + '33',
+    backgroundColor: color.accent + '1A',
+    borderColor: color.accent,
   },
   voteLabel: {
     color: color.textPrimary,
-  },
-  commentsTitle: {
-    marginTop: space(2.5),
-    marginBottom: space(0.5),
-  },
-  noCommentsBox: {
-    alignItems: 'center',
-    paddingVertical: space(3),
-    gap: space(0.75),
-    backgroundColor: color.card,
-    borderRadius: radius.md,
-    paddingHorizontal: space(2),
-  },
-  noCommentsTitle: {
-    textAlign: 'center',
-  },
-  noCommentsSub: {
-    textAlign: 'center',
-    paddingHorizontal: space(2),
-  },
-  comment: {
-    flexDirection: 'row',
-    gap: space(1),
-    backgroundColor: color.card,
-    borderRadius: radius.md,
-    padding: space(1.5),
-  },
-  commentTag: {
-    fontSize: 18,
-  },
-  commentBody: {
-    flex: 1,
-    gap: 2,
-  },
-  commentText: {
-    color: color.textPrimary,
-    lineHeight: 20,
-  },
-  composer: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: color.border,
-    padding: space(1.5),
-    backgroundColor: color.cardElevated,
-    gap: space(1),
-  },
-  composerInput: {
-    color: color.textPrimary,
-    fontSize: fontSize.base,
-    fontFamily: font.arabic,
-    maxHeight: 100,
-    minHeight: 40,
-    backgroundColor: color.card,
-    borderRadius: radius.md,
-    paddingHorizontal: space(1.5),
-    paddingTop: space(1),
-  },
-  composerFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   toast: {
     position: 'absolute',
     bottom: space(10),
     alignSelf: 'center',
-    backgroundColor: color.cardElevated,
+    backgroundColor: color.card,
     borderRadius: radius.pill,
     paddingHorizontal: space(2),
     paddingVertical: space(1),

@@ -25,16 +25,7 @@ export interface Incident {
   resolvedAt?: string;
   confirmations: number;
   denials: number;
-  commentCount: number;
   myVote?: 'confirm' | 'deny' | null;
-}
-
-export interface Comment {
-  id: string;
-  incidentId: string;
-  identityTag: [string, string, string];
-  body: string;
-  createdAt: string;
 }
 
 export interface AppNotification {

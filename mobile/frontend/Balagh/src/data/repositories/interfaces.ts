@@ -1,6 +1,5 @@
 import type {
   Incident,
-  Comment,
   AppNotification,
   Locality,
   StatusResponse,
@@ -16,8 +15,6 @@ export interface IIncidentRepository {
     description?: string,
   ): Promise<{ id: string; ref: string }>;
   vote(incidentId: string, vote: 'confirm' | 'deny'): Promise<Incident>;
-  getComments(incidentId: string): Promise<Comment[]>;
-  addComment(incidentId: string, body: string): Promise<Comment>;
 }
 
 export interface INotificationRepository {

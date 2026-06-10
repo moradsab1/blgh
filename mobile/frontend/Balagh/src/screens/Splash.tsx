@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   logoLetter: {
     fontSize: 40,
     fontWeight: 'bold',
-    color: color.textPrimary,
+    color: color.textOnAccent,
   },
   appName: {
     fontSize: 28,

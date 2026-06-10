@@ -291,7 +291,7 @@ const ToggleRow = ({
       value={value}
       onValueChange={onValueChange}
       trackColor={{ false: color.border, true: color.accent }}
-      thumbColor={color.textPrimary}
+      thumbColor={color.textOnAccent}
     />
   </View>
 );

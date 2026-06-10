@@ -4,7 +4,7 @@
  * A draggable bottom sheet (25 / 60 / 90 %) over the map. Sticky header with
  * locality + distance + search, filter chips, and a FlatList of incident cards.
  * Cards show severity, relative time (30 s refresh), category, description,
- * Confirm/Deny vote pills, comment count, and a bookmark (persisted).
+ * Confirm/Deny vote pills, and a bookmark (persisted).
  * Tapping a card opens the Incident Detail route.
  */
 
@@ -21,7 +21,7 @@ import {
 import type { FeedProps } from '../navigation/types';
 import { color, fontSize, font, radius, space } from '../core/theme/tokens';
 import { Text, SeverityPill, Chip } from '../core/theme/components';
-import { Search, BookmarkFilled, BookmarkOutline, MessageCircle, CATEGORY_ICON } from '../core/icons';
+import { Search, BookmarkFilled, BookmarkOutline, CATEGORY_ICON } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
 import { FeedSkeleton } from '../presentation/components/Skeleton';
 import { relativeTime } from '../core/format/time';
@@ -204,11 +204,6 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
               </Text>
             </TouchableOpacity>
 
-            <View style={styles.commentCount}>
-              <MessageCircle size={14} />
-              <Text variant="caption" muted>{formatNumber(item.commentCount)}</Text>
-            </View>
-
             <View style={styles.spacer} />
 
             <TouchableOpacity
@@ -325,7 +320,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space(1),
-    backgroundColor: color.card,
+    backgroundColor: color.cardElevated,
     borderRadius: radius.md,
     paddingHorizontal: space(1.5),
     minHeight: 40,
@@ -354,6 +349,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: space(2),
     gap: space(1),
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
   },
   cardTop: {
     flexDirection: 'row',
@@ -376,6 +373,8 @@ const styles = StyleSheet.create({
   },
   votePill: {
     backgroundColor: color.bg,
+    borderWidth: 1,
+    borderColor: color.border,
     borderRadius: radius.pill,
     paddingHorizontal: space(1.5),
     paddingVertical: 4,
@@ -383,18 +382,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   votePillConfirm: {
-    backgroundColor: color.status.calm + '33',
+    backgroundColor: color.status.calm + '1A',
+    borderColor: color.status.calm,
   },
   votePillDeny: {
-    backgroundColor: color.accent + '33',
+    backgroundColor: color.accent + '1A',
+    borderColor: color.accent,
   },
   voteText: {
     color: color.textSecondary,
-  },
-  commentCount: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
   spacer: {
     flex: 1,

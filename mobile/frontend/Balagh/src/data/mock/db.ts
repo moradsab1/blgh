@@ -1,4 +1,4 @@
-import type { Incident, AppNotification, Locality, Comment } from '../../core/types';
+import type { Incident, AppNotification, Locality } from '../../core/types';
 
 export const LOCALITIES: Locality[] = [
   { id: 'umm-al-fahm', nameAr: 'أم الفحم', nameHe: 'אום אל-פחם', nameEn: 'Umm al-Fahm', lat: 32.5139, lng: 35.1566 },
@@ -34,7 +34,6 @@ let _incidents: Incident[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
     confirmations: 4,
     denials: 1,
-    commentCount: 2,
     myVote: null,
   },
   {
@@ -49,7 +48,6 @@ let _incidents: Incident[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
     confirmations: 7,
     denials: 0,
-    commentCount: 5,
     myVote: null,
   },
   {
@@ -64,7 +62,6 @@ let _incidents: Incident[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
     confirmations: 12,
     denials: 0,
-    commentCount: 8,
     myVote: null,
   },
   {
@@ -79,7 +76,6 @@ let _incidents: Incident[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 38).toISOString(),
     confirmations: 6,
     denials: 1,
-    commentCount: 3,
     myVote: null,
   },
   {
@@ -94,7 +90,6 @@ let _incidents: Incident[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
     confirmations: 9,
     denials: 0,
-    commentCount: 11,
     myVote: null,
   },
   {
@@ -109,7 +104,6 @@ let _incidents: Incident[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
     confirmations: 3,
     denials: 0,
-    commentCount: 1,
     myVote: null,
   },
   {
@@ -124,7 +118,6 @@ let _incidents: Incident[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
     confirmations: 5,
     denials: 2,
-    commentCount: 4,
     myVote: null,
   },
   {
@@ -139,7 +132,6 @@ let _incidents: Incident[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
     confirmations: 8,
     denials: 0,
-    commentCount: 6,
     myVote: null,
   },
 ];
@@ -182,43 +174,6 @@ let _notifications: AppNotification[] = [
   },
 ];
 
-let _comments: Comment[] = [
-  {
-    id: 'c1',
-    incidentId: '1',
-    identityTag: ['🦁', '🌙', '🎯'],
-    body: 'رأيت سيارة بيضاء تدور في المنطقة منذ الصباح. اللوحة كانت مغطاة بطين.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-  },
-  {
-    id: 'c2',
-    incidentId: '1',
-    identityTag: ['🐯', '⭐', '🌊'],
-    body: 'أكدت لجارتي، السيارة موجودة فعلاً. أبلغت المدرسة.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-  },
-  {
-    id: 'c3',
-    incidentId: '3',
-    identityTag: ['🦅', '⚡', '🔥'],
-    body: 'سمعت الصوت من بعيد. تأكدت أنها رصاصات حقيقية وليست ألعاب نارية.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
-  },
-  {
-    id: 'c4',
-    incidentId: '3',
-    identityTag: ['🐺', '🌑', '🛡️'],
-    body: 'كل العائلات هنا دخلت البيوت. الشارع فارغ الآن.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
-  },
-  {
-    id: 'c5',
-    incidentId: '5',
-    identityTag: ['🦊', '🌟', '🍃'],
-    body: 'الإسعاف وصل خلال ٧ دقائق. الموقف تحت السيطرة الآن.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
-  },
-];
 
 export const db = {
   incidents: {
@@ -243,9 +198,5 @@ export const db = {
       _notifications = _notifications.map(n => ({ ...n, read: true }));
     },
     add: (n: AppNotification) => { _notifications = [n, ..._notifications]; },
-  },
-  comments: {
-    getByIncident: (incidentId: string) => _comments.filter(c => c.incidentId === incidentId),
-    add: (comment: Comment) => { _comments = [..._comments, comment]; },
   },
 };

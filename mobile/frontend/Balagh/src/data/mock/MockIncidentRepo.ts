@@ -1,8 +1,7 @@
 import type { IIncidentRepository } from '../repositories/interfaces';
-import type { Incident, Comment } from '../../core/types';
+import type { Incident } from '../../core/types';
 import { db } from './db';
 import { wsEventEmitter } from './eventEmitter';
-import { deriveEmojis, getPublicKeyHex } from '../../core/identity';
 import store, { StorageKeys } from '../../core/storage';
 
 const sleep = (ms: number): Promise<void> =>
@@ -57,7 +56,6 @@ export class MockIncidentRepo implements IIncidentRepository {
       createdAt: new Date().toISOString(),
       confirmations: 0,
       denials: 0,
-      commentCount: 0,
       myVote: null,
     };
     db.incidents.add(incident);
@@ -80,31 +78,5 @@ export class MockIncidentRepo implements IIncidentRepository {
     };
     db.incidents.update(incidentId, patch);
     return { ...incident, ...patch };
-  }
-
-  async getComments(incidentId: string): Promise<Comment[]> {
-    await sleep(latency());
-    return db.comments.getByIncident(incidentId);
-  }
-
-  async addComment(incidentId: string, body: string): Promise<Comment> {
-    await sleep(latency());
-    let identityTag: [string, string, string] = ['🔥', '🌊', '⭐'];
-    try {
-      identityTag = deriveEmojis(getPublicKeyHex());
-    } catch {}
-    const comment: Comment = {
-      id: String(Date.now()),
-      incidentId,
-      identityTag,
-      body: body.slice(0, 280),
-      createdAt: new Date().toISOString(),
-    };
-    db.comments.add(comment);
-    const existing = db.incidents.getById(incidentId);
-    db.incidents.update(incidentId, {
-      commentCount: (existing?.commentCount ?? 0) + 1,
-    });
-    return comment;
   }
 }

@@ -46,7 +46,7 @@ export default function ReportSuccessScreen({ navigation, route }: Props): React
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={color.bg} />
+      <StatusBar barStyle="dark-content" backgroundColor={color.bg} />
       <View style={styles.content}>
         <Animated.View style={[styles.checkCircle, { transform: [{ scale }] }]}>
           <Check size={48} color="#fff" />

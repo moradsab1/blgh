@@ -89,7 +89,8 @@ export default function CrisisConfirmScreen({ navigation, route }: Props): React
       <View style={styles.mapContainer}>
         <MapboxGL.MapView
           style={styles.map}
-          styleURL={MapboxGL.StyleURL.Dark}
+          styleURL={MapboxGL.StyleURL.Light}
+          localizeLabels={{ locale: 'ar' }}
           rotateEnabled={false}
           pitchEnabled={false}
           scrollEnabled={false}

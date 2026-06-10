@@ -132,7 +132,7 @@ export default function FollowUpScreen({ navigation, route }: Props): React.Reac
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={color.bg} />
+      <StatusBar barStyle="dark-content" backgroundColor={color.bg} />
       <View style={styles.header}>
         <Pressable onPress={handleBack} hitSlop={12} style={styles.backBtn}>
           <ChevronLeft size={20} color={color.textPrimary} />

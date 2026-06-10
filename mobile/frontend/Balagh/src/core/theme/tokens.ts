@@ -1,31 +1,38 @@
 export const color = {
-  bg: '#0B1220',
-  card: '#1E293B',
-  cardElevated: '#263347',
-  border: '#334155',
-  textPrimary: '#F8FAFC',
-  textSecondary: '#94A3B8',
-  textMuted: '#64748B',
+  bg: '#F8FAFC',
+  card: '#FFFFFF',
+  // Nested / inset surface (input fields, ref boxes, skeleton blocks) — one
+  // step darker than `card` so it still reads on white.
+  cardElevated: '#EEF2F7',
+  border: '#E2E8F0',
+  textPrimary: '#0F172A',
+  textSecondary: '#475569',
+  textMuted: '#94A3B8',
+  // Text/icons placed on accent-, danger- or success-colored surfaces.
+  textOnAccent: '#FFFFFF',
   accent: '#DC2626',
   // Report FAB / call-to-action color, distinct from critical/danger red so a
   // demo viewer can read "I want to file a report" vs "active threat".
   reportAccent: '#F97316',
   // Crisis-mode chrome accent, deeper than `accent` to read as "emergency".
   crisisAccent: '#B91C1C',
-  overlay: 'rgba(11, 18, 32, 0.8)',
+  // Translucent white used for chrome floating over the map.
+  overlay: 'rgba(255, 255, 255, 0.94)',
+  // Dimmed backdrop behind modals and bottom sheets.
+  scrim: 'rgba(15, 23, 42, 0.45)',
   severity: {
     critical: '#DC2626',
     high: '#EA580C',
-    medium: '#F59E0B',
+    medium: '#D97706',
     low: '#65A30D',
   },
   status: {
     calm: '#16A34A',
-    watch: '#F59E0B',
+    watch: '#D97706',
     active: '#DC2626',
   },
   success: '#16A34A',
-  warning: '#F59E0B',
+  warning: '#D97706',
   error: '#DC2626',
   transparent: 'transparent',
 } as const;
@@ -81,11 +88,19 @@ export const lineHeight = {
 
 export const shadow = {
   card: {
-    shadowColor: '#000',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
+  },
+  // Stronger lift for floating chrome (FABs, pills hovering over the map).
+  float: {
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    elevation: 6,
   },
 } as const;
 

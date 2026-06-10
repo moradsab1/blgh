@@ -1,6 +1,5 @@
 import { db } from '../../src/data/mock/db';
 import { MockIncidentRepo } from '../../src/data/mock/MockIncidentRepo';
-import { ensureIdentity, getPublicKeyHex, deriveEmojis } from '../../src/core/identity';
 import type { Incident } from '../../src/core/types';
 
 const repo = new MockIncidentRepo();
@@ -17,7 +16,6 @@ const makeIncident = (id: string): Incident => ({
   createdAt: new Date().toISOString(),
   confirmations: 0,
   denials: 0,
-  commentCount: 0,
   myVote: null,
 });
 
@@ -56,40 +54,5 @@ describe('votes are one-way and irrevocable', () => {
     // The count did not change after the rejected duplicate.
     expect(db.incidents.getById('vote-1')?.confirmations).toBe(1);
     expect(db.incidents.getById('vote-1')?.denials).toBe(0);
-  });
-});
-
-describe('deterministic 3-emoji identity tag on comments', () => {
-  beforeAll(async () => {
-    await ensureIdentity();
-  });
-
-  it('the same commenter always gets the same emoji tag', async () => {
-    const inc = makeIncident('comment-1');
-    db.incidents.add(inc);
-
-    const c1 = await repo.addComment('comment-1', 'first');
-    const c2 = await repo.addComment('comment-1', 'second');
-
-    expect(c1.identityTag).toEqual(c2.identityTag);
-    expect(c1.identityTag).toEqual(deriveEmojis(getPublicKeyHex()));
-    expect(c1.identityTag).toHaveLength(3);
-  });
-
-  it('addComment increments the incident comment count', async () => {
-    const inc = makeIncident('comment-2');
-    db.incidents.add(inc);
-
-    await repo.addComment('comment-2', 'hello');
-    expect(db.incidents.getById('comment-2')?.commentCount).toBe(1);
-  });
-
-  it('comment bodies are clamped to 280 characters', async () => {
-    const inc = makeIncident('comment-3');
-    db.incidents.add(inc);
-
-    const long = 'x'.repeat(400);
-    const c = await repo.addComment('comment-3', long);
-    expect(c.body.length).toBe(280);
   });
 });

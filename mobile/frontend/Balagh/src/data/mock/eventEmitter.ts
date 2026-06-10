@@ -152,7 +152,6 @@ export const startMockEmitter = (): void => {
         createdAt: new Date().toISOString(),
         confirmations: 0,
         denials: 0,
-        commentCount: 0,
         myVote: null,
       };
       db.incidents.add(incident);

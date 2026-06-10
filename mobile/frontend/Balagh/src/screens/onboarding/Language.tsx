@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, ChevronLeft } from '../../core/icons';
-import { color, space, hit } from '../../core/theme/tokens';
+import { color, space, hit, shadow } from '../../core/theme/tokens';
 import { Text } from '../../core/theme/components';
 import { haptics } from '../../core/haptics';
 import store, { StorageKeys } from '../../core/storage';
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   logoLetter: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: color.textPrimary,
+    color: color.textOnAccent,
   },
   cards: {
     gap: space(2),
@@ -125,6 +125,9 @@ const styles = StyleSheet.create({
     padding: space(2),
     minHeight: hit.min,
     gap: space(2),
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+    ...shadow.card,
   },
   flag: {
     fontSize: 28,

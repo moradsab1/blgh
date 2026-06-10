@@ -53,7 +53,6 @@ function makeIncident(
     createdAt: new Date(Date.now() - ageMinutes * 60 * 1000).toISOString(),
     confirmations,
     denials: 0,
-    commentCount: 0,
     myVote: null,
     ...(resolvedAt ? { resolvedAt } : {}),
   };

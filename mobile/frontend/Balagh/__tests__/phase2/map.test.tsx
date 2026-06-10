@@ -50,7 +50,6 @@ const mockIncidents: any[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     confirmations: 2,
     denials: 0,
-    commentCount: 0,
     myVote: null,
   },
 ];

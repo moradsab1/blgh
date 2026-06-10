@@ -28,6 +28,7 @@ import {
   Modal,
   PermissionsAndroid,
   Platform,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -36,8 +37,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapboxGL from '@rnmapbox/maps';
 
 import type { MapProps } from '../navigation/types';
-import { color, fontSize, font, motion, radius, space } from '../core/theme/tokens';
+import { color, fontSize, font, motion, radius, shadow, space } from '../core/theme/tokens';
 import { Text } from '../core/theme/components';
+import { List, Locate, Mail, Plus, Settings } from '../core/icons';
 import { useReduceMotion } from '../core/a11y/useReduceMotion';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
@@ -47,7 +49,7 @@ import { computeStatus, haversineKm } from '../domain/status';
 import { db, LOCALITIES } from '../data/mock/db';
 import { wsEventEmitter, startMockEmitter, stopMockEmitter } from '../data/mock/eventEmitter';
 import store, { StorageKeys } from '../core/storage';
-import type { Incident, SafetyState, AppNotification } from '../core/types';
+import type { Incident, SafetyState } from '../core/types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -57,7 +59,10 @@ declare const global: Record<string, unknown>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getGeo = (): any => (global as any)?.navigator?.geolocation;
 
-const MAPBOX_DARK_STYLE = 'mapbox://styles/mapbox/dark-v11';
+// Light style for a clean, professional look; labels are localized to Arabic
+// via `localizeLabels` on the MapView.
+const MAPBOX_STYLE = 'mapbox://styles/mapbox/light-v11';
+const MAP_LOCALE = { locale: 'ar' } as const;
 const INITIAL_ZOOM = 13;
 const USER_ZOOM = 14;
 const CLUSTER_RADIUS = 50;
@@ -145,7 +150,7 @@ const LocationPermissionOverlay = ({
 const ovStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(11,18,32,0.92)',
+    backgroundColor: color.scrim,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space(3),
@@ -157,6 +162,7 @@ const ovStyles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     maxWidth: 360,
+    ...shadow.float,
   },
   icon: {
     fontSize: 56,
@@ -200,7 +206,7 @@ const ovStyles = StyleSheet.create({
   primaryBtnText: {
     fontSize: fontSize.base,
     fontFamily: font.arabicSemiBold,
-    color: color.textPrimary,
+    color: color.textOnAccent,
   },
   ghostBtn: {
     paddingVertical: space(1),
@@ -607,7 +613,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
       await MapboxGL.offlineManager.createPack(
         {
           name: packName,
-          styleURL: MAPBOX_DARK_STYLE,
+          styleURL: MAPBOX_STYLE,
           minZoom: OFFLINE_MIN_ZOOM,
           maxZoom: OFFLINE_MAX_ZOOM,
           bounds: [
@@ -755,12 +761,14 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
 
   return (
     <View style={styles.root} testID="map-screen">
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       {/* ── Mapbox MapView ─────────────────────────────────────────────── */}
       <MapboxGL.MapView
         key={mapKey}
         testID="mapbox-map-view"
         style={styles.map}
-        styleURL={MAPBOX_DARK_STYLE}
+        styleURL={MAPBOX_STYLE}
+        localizeLabels={MAP_LOCALE}
         rotateEnabled={false}
         pitchEnabled={false}
         onDidFinishLoadingMap={handleMapLoaded}
@@ -809,9 +817,9 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
               circleColor: clusterCircleColor as any,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               circleRadius: clusterCircleRadius as any,
-              circleOpacity: 0.9,
-              circleStrokeWidth: 2,
-              circleStrokeColor: 'rgba(255,255,255,0.2)',
+              circleOpacity: 0.92,
+              circleStrokeWidth: 2.5,
+              circleStrokeColor: '#FFFFFF',
             }}
           />
 
@@ -839,8 +847,8 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
               circleRadius: 10,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               circleOpacity: ['get', 'opacity'] as any,
-              circleStrokeWidth: 2,
-              circleStrokeColor: 'rgba(255,255,255,0.3)',
+              circleStrokeWidth: 2.5,
+              circleStrokeColor: '#FFFFFF',
             }}
           />
         </MapboxGL.ShapeSource>
@@ -904,7 +912,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           testID="toolbar-inbox-btn">
-          <Text style={styles.toolbarIcon}>🔔</Text>
+          <Mail size={19} color={color.textPrimary} />
           {unreadCount > 0 && (
             <View style={styles.badge} testID="toolbar-inbox-badge">
               <Text style={styles.badgeText}>
@@ -918,7 +926,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           onPress={() => navigation.navigate('Settings')}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           testID="toolbar-settings-btn">
-          <Text style={styles.toolbarIcon}>⚙️</Text>
+          <Settings size={19} color={color.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -949,7 +957,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           onPress={handleRecenter}
           activeOpacity={0.8}
           testID="recenter-fab">
-          <Text style={styles.recenterIcon}>◎</Text>
+          <Locate size={22} color={color.textPrimary} />
         </TouchableOpacity>
       )}
 
@@ -965,8 +973,8 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           onPress={() => navigation.navigate('Feed')}
           activeOpacity={0.8}
           testID="feed-pill">
+          <List size={16} color={color.textPrimary} />
           <Text style={styles.feedPillText}>{s.map.feed}</Text>
-          <Text style={styles.feedPillIcon}>📰</Text>
         </TouchableOpacity>
 
         {/* Report FAB — long-press routes to the Crisis fast-path. */}
@@ -982,7 +990,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
             accessibilityHint={s.map.longPressForCrisis}
             activeOpacity={0.8}
             testID="report-fab">
-            <Text style={styles.reportFabIcon}>🚨</Text>
+            <Plus size={30} color={color.textOnAccent} />
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -1025,6 +1033,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: space(1.5),
     paddingVertical: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+    ...shadow.card,
   },
   statusDot: {
     width: 8,
@@ -1046,15 +1057,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: space(1),
     paddingVertical: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+    ...shadow.card,
   },
   toolbarBtn: {
     width: 36,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  toolbarIcon: {
-    fontSize: 20,
   },
   badge: {
     position: 'absolute',
@@ -1068,10 +1079,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: color.bg,
+    borderColor: color.card,
   },
   badgeText: {
-    color: color.textPrimary,
+    color: color.textOnAccent,
     fontSize: 10,
     fontFamily: font.arabicSemiBold,
     lineHeight: 12,
@@ -1089,6 +1100,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: space(2),
     paddingVertical: space(1),
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+    ...shadow.card,
   },
   deniedBannerText: {
     fontSize: fontSize.sm,
@@ -1107,16 +1121,16 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: color.cardElevated,
+    backgroundColor: color.card,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  recenterIcon: {
-    fontSize: 22,
-    color: color.textPrimary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+    ...shadow.float,
   },
 
-  // Bottom action tray
+  // Bottom action tray — chrome floats free over the map; each control
+  // carries its own elevation instead of sitting on a dark band.
   actionTray: {
     position: 'absolute',
     bottom: 0,
@@ -1127,25 +1141,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: space(2),
     paddingTop: space(1.5),
-    backgroundColor: 'rgba(11,18,32,0.75)',
   },
   feedPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     backgroundColor: color.card,
     borderRadius: radius.pill,
     paddingHorizontal: space(2),
     paddingVertical: space(1),
     minHeight: 44,
+    marginBottom: space(1),
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+    ...shadow.float,
   },
   feedPillText: {
     fontSize: fontSize.sm,
     fontFamily: font.arabicMedium,
     color: color.textPrimary,
-  },
-  feedPillIcon: {
-    fontSize: 16,
   },
   reportFab: {
     width: 64,
@@ -1155,14 +1169,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: space(1),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  reportFabIcon: {
-    fontSize: 28,
+    ...shadow.float,
   },
 
   // Error state
@@ -1192,7 +1199,7 @@ const styles = StyleSheet.create({
   retryBtnText: {
     fontSize: fontSize.base,
     fontFamily: font.arabicSemiBold,
-    color: color.textPrimary,
+    color: color.textOnAccent,
   },
 });
 

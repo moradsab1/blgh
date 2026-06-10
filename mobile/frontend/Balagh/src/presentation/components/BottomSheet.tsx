@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { color, radius, space } from '../../core/theme/tokens';
+import { color, radius, shadow, space } from '../../core/theme/tokens';
 import { useReduceMotion } from '../../core/a11y/useReduceMotion';
 import { strings } from '../../core/strings';
 import { useLangStore } from '../../domain/stores/lang';
@@ -198,17 +198,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: color.scrim,
   },
   sheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: color.cardElevated,
+    backgroundColor: color.card,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     overflow: 'hidden',
+    ...shadow.float,
   },
   handleZone: {
     alignItems: 'center',

@@ -55,18 +55,18 @@ class AppErrorBoundary extends Component<
 const boundaryStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B1220',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
   },
   title: {
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontSize: 28,
     fontWeight: 'bold',
   },
   body: {
-    color: '#94A3B8',
+    color: '#475569',
     fontSize: 15,
     textAlign: 'center',
     paddingHorizontal: 32,
@@ -75,7 +75,7 @@ const boundaryStyles = StyleSheet.create({
 
 // ── Storage hydration gate ──────────────────────────────────────────────────
 // AsyncStorage is async, so we load the cache once before rendering the tree.
-// This is a single multiGet — fast. Until it resolves we show a dark splash.
+// This is a single multiGet — fast. Until it resolves we show a blank splash.
 // (I18nManager.forceRTL is persisted natively by Android across restarts, so
 // the layout direction is already correct from the previous session.)
 
@@ -125,7 +125,7 @@ const App = (): React.ReactElement => {
 };
 
 const styles = StyleSheet.create({
-  splash: { flex: 1, backgroundColor: '#0B1220' },
+  splash: { flex: 1, backgroundColor: '#F8FAFC' },
 });
 
 export default App;

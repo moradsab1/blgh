@@ -35,7 +35,9 @@ const makeIcon = (glyph: string, mono: boolean) => {
   return Icon;
 };
 
-// Monochrome — respect `color`
+// Monochrome — respect `color`. Codepoints with an emoji variant carry the
+// text-presentation selector (U+FE0E) so both platforms render them as plain,
+// tintable glyphs instead of colored emoji.
 export const ChevronRight = makeIcon('❯', true);
 export const ChevronLeft = makeIcon('❮', true);
 export const ArrowRight = makeIcon('→', true);
@@ -47,8 +49,15 @@ export const Minus = makeIcon('－', true);
 export const Send = makeIcon('➤', true);
 export const ThumbsUp = makeIcon('✓', true);
 export const ThumbsDown = makeIcon('✕', true);
+export const Settings = makeIcon('⚙︎', true);
+export const Info = makeIcon('ℹ︎', true);
+export const Mail = makeIcon('✉︎', true);
+export const Copy = makeIcon('⧉', true);
+export const HelpCircle = makeIcon('?', true);
+export const List = makeIcon('☰', true);
+export const Locate = makeIcon('◎', true);
 
-// Emoji — colorful glyphs
+// Emoji — colorful glyphs (no reliable monochrome equivalent in system fonts)
 export const Shield = makeIcon('🛡️', false);
 export const MapPin = makeIcon('📍', false);
 export const Radio = makeIcon('📡', false);
@@ -57,10 +66,6 @@ export const Globe = makeIcon('🌐', false);
 export const Key = makeIcon('🔑', false);
 export const Trash2 = makeIcon('🗑️', false);
 export const Bell = makeIcon('🔔', false);
-export const Info = makeIcon('ℹ️', false);
-export const HelpCircle = makeIcon('❓', false);
-export const Mail = makeIcon('✉️', false);
-export const Copy = makeIcon('📋', false);
 export const Newspaper = makeIcon('📰', false);
 export const Siren = makeIcon('🚨', false);
 // Mono bookmark glyphs so the active/inactive color difference is visible.
@@ -71,7 +76,6 @@ export const BookmarkFilled = makeIcon('★', true);
 export const BookmarkOutline = makeIcon('☆', true);
 export const MessageCircle = makeIcon('💬', false);
 export const Compass = makeIcon('🧭', false);
-export const Settings = makeIcon('⚙️', false);
 
 // Category glyphs (used by the feed + report category grid)
 export const CategoryGunfire = makeIcon('🔫', false);

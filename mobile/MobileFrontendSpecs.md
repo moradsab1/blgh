@@ -67,18 +67,18 @@ Exactly **one** runtime permission (Location, "while using"). The app **never** 
 
 ## 4. Design system (spec)
 
-**Theme:** Dark-only. A single dark theme ships in v1 (light mode deferred). Dark mode preserves night vision, makes severity colors pop, and reduces outdoor glare.
+**Theme:** Light-only. A single light theme ships in v1 (dark mode deferred). The light theme reads as clean, modern, and professional, keeps severity colors legible in daylight, and matches the light Mapbox canvas.
 
 **Color palette:**
-- Background layers: deep navy (`#0B1220` base → `#1E293B` elevated cards)
-- Text: near-white primary, slate secondary and muted
-- Severity: Critical = crimson red · High = burnt orange · Medium = amber · Low = olive green
+- Background layers: near-white slate (`#F8FAFC` base → `#FFFFFF` cards, `#EEF2F7` inset surfaces, `#E2E8F0` borders)
+- Text: dark-slate primary (`#0F172A`), slate secondary and muted; white (`textOnAccent`) on accent-colored surfaces
+- Severity: Critical = crimson red · High = burnt orange · Medium = amber (`#D97706`, darkened for contrast on white) · Low = olive green
 - Status: Calm = green · Watch = amber · Active = red
 - Primary accent: crimson red
 
 **Typography:** IBM Plex Sans Arabic (Arabic and Hebrew), Inter (Latin), JetBrains Mono (reference codes). All numbers displayed in Western Arabic numerals (0–9) regardless of language — even in Arabic UI.
 
-**Layout:** 8-point spacing grid. Primary CTAs always sit in the bottom 40% of the screen for thumb-first reachability. All tap targets ≥ 48×48 pt. No gradients, no illustrations beyond onboarding glyphs, no decorative shadows.
+**Layout:** 8-point spacing grid. Primary CTAs always sit in the bottom 40% of the screen for thumb-first reachability. All tap targets ≥ 48×48 pt. No gradients, no illustrations beyond onboarding glyphs; soft functional shadows (`shadow.card` / `shadow.float`) lift cards and floating chrome off the light background.
 
 **Motion:** Transitions range 100 ms (instant) → 480 ms (deliberate). All pulsing/motion effects disabled when the OS reduce-motion setting is on.
 
@@ -99,7 +99,7 @@ Exactly **one** runtime permission (Location, "while using"). The app **never** 
 ## 5. Full UI — every screen & flow
 
 ### 5.1 Splash Screen
-Plain dark background. Centered crimson square with a white Arabic letter **ب** inside, app name **بلاغ** below. No tagline, no spinner. Holds until all local data is ready — **max 1.5 s**. If longer, an error message + retry button appears. (No native launch-screen library; the in-app readiness gate is a dark `View` shown until `hydrateStorage()` resolves — see §9.2.)
+Plain light background. Centered crimson square with a white Arabic letter **ب** inside, app name **بلاغ** below. No tagline, no spinner. Holds until all local data is ready — **max 1.5 s**. If longer, an error message + retry button appears. (No native launch-screen library; the in-app readiness gate is a plain `View` shown until `hydrateStorage()` resolves — see §9.2.)
 
 ### 5.2 Language Selection *(first launch only)*
 Three full-width cards stacked vertically:
@@ -135,7 +135,7 @@ Single home screen. Everything else slides over it as sheets/modals. *(This is t
 
 > **Current implementation (Mapbox deferred):** The Map screen (`src/screens/Map.tsx`) is currently a basic **incident-feed preview**, not a live map. It shows the locality name (from storage), a derived **calm / watch / active** status dot computed from incident severity, a `FlatList` of mock incidents (severity pill + category + relative time-ago + confirm/deny counts + monospace reference), a settings gear, and a Report FAB. The full-bleed Mapbox canvas, pins/clusters, recenter, and offline regions below are deferred to a later phase (§14).
 
-**Map canvas (target):** full-bleed dark map, user location dot, **north-up fixed**.
+**Map canvas (target):** full-bleed light map (`mapbox://styles/mapbox/light-v11`) with street/place labels localized to **Arabic** via `localizeLabels`, user location dot, **north-up fixed**.
 
 **Incident pins:**
 - Lower zoom: cluster bubbles tinted to highest-severity member, with count.
@@ -156,25 +156,26 @@ Floating top-left:
 Watch/Active show a slow pulsing dot. Tap → popover explaining criteria. → Watch fires a **warning haptic**; → Active fires the **heavy haptic**.
 
 ### 5.7 Floating Toolbar (Top-Right)
-Two circular icon buttons: **Inbox (bell)** with red unread badge; **Settings (gear)** no badge.
+A white pill with two icon buttons (monochrome glyphs tinted to the theme): **Inbox (envelope)** with red unread badge; **Settings (gear)** no badge.
 
 ### 5.8 Recenter Button
 Bottom-right, appears when panned away from location. Tap animates back to user position; button disappears.
 
 ### 5.9 Bottom Action Tray
-- **Feed pill** (bottom-left): *"قائمة الحوادث"* + newspaper icon → Safety Feed drawer.
-- **Report FAB** (bottom-right): **64×64 pt** crimson circle, white siren icon. Breathes subtly when Calm; pulse **stops** on Watch/Active.
+Controls float free over the map, each with its own elevation (no dark band).
+- **Feed pill** (bottom-left): white pill, *"قائمة الحوادث"* + list icon → Safety Feed drawer.
+- **Report FAB** (bottom-right): **64×64 pt** orange circle, white plus glyph. Breathes subtly when Calm; pulse **stops** on Watch/Active.
 
 ### 5.10 Safety Feed Drawer
 Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses.
 **Header (sticky):** drag handle · *"حول منطقتك"* + locality + distance · search icon · filter chips: **الكل** | **بلاغات** | **إرشادات أمان** | **وساطة** | **مبادرات** (active chip crimson).
-**Feed cards:** severity pill (left) + relative time (right, 30 s refresh); category icon + label + description (≤3 lines); Confirm/Deny pills + comment count + bookmark (red when set). Tap body → Incident Detail Sheet.
+**Feed cards:** severity pill (left) + relative time (right, 30 s refresh); category icon + label + description (≤3 lines); Confirm/Deny pills + bookmark (red when set). Tap body → Incident Detail Sheet.
 
 ### 5.11 Verification Votes
 Confirm/Deny per card. Tap = optimistic tint + count increment + send. One-way, irrevocable per incident. Already voted → button reverts + toast *"لقد صوّتَّ على هذا البلاغ مسبقاً"*.
 
 ### 5.12 Incident Detail Sheet
-Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + category; locality + distance; description; non-interactive **140 pt** map snippet; Confirm/Deny row; comments thread — each comment has a deterministic **3-emoji identity tag** (same commenter → same tag), relative time, body (**≤280 chars**); composer at bottom.
+Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + category; locality + distance; description; non-interactive **140 pt** map snippet (light style, Arabic labels); Confirm/Deny row. *(The comments thread/composer was removed from the product — incidents carry no comments.)*
 
 ### 5.13 Report Flow
 
@@ -286,17 +287,17 @@ Replacements for the libraries that were removed (all JS-only, no native init):
 | Removed need | Now provided by | Note |
 |---|---|---|
 | MMKV / Keychain (persistence + key store) | `core/storage` over **AsyncStorage** | One async `multiGet` hydrates an in-memory cache at startup (`hydrateStorage()`); reads are synchronous, writes are fire-and-forget. The device identity lives here under `PRIVATE_KEY`. |
-| `@noble/ed25519` + `@noble/hashes` + `react-native-get-random-values` (crypto identity) | `core/identity` over Hermes' built-in `crypto.getRandomValues` | A persistent random 32-byte hex string (RN 0.73+ ships `crypto.getRandomValues` in Hermes). No ed25519, no keychain. `signRequest()` is a **stub** (empty signature) until a backend exists; `deriveEmojis()` still maps the hex → a deterministic 3-emoji tag (§11). |
+| `@noble/ed25519` + `@noble/hashes` + `react-native-get-random-values` (crypto identity) | `core/identity` over Hermes' built-in `crypto.getRandomValues` | A persistent random 32-byte hex string (RN 0.73+ ships `crypto.getRandomValues` in Hermes). No ed25519, no keychain. `signRequest()` is a **stub** (empty signature) until a backend exists. |
 | `i18next` + `react-i18next` + `react-native-localize` | `core/strings` (plain TS object) | `ar` / `he` / `en` string tables + `applyRTL()` / `isRTL()` / `SUPPORTED_LANGUAGES` over `I18nManager`. No i18n runtime. |
 | `lucide-react-native` + `react-native-svg` | `core/icons` (pure-JS `<Text>` glyphs) | Drop-in components mimicking the Lucide API; monochrome symbols + emoji, no SVG native module (§4). |
 | `react-native-haptic-feedback` | `core/haptics` (no-op stubs) | Semantic API kept; no native haptics installed (§4, §12.4). |
-| `@tanstack/react-query` + `axios` + WS client | `data/mock` (in-memory mock DB) + `zustand` | An in-memory `db` (incidents / notifications / comments) + `LOCALITIES` (18 cities) feeds the UI directly. A mock `wsEventEmitter` / `startMockEmitter` exists but isn't wired into screens yet. |
+| `@tanstack/react-query` + `axios` + WS client | `data/mock` (in-memory mock DB) + `zustand` | An in-memory `db` (incidents / notifications) + `LOCALITIES` (18 cities) feeds the UI directly. A mock `wsEventEmitter` / `startMockEmitter` exists but isn't wired into screens yet. |
 | `@react-native-firebase/*` + `@notifee/react-native` | *(deferred)* | No remote/local push yet. Notification toggles persist to AsyncStorage; no native push library is installed (their Android `ContentProvider`s ran native init at startup — §16). |
 | `@react-native-clipboard/clipboard` + `mailto` open | RN built-in **`Share`** API | Used in Settings (copy reference / contact). No clipboard native module. |
 | `@rn-bridge/react-native-shortcuts` | *(deferred)* | Crisis app-icon shortcut deferred; `balagh://` deep-link config is already in `navigation/linking.ts`. |
 | `@react-native-community/netinfo` | *(deferred)* | Connectivity banner/queue deferred; a `net` zustand store stub exists (§13). |
 | `@rnmapbox/maps` | *(deferred)* | Maps deferred — the Map screen is a basic incident-feed preview for now (§5.5, §6.4). |
-| `react-native-bootsplash` | dark `View` readiness gate | No native splash library; `App.tsx` renders a dark `View` until storage hydrates (§5.1, §9.2). |
+| `react-native-bootsplash` | plain `View` readiness gate | No native splash library; `App.tsx` renders a theme-colored `View` until storage hydrates (§5.1, §9.2). |
 | Fonts (asset linking) | `react-native.config.js` `assets: ['./assets/fonts']` | Still uses `npx react-native-asset` when fonts are added; no runtime dependency. |
 
 ### 6.4 Architecture status matrix
@@ -324,7 +325,7 @@ Replacements for the libraries that were removed (all JS-only, no native init):
 | @rn-bridge/react-native-shortcuts | ⛔ removed (deferred) | — | Deep-link config already present |
 | @react-native-community/netinfo | ⛔ removed (deferred) | — | Connectivity deferred |
 | i18next / react-i18next / react-native-localize | ⛔ removed | — | i18n via `core/strings` plain TS object |
-| react-native-bootsplash | ⛔ removed | — | Dark `View` readiness gate instead |
+| react-native-bootsplash | ⛔ removed | — | Plain `View` readiness gate instead |
 | @react-native-clipboard/clipboard | ⛔ removed | — | Built-in `Share` API |
 
 > When a real backend and the deferred features land, re-introduce native modules one at a time and verify each is New-Architecture-clean and does no blocking work at startup (the lesson of §16).
@@ -335,7 +336,7 @@ No remote/local push is installed in the minimal build. The notification **toggl
 
 ### 6.6 Maps (Phase 2)
 
-The Map screen currently ships as an incident-feed preview (§5.5); **Phase 2 (§14) replaces it with the real Mapbox surface.** Target: `@rnmapbox/maps` (Mapbox Maps SDK v11) — a dark style tuned to `#0B1220`, north-up fixed (rotation/pitch off), `ShapeSource` clustering tinted to the highest-severity member, individual severity teardrop pins at high zoom rendering the mock `db.incidents`, a `LocationPuck` after permission, and offline regions around the chosen locality. Keep the secret download token out of git (Gradle property / `.netrc`); set the public token at runtime via `Mapbox.setAccessToken()`. Verify the New-Arch badge and a clean release-build cold start before merging.
+The Map screen currently ships as an incident-feed preview (§5.5); **Phase 2 (§14) replaces it with the real Mapbox surface.** Target: `@rnmapbox/maps` (Mapbox Maps SDK v11) — the light style (`light-v11`) with labels localized to Arabic via `localizeLabels`, north-up fixed (rotation/pitch off), `ShapeSource` clustering tinted to the highest-severity member, individual severity teardrop pins at high zoom rendering the mock `db.incidents`, a `LocationPuck` after permission, and offline regions around the chosen locality. Keep the secret download token out of git (Gradle property / `.netrc`); set the public token at runtime via `Mapbox.setAccessToken()`. Verify the New-Arch badge and a clean release-build cold start before merging.
 
 ---
 
@@ -395,7 +396,7 @@ Feature-first, layered. Four layers; dependencies point inward (presentation →
 
 ```
 core         theme, strings (i18n), identity, storage, icons, haptics, a11y, types — no app logic
-data         repository interfaces + an in-memory mock DB (incidents/notifications/comments/localities)
+data         repository interfaces + an in-memory mock DB (incidents/notifications/localities)
 domain       zustand stores (lang, map, onboarding, net), derived selectors, status rules
 presentation navigation + screens + the shared theme components
 ```
@@ -426,13 +427,13 @@ balagh/
    ├─ core/
    │  ├─ theme/                 # tokens.ts, components.tsx (Text/Button/Chip/SeverityPill)
    │  ├─ strings/               # plain TS string tables (ar/he/en) + applyRTL/isRTL/SUPPORTED_LANGUAGES
-   │  ├─ identity/              # random 32-byte hex via Hermes crypto.getRandomValues; signRequest() stub; deriveEmojis()
+   │  ├─ identity/              # random 32-byte hex via Hermes crypto.getRandomValues; signRequest() stub
    │  ├─ storage/               # AsyncStorage + synchronous in-memory cache (hydrateStorage, StorageKeys)
    │  ├─ icons/                 # pure-JS <Text>-glyph icon set (Lucide-like API)
    │  ├─ haptics/               # no-op stubs (kept as a semantic API surface)
    │  ├─ a11y/                  # useReduceMotion
    │  ├─ config.ts              # USE_MOCK_API, env
-   │  └─ types/                 # Incident, Comment, AppNotification, Locality, …
+   │  └─ types/                 # Incident, AppNotification, Locality, …
    ├─ data/
    │  ├─ mock/                  # db.ts (in-memory store + LOCALITIES) + Mock*Repo.ts + eventEmitter.ts + index.ts
    │  └─ repositories/          # interfaces.ts — repository contracts (impl swap when a backend exists)
@@ -470,12 +471,8 @@ interface Incident {
   description?: string;                // ≤200
   lat: number; lng: number; localityId: string;
   createdAt: string; resolvedAt?: string;
-  confirmations: number; denials: number; commentCount: number;
+  confirmations: number; denials: number;
   myVote?: 'confirm' | 'deny' | null;
-}
-interface Comment {
-  id: string; incidentId: string;
-  identityTag: [string, string, string]; body: string; createdAt: string; // body ≤280
 }
 interface AppNotification {
   id: string; type: 'nearby' | 'verification' | 'status' | 'follow_up';
@@ -490,8 +487,6 @@ interface AppNotification {
 | `GET` | `/incidents/:id` | Detail | `Incident` |
 | `POST` | `/incidents` | Submit report *(signed)* | `{ id, ref }` |
 | `POST` | `/incidents/:id/vote` | `{ vote }` *(signed, one-way)* | `Incident` |
-| `GET` | `/incidents/:id/comments` | Thread | `Comment[]` |
-| `POST` | `/incidents/:id/comments` | `{ body }` *(signed)* | `Comment` |
 | `GET` | `/status?lat&lng` | Safety state | `{ state, reason }` |
 | `GET` | `/localities?q=` | Search ar/he/en | `Locality[]` |
 | `GET` | `/notifications` | Inbox | `AppNotification[]` |
@@ -512,7 +507,7 @@ type WsEvent =
 
 ### 10.5 Mock implementation (as built)
 The in-memory mock is the only data source today:
-- `data/mock/db.ts` — the in-memory store: seeded incidents/notifications/comments + `LOCALITIES` (18 cities). Exposes `db.incidents`, `db.notifications`, `db.comments` with getters/mutators.
+- `data/mock/db.ts` — the in-memory store: seeded incidents/notifications + `LOCALITIES` (18 cities). Exposes `db.incidents` and `db.notifications` with getters/mutators.
 - `data/mock/Mock*Repo.ts` — `MockIncidentRepo`, `MockLocalityRepo`, `MockNotificationRepo`, `MockStatusRepo` implementing the `data/repositories/interfaces.ts` contracts over `db`.
 - `data/mock/eventEmitter.ts` — `startMockEmitter()` pushes `incident.created` / `status.changed` for future live-update wiring (not yet consumed by a screen).
 - `core/config.ts`: `export const USE_MOCK_API = true;`
@@ -530,8 +525,7 @@ The identity is a persistent random hex string — no asymmetric crypto, no nati
    - Otherwise generate `randomHex(32)` via `crypto.getRandomValues` and persist it.
 2. `signRequest(method, path, body)` → **stub**: returns `{ signature: '', timestamp: String(Date.now()) }`. There is no backend to sign for yet; when one exists this becomes a real signature without touching callers.
 3. **Public identifier** (Settings): `getPublicIdentifier()` → first 6 / last 6 chars (`abcdef...123456`).
-4. **Emoji identity tag:** `deriveEmojis(hex)` — deterministic mapping of hex slices → 3 emojis from a fixed 32-emoji palette. Same id → same tag everywhere.
-5. **Delete my data:** `deleteIdentity()` clears the key from AsyncStorage and resets the in-memory id; the app's "Delete my data" also clears storage and returns to onboarding. Uninstall does the same implicitly.
+4. **Delete my data:** `deleteIdentity()` clears the key from AsyncStorage and resets the in-memory id; the app's "Delete my data" also clears storage and returns to onboarding. Uninstall does the same implicitly.
 
 No biometric gate, no rotation, no backup — intentionally minimal. If real signed requests are needed later, swap `core/identity` to an Ed25519 implementation behind the same exported functions.
 
@@ -542,18 +536,19 @@ No biometric gate, no rotation, no backup — intentionally minimal. If real sig
 ### 12.1 Tokens (`core/theme/tokens.ts`)
 ```ts
 export const color = {
-  bg: '#0B1220', card: '#1E293B',
-  textPrimary: '#F8FAFC', textSecondary: '#94A3B8', textMuted: '#64748B',
+  bg: '#F8FAFC', card: '#FFFFFF', cardElevated: '#EEF2F7', border: '#E2E8F0',
+  textPrimary: '#0F172A', textSecondary: '#475569', textMuted: '#94A3B8',
+  textOnAccent: '#FFFFFF',
   accent: '#DC2626',
-  severity: { critical: '#DC2626', high: '#EA580C', medium: '#F59E0B', low: '#65A30D' },
-  status:   { calm: '#16A34A', watch: '#F59E0B', active: '#DC2626' },
+  severity: { critical: '#DC2626', high: '#EA580C', medium: '#D97706', low: '#65A30D' },
+  status:   { calm: '#16A34A', watch: '#D97706', active: '#DC2626' },
 };
 export const space = (n: number) => n * 8;
 export const radius = { sm: 8, md: 12, lg: 16, pill: 999 };
 export const motion = { instant: 100, fast: 200, base: 320, deliberate: 480 };
 export const hit = { min: 48 };
 ```
-Baked-in rules: dark-only, CTAs in the **bottom 40%**, tap targets ≥ 48×48, no gradients/decorative shadows. **All numerals Western Arabic (0–9)** in every locale via `formatNumber()`.
+Baked-in rules: light-only, CTAs in the **bottom 40%**, tap targets ≥ 48×48, no gradients; soft functional shadows only (`shadow.card` / `shadow.float`). **All numerals Western Arabic (0–9)** in every locale via `formatNumber()`.
 
 ### 12.2 Typography
 RN-linked fonts: IBM Plex Sans Arabic (ar/he), Inter (Latin), JetBrains Mono (ref codes). A `Text` wrapper picks family by active script.
@@ -614,7 +609,7 @@ Each phase **must compile, run on a device/emulator (New Arch), and pass its tes
 
 ### Phase 1 — App structure & navigation *(done)*
 - React Navigation v7 native-stack with a typed `RootStackParamList` + linking config (`balagh://crisis`). All routes navigable; not-yet-built routes resolve to a `StubScreen`.
-- Fully built: Splash (dark readiness gate + error/retry), Language, Welcome carousel (dot→pill), Locality (search ar/he/en against `LOCALITIES`, sticky CTA disabled until chosen), Settings.
+- Fully built: Splash (readiness gate + error/retry), Language, Welcome carousel (dot→pill), Locality (search ar/he/en against `LOCALITIES`, sticky CTA disabled until chosen), Settings.
 - `core/identity` (random 32-byte hex via Hermes `crypto.getRandomValues`; `signRequest` stub; public identifier in Settings) — **no ed25519, no keychain**.
 - Repository **interfaces** + `data/mock` (in-memory `db`, `Mock*Repo`, `eventEmitter`) + `USE_MOCK_API` + zustand stores — **no react-query**.
 - Map screen ships as an **incident-feed preview** (locality name, derived calm/watch/active status dot, `FlatList` of mock incidents, settings gear, Report FAB) — replaced by the real map in Phase 2.
@@ -623,7 +618,7 @@ Each phase **must compile, run on a device/emulator (New Arch), and pass its tes
 ### Phase 2 — Real Mapbox map *(this phase: implement the live map with mock pins)*
 Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real dashboard described in §5.5–§5.9.
 - **Native setup:** install `@rnmapbox/maps`; set the **secret download token** via a Gradle property (`~/.gradle/gradle.properties`) + the iOS `Podfile`/`.netrc` (keep it out of git); set the **public token** at runtime with `Mapbox.setAccessToken()` early in `App.tsx`. `pod install` for iOS; verify the Fabric component autolinks under New Arch. Confirm a **release-build cold start** is clean.
-- **Map canvas:** full-bleed dark style (`mapbox://styles/mapbox/dark-v11`, tuned toward `#0B1220`), **north-up fixed** (rotation + pitch gestures disabled), user-location `LocationPuck` shown only after permission.
+- **Map canvas:** full-bleed light style (`mapbox://styles/mapbox/light-v11`) with street/place labels localized to Arabic via `localizeLabels={{ locale: 'ar' }}`, **north-up fixed** (rotation + pitch gestures disabled), user-location `LocationPuck` shown only after permission.
 - **Mock incident pins (the deliverable):** render the `db.incidents` mock data on the map. Each open incident → a teardrop pin in its severity color; the highest-priority active pin pulses. Use a `ShapeSource` with `cluster: true` + a `CircleLayer`/`SymbolLayer` so low zoom shows cluster bubbles tinted to the highest-severity member with a count, and high zoom shows individual severity pins. New pins scale-in over 320 ms; resolved incidents fade to 30% then drop after 30 s. Tap a pin → centers the map + opens the Incident Detail sheet (a stub sheet here; fully built in Phase 3). The mock `eventEmitter` (`startMockEmitter`) feeds live `incident.created` / `incident.resolved` so pins appear/disappear in real time.
 - **Location permission:** pre-prompt screen (why) → native **"while using"** request. On deny: center on the chosen locality, show the user no dot, and surface a settings banner. Background location is **never** requested.
 - **Surrounding UI:** the Safety Status pill (calm/watch/active, with the §5.6 radius/time rules computed in a `domain/status` helper from nearby incidents), the recenter FAB (appears when panned away), and the bottom action tray (Feed pill + breathing Report FAB that stops pulsing on Watch/Active).
@@ -632,9 +627,9 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 
 ### Phase 3 — Feed & incident detail
 - Safety Feed drawer: a draggable bottom sheet snapping 25 / 60 / 90 % with a backdrop. Build it with plain RN `Animated` + `PanResponder` (no `@gorhom/bottom-sheet`/reanimated) to keep the stack minimal; if a richer sheet is justified later, add the library deliberately (§16).
-- Sticky header (drag handle, locality + distance, search) + filter chips (الكل / بلاغات / إرشادات أمان / وساطة / مبادرات). Feed cards: severity pill, relative time refreshing every 30 s, category icon (`core/icons`) + label + description (≤3 lines), Confirm/Deny vote pills, comment count, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
-- Incident Detail sheet (60 → 95 %): full description, a 140 pt non-interactive Mapbox snippet, vote row, comments thread using deterministic 3-emoji identity tags (`deriveEmojis`) + composer (≤280). Votes are optimistic + one-way; the feed and the map pins read the same mock `db` so they stay in sync.
-- **Tests:** deterministic emoji tag; 30 s timestamp refresh; bookmark persistence; feed↔map data consistency.
+- Sticky header (drag handle, locality + distance, search) + filter chips (الكل / بلاغات / إرشادات أمان / وساطة / مبادرات). Feed cards: severity pill, relative time refreshing every 30 s, category icon (`core/icons`) + label + description (≤3 lines), Confirm/Deny vote pills, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
+- Incident Detail sheet (60 → 95 %): full description, a 140 pt non-interactive Mapbox snippet, vote row. Votes are optimistic + one-way; the feed and the map pins read the same mock `db` so they stay in sync. *(Comments were removed from the product.)*
+- **Tests:** 30 s timestamp refresh; bookmark persistence; feed↔map data consistency.
 
 ### Phase 4 — Reporting & crisis
 - Report flow: category grid (2×3, severity-tinted icons; GUNFIRE/STABBING = critical, ASSAULT/ROBBERY = high, SUSPICIOUS/OTHER = medium) → details (optional ≤200-char description with live counter, **no media**) → success (green checkmark draw 480 ms, mono `#BLG-XXXXXX`, long-press copy via the built-in **`Share`** API + "تم النسخ" toast, no share-to-social/rating).
@@ -650,7 +645,7 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 - **Tests:** permission only on toggle; follow-up "no" path shows resources and asks nothing further; inbox grouping + read state.
 
 ### Phase 6 — Polish & full working app *(final phase: everything wired, no stubs)*
-By the end of this phase the app is **fully working end-to-end** against the mock layer — onboarding, the live Mapbox map with mock pins, the feed, incident detail + comments, reporting, the crisis flow, notifications, and settings all function with no placeholder screens remaining.
+By the end of this phase the app is **fully working end-to-end** against the mock layer — onboarding, the live Mapbox map with mock pins, the feed, incident detail, reporting, the crisis flow, notifications, and settings all function with no placeholder screens remaining.
 - Privacy Constitution (7 collapsible rules + "كيف نضمن ذلك؟" + "محدّث" badge), About (Apache 2.0, alphabetical OSS list, single GitHub link), full Settings (change locality/language, notification toggles default-on, contact = share `mailto` via the built-in `Share` API, hidden debug via 5× long-press on version).
 - App-icon long-press shortcut "بلاغ فوري آمن" → fires `balagh://crisis` (native shortcut wiring for Android + iOS Quick Action).
 - All error/edge states: generic ("تعذر التحميل") / network / map-load failure with retry, submit-fail banner, feed-empty ("منطقتك هادئة الآن") / search-empty, skeleton loaders (static under reduce-motion), offline indicator, non-dismissable **426 update gate**.
@@ -711,7 +706,7 @@ USE THESE JS-ONLY PATTERNS, NEVER THESE LIBRARIES
 - Clipboard / mailto: React Native's built-in Share API. NOT a clipboard module.
 - Data: an in-memory mock db + Mock*Repo + zustand. NOT react-query/axios/a WS client.
 - Haptics: src/core/haptics no-op stubs (kept as a stable semantic API).
-- Splash: a dark <View> readiness gate in App.tsx. NOT react-native-bootsplash.
+- Splash: a plain <View> readiness gate in App.tsx. NOT react-native-bootsplash.
 - Animations/sheets: plain RN Animated + PanResponder. NOT reanimated/worklets/
   gesture-handler/@gorhom/bottom-sheet.
 
@@ -751,12 +746,13 @@ backend contract). Signing is a stub today (empty signature). When a backend exi
 mutations carry X-Device-Key / X-Signature / X-Timestamp; 426 → update gate; 409 on a vote →
 "already voted" toast.
 
-DESIGN SYSTEM — tokens from spec §12: dark-only, bg #0B1220 / card #1E293B, crimson accent
-#DC2626, the severity & status palettes, 8-pt spacing grid, tap targets ≥48pt, no
-gradients/decorative shadows, motion 100–480ms (respect OS reduce-motion — degrade to
-instant/static), IBM Plex Sans Arabic / Inter / JetBrains Mono, all numerals Western Arabic
-(0–9) via formatNumber(), primary CTAs in the bottom 40%. RTL-correct for ar/he; directional
-icons mirror. Match the screen-by-screen UI in §5 exactly, including the Arabic labels.
+DESIGN SYSTEM — tokens from spec §12: light-only, bg #F8FAFC / card #FFFFFF, crimson accent
+#DC2626 with white textOnAccent, the severity & status palettes, 8-pt spacing grid, tap
+targets ≥48pt, no gradients (soft shadow.card/shadow.float only), motion 100–480ms (respect
+OS reduce-motion — degrade to instant/static), IBM Plex Sans Arabic / Inter / JetBrains Mono,
+all numerals Western Arabic (0–9) via formatNumber(), primary CTAs in the bottom 40%.
+RTL-correct for ar/he; directional icons mirror. Match the screen-by-screen UI in §5 exactly,
+including the Arabic labels.
 
 WORKFLOW FOR THE PHASE I GIVE YOU
 1. Restate the phase scope in one line and list the files you will create/modify (this phase
@@ -793,12 +789,12 @@ output; RTL flag flip.
 PHASE 1 — App structure & navigation (structure first). [DONE]
 Build React Navigation v7 native-stack with a typed RootStackParamList and a linking
 config (balagh://crisis → Crisis flow). Every route navigable; Phase 2+ routes resolve to a
-StubScreen. Fully implement: Splash (dark readiness gate ≤1.5s + error/retry — no native
+StubScreen. Fully implement: Splash (readiness gate ≤1.5s + error/retry — no native
 bootsplash), Language select, Welcome carousel (3 slides, dot→pill indicator), Locality
 select (search across ar/he/en against LOCALITIES, sticky "تفعيل الحساب الآمن" CTA disabled
 until chosen), Settings. Implement src/core/identity (random 32-byte hex via Hermes
-crypto.getRandomValues stored in AsyncStorage; signRequest stub; getPublicIdentifier;
-deriveEmojis) — no ed25519, no keychain. Add repository INTERFACES, the in-memory mock db +
+crypto.getRandomValues stored in AsyncStorage; signRequest stub; getPublicIdentifier) —
+no ed25519, no keychain. Add repository INTERFACES, the in-memory mock db +
 Mock*Repo, USE_MOCK_API flag, zustand stores — no react-query.
 Tests: first-launch flow resolves to the map route; identity persists across relaunch
 (AsyncStorage mock); "Delete my data" wipes and returns to onboarding; locality search
@@ -812,9 +808,9 @@ Replace the Map incident-feed preview with the real Main Map Dashboard using @rn
 via a Gradle property (~/.gradle/gradle.properties) + the iOS Podfile/.netrc (keep it OUT of
 git); set the PUBLIC token at runtime via Mapbox.setAccessToken() early in App.tsx. Run pod
 install; confirm the Fabric component autolinks under New Arch; verify a RELEASE-build cold
-start is clean. Build: full-bleed dark style (mapbox://styles/mapbox/dark-v11 tuned to
-#0B1220), north-up fixed (rotation + pitch gestures disabled), LocationPuck only after
-permission. RENDER THE MOCK INCIDENTS AS PINS: read db.incidents and draw a ShapeSource with
+start is clean. Build: full-bleed light style (mapbox://styles/mapbox/light-v11) with
+labels localized to Arabic (localizeLabels), north-up fixed (rotation + pitch gestures
+disabled), LocationPuck only after permission. RENDER THE MOCK INCIDENTS AS PINS: read db.incidents and draw a ShapeSource with
 cluster:true — low zoom = cluster bubbles tinted to the highest-severity member with a count;
 high zoom = teardrop pins in severity color, highest-priority active pin pulses. New pins
 scale-in 320ms; resolved fade to 30% then drop after 30s; tap a pin centers the map + opens a
@@ -836,12 +832,12 @@ bottom sheet is wanted, build it with Animated/PanResponder — do NOT add
 @gorhom/bottom-sheet or reanimated). Sticky header with locality+distance, search, filter
 chips (الكل / بلاغات / إرشادات أمان / وساطة / مبادرات). Feed cards: severity pill, relative
 timestamp refreshing every 30s, category icon (from core/icons) + label + description (≤3
-lines), Confirm/Deny vote pills, comment count, bookmark (red when set, persisted to
-AsyncStorage). Incident Detail (60→95% sheet or full screen), full description, vote row,
-comments thread using deterministic 3-emoji identity tags (deriveEmojis) + composer (≤280).
+lines), Confirm/Deny vote pills, bookmark (red when set, persisted to AsyncStorage).
+Incident Detail (60→95% sheet or full screen), full description, vote row — no comments
+(the comments feature was removed from the product).
 Votes are optimistic, one-way, irrevocable; with a backend a 409 reverts the button and
 shows "لقد صوّتَّ على هذا البلاغ مسبقاً". (Mock eventEmitter can drive live updates.)
-Tests: deterministic emoji tag; timestamp refresh; bookmark persistence (AsyncStorage).
+Tests: timestamp refresh; bookmark persistence (AsyncStorage).
 ```
 
 ```
@@ -882,7 +878,7 @@ nothing further; inbox grouping + read state.
 ```
 PHASE 6 — Polish & full working app (FINAL: no stubs remain).
 Goal: the app is fully working end-to-end on the mock layer — onboarding, the live Mapbox map
-with mock pins, the feed, incident detail + comments, reporting, the crisis flow,
+with mock pins, the feed, incident detail, reporting, the crisis flow,
 notifications, and settings all function with NO placeholder/StubScreen routes left.
 Build the Privacy Constitution screen (7 collapsible rule cards, each with a "كيف نضمن ذلك؟"
 expandable; "محدّث" badge when changed), the About screen (Apache 2.0, alphabetical OSS
@@ -950,5 +946,5 @@ The spec originally specced a large native stack; it was deliberately stripped t
 - **react-native-reanimated + react-native-worklets + @gorhom/bottom-sheet + react-native-gesture-handler** → removed (plain RN primitives; no CMake).
 - **@react-native-firebase/* + @notifee/react-native** → deferred (toggles persist to AsyncStorage; no native push).
 - **@rnmapbox/maps** → deferred; the Map screen is a mock incident-feed preview.
-- **react-native-haptic-feedback** → no-op stubs. **@react-native-clipboard/clipboard** → built-in `Share`. **@react-native-community/netinfo** + **react-native-bootsplash** → deferred (a dark `View` is the readiness gate).
+- **react-native-haptic-feedback** → no-op stubs. **@react-native-clipboard/clipboard** → built-in `Share`. **@react-native-community/netinfo** + **react-native-bootsplash** → deferred (a plain `View` is the readiness gate).
 - **Result:** 8 runtime dependencies, no native init on the main thread at startup, no CMake/NDK build, and a clean cold start. See §16.1 for the specific crashes this resolved.

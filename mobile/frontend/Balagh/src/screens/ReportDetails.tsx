@@ -73,7 +73,7 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={color.bg} />
+      <StatusBar barStyle="dark-content" backgroundColor={color.bg} />
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
           <ChevronLeft size={20} color={color.textPrimary} />

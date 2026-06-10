@@ -114,7 +114,9 @@ export const Button = ({
     ? color.textMuted
     : variant === 'ghost'
     ? color.textSecondary
-    : color.textPrimary;
+    : variant === 'secondary'
+    ? color.textPrimary
+    : color.textOnAccent;
 
   const paddingV = size === 'sm' ? space(1) : size === 'lg' ? space(2) : space(1.5);
   const minH = size === 'sm' ? hit.min * 0.75 : hit.min;
@@ -126,6 +128,7 @@ export const Button = ({
       style={[
         styles.button,
         { backgroundColor: bg, paddingVertical: paddingV, minHeight: minH },
+        variant === 'secondary' && styles.buttonSecondary,
         fullWidth && styles.fullWidth,
         style as ViewStyle,
       ]}
@@ -149,11 +152,14 @@ export const Chip = ({ label, active, style, ...props }: ChipProps): React.React
     activeOpacity={0.7}
     style={[
       styles.chip,
-      { backgroundColor: active ? color.accent : color.card },
+      {
+        backgroundColor: active ? color.accent : color.card,
+        borderColor: active ? color.accent : color.border,
+      },
       style as ViewStyle,
     ]}
     {...props}>
-    <Text variant="caption" style={{ color: active ? color.textPrimary : color.textSecondary }}>
+    <Text variant="caption" style={{ color: active ? color.textOnAccent : color.textSecondary }}>
       {label}
     </Text>
   </TouchableOpacity>
@@ -202,10 +208,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(3),
     minHeight: hit.min,
   },
+  buttonSecondary: {
+    borderWidth: 1,
+    borderColor: color.border,
+  },
   fullWidth: {
     width: '100%',
   },
   chip: {
+    borderWidth: 1,
     borderRadius: radius.pill,
     paddingHorizontal: space(1.5),
     paddingVertical: space(0.75),

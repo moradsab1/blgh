@@ -24,7 +24,17 @@ export class MockIncidentRepo implements IIncidentRepository {
   async getIncidents(_lat: number, _lng: number, _radiusKm: number): Promise<Incident[]> {
     await sleep(latency());
     if (Math.random() < 0.05) throw new Error('NETWORK_ERROR');
-    return db.incidents.getAll();
+    // Only currently open incidents — the backend closes pins after 24 h.
+    return db.incidents.getOpen();
+  }
+
+  async getIncidentHistory(rangeHours: number, localityId?: string): Promise<Incident[]> {
+    await sleep(latency());
+    const now = Date.now();
+    return db.incidents
+      .getAll()
+      .filter(i => now - new Date(i.createdAt).getTime() <= rangeHours * 3_600_000)
+      .filter(i => (localityId ? i.localityId === localityId : true));
   }
 
   async getIncident(id: string): Promise<Incident> {

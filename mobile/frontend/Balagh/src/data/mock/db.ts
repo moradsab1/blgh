@@ -1,4 +1,9 @@
 import type { Incident, AppNotification, Locality } from '../../core/types';
+import { OPEN_INCIDENT_WINDOW_HOURS } from '../../core/config';
+
+// How long a just-resolved incident keeps appearing in the "open" set so the
+// map can play its 30 s fade-out before the pin disappears.
+const RESOLVED_LINGER_MS = 60_000;
 
 export const LOCALITIES: Locality[] = [
   { id: 'umm-al-fahm', nameAr: 'أم الفحم', nameHe: 'אום אל-פחם', nameEn: 'Umm al-Fahm', lat: 32.5139, lng: 35.1566 },
@@ -110,6 +115,82 @@ let _incidents: Incident[] = [
     localityId: 'taibe',
     createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
   },
+
+  // ── Historical incidents (older than the 24 h open window) ──
+  // Not shown on the map — they back the feed's history filters
+  // (last week / last month, per locality).
+  {
+    id: 'h1',
+    ref: 'BLG-H1A2B3',
+    category: 'ASSAULT',
+    severity: 'high',
+    description: 'مشاجرة عنيفة قرب السوق القديم انتهت بتدخل الأهالي.',
+    lat: 32.7001,
+    lng: 35.2980,
+    localityId: 'nazareth',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3 + 1000 * 60 * 90).toISOString(),
+  },
+  {
+    id: 'h2',
+    ref: 'BLG-H2C4D5',
+    category: 'SUSPICIOUS',
+    severity: 'medium',
+    description: 'سيارة مجهولة وقفت أمام المدرسة الابتدائية لساعات متأخرة.',
+    lat: 32.6975,
+    lng: 35.3060,
+    localityId: 'nazareth',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12 + 1000 * 60 * 60 * 5).toISOString(),
+  },
+  {
+    id: 'h3',
+    ref: 'BLG-H3E6F7',
+    category: 'ROBBERY',
+    severity: 'high',
+    description: 'سطو على محل مجوهرات في شارع بولس السادس فجراً.',
+    lat: 32.7012,
+    lng: 35.3041,
+    localityId: 'nazareth',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString(),
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25 + 1000 * 60 * 60 * 8).toISOString(),
+  },
+  {
+    id: 'h4',
+    ref: 'BLG-H4G8H9',
+    category: 'GUNFIRE',
+    severity: 'critical',
+    description: 'إطلاق نار كثيف في حي عين إبراهيم استمر عدة دقائق.',
+    lat: 32.5102,
+    lng: 35.1493,
+    localityId: 'umm-al-fahm',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5 + 1000 * 60 * 60 * 2).toISOString(),
+  },
+  {
+    id: 'h5',
+    ref: 'BLG-H5J1K2',
+    category: 'SUSPICIOUS',
+    severity: 'low',
+    description: 'أشخاص غرباء يصورون مداخل العمارات في الحي الشرقي.',
+    lat: 31.9495,
+    lng: 34.8902,
+    localityId: 'lod',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString(),
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9 + 1000 * 60 * 60 * 6).toISOString(),
+  },
+  {
+    id: 'h6',
+    ref: 'BLG-H6L3M4',
+    category: 'OTHER',
+    severity: 'medium',
+    description: 'حريق في مخزن قرب الميناء وتصاعد دخان كثيف.',
+    lat: 32.7925,
+    lng: 34.9889,
+    localityId: 'haifa',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
+    resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20 + 1000 * 60 * 60 * 3).toISOString(),
+  },
 ];
 
 let _notifications: AppNotification[] = [
@@ -154,6 +235,18 @@ let _notifications: AppNotification[] = [
 export const db = {
   incidents: {
     getAll: () => [..._incidents],
+    /**
+     * "Currently open" incidents — what the backend will serve the map:
+     * unresolved incidents reported within the last 24 h. Just-resolved
+     * incidents linger briefly so the map can play its fade-out.
+     */
+    getOpen: (now: number = Date.now()) =>
+      _incidents.filter(i => {
+        const ageMs = now - new Date(i.createdAt).getTime();
+        if (ageMs > OPEN_INCIDENT_WINDOW_HOURS * 3_600_000) return false;
+        if (!i.resolvedAt) return true;
+        return now - new Date(i.resolvedAt).getTime() < RESOLVED_LINGER_MS;
+      }),
     getById: (id: string) => _incidents.find(i => i.id === id),
     add: (incident: Incident) => { _incidents = [incident, ..._incidents]; },
     update: (id: string, patch: Partial<Incident>) => {

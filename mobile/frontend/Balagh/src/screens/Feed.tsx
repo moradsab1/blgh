@@ -1,16 +1,22 @@
 /**
- * Safety Feed drawer — §5.10
+ * Incidents Feed drawer — §5.10
  *
- * A draggable bottom sheet (25 / 60 / 90 %) over the map. Sticky header with
- * locality + distance + search, filter chips, and a FlatList of incident cards.
- * Cards show severity, relative time (30 s refresh), category, description,
- * and a bookmark (persisted). Tapping a card opens the Incident Detail route.
+ * A draggable bottom sheet (25 / 60 / 90 %) over the map. While the map only
+ * shows currently open incidents (24 h window), the feed is the history
+ * browser: a time-range filter (last 24 h / week / month) plus a locality
+ * filter (e.g. "last month in Nazareth"), with search on top.
+ *
+ * Cards are modern severity-striped tiles: tinted icon badge, category title,
+ * locality + relative time, description (≤3 lines), a resolved badge for
+ * closed incidents, and a persisted bookmark. Tapping a card opens the
+ * Incident Detail route.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -18,8 +24,8 @@ import {
 } from 'react-native';
 import type { FeedProps } from '../navigation/types';
 import { color, fontSize, font, radius, shadow, space } from '../core/theme/tokens';
-import { Text, SeverityPill, Chip } from '../core/theme/components';
-import { Search, BookmarkFilled, BookmarkOutline, CATEGORY_ICON, ShieldCheck } from '../core/icons';
+import { Text, Chip } from '../core/theme/components';
+import { Search, BookmarkFilled, BookmarkOutline, CATEGORY_ICON, MapPin, ShieldCheck } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
 import { FeedSkeleton } from '../presentation/components/Skeleton';
 import { relativeTime } from '../core/format/time';
@@ -27,15 +33,15 @@ import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
 import { useLangStore } from '../domain/stores/lang';
 import { useBookmarksStore } from '../domain/stores/bookmarks';
-import { db } from '../data/mock/db';
+import { FEED_RANGES, filterIncidents } from '../domain/feed/filters';
+import type { FeedRangeKey } from '../domain/feed/filters';
+import { db, LOCALITIES } from '../data/mock/db';
 import { wsEventEmitter } from '../data/mock/eventEmitter';
-import type { Incident } from '../core/types';
+import type { AppLanguage, Incident, Locality } from '../core/types';
 
-// Only the filters with real seeded content are surfaced; "Safety tips",
-// "Mediation", and "Initiatives" were always-empty dead UI before content
-// exists to back them.
-type FilterKey = 'all' | 'reports';
-const FILTERS: FilterKey[] = ['all', 'reports'];
+function localityName(loc: Locality, lang: AppLanguage): string {
+  return lang === 'he' ? loc.nameHe : lang === 'en' ? loc.nameEn : loc.nameAr;
+}
 
 const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   const { lang } = useLangStore();
@@ -43,7 +49,8 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
 
   const [incidents, setIncidents] = useState<Incident[]>(() => db.incidents.getAll());
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<FilterKey>('all');
+  const [range, setRange] = useState<FeedRangeKey>('day');
+  const [localityId, setLocalityId] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -84,62 +91,73 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
     return () => clearInterval(id);
   }, []);
 
-  const visible = useMemo(() => {
-    let list = incidents;
-    const q = query.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        i =>
-          (i.description ?? '').toLowerCase().includes(q) ||
-          i.ref.toLowerCase().includes(q) ||
-          (s.category[i.category] ?? '').toLowerCase().includes(q),
-      );
-    }
-    return list;
-  }, [incidents, query, s]);
+  const visible = useMemo(
+    () => filterIncidents(incidents, { range, localityId, query }, s.category),
+    [incidents, range, localityId, query, s],
+  );
 
   const renderCard = useCallback(
     ({ item }: { item: Incident }): React.ReactElement => {
       const CatIcon = CATEGORY_ICON[item.category];
+      const sevColor = color.severity[item.severity];
       const isBookmarked = bookmarks.isBookmarked(item.id);
+      const loc = LOCALITIES.find(l => l.id === item.localityId);
       return (
         <TouchableOpacity
           style={styles.card}
           activeOpacity={0.8}
           testID={`feed-card-${item.id}`}
           onPress={() => navigation.navigate('IncidentDetail', { id: item.id })}>
-          <View style={styles.cardTop}>
-            <SeverityPill severity={item.severity} label={s.category[item.category]} />
-            <Text variant="caption" muted testID={`feed-time-${item.id}`}>
-              {relativeTime(item.createdAt, lang)}
-            </Text>
-          </View>
+          {/* Severity accent strip */}
+          <View style={[styles.cardAccent, { backgroundColor: sevColor }]} />
 
-          <View style={styles.cardCategory}>
-            <CatIcon size={18} color={color.severity[item.severity]} />
-            <Text variant="label">{s.category[item.category]}</Text>
-          </View>
+          <View style={styles.cardBody}>
+            <View style={styles.cardTop}>
+              <View style={[styles.iconBadge, { backgroundColor: sevColor + '14' }]}>
+                <CatIcon size={20} color={sevColor} />
+              </View>
 
-          {item.description ? (
-            <Text secondary numberOfLines={3} style={styles.cardDesc}>
-              {item.description}
-            </Text>
-          ) : null}
+              <View style={styles.cardTitleArea}>
+                <Text variant="label">{s.category[item.category]}</Text>
+                <View style={styles.cardMetaRow}>
+                  {loc ? (
+                    <>
+                      <MapPin size={11} color={color.textMuted} />
+                      <Text variant="caption" muted>{localityName(loc, lang)}</Text>
+                      <Text variant="caption" muted>·</Text>
+                    </>
+                  ) : null}
+                  <Text variant="caption" muted testID={`feed-time-${item.id}`}>
+                    {relativeTime(item.createdAt, lang)}
+                  </Text>
+                  {item.resolvedAt ? (
+                    <View style={styles.resolvedBadge} testID={`feed-resolved-${item.id}`}>
+                      <Text style={styles.resolvedBadgeText}>{s.feed.resolved}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
 
-          <View style={styles.cardActions}>
-            <TouchableOpacity
-              onPress={() => {
-                haptics.toggle();
-                bookmarks.toggle(item.id);
-              }}
-              testID={`feed-bookmark-${item.id}`}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              {isBookmarked ? (
-                <BookmarkFilled size={20} color={color.severity.medium} />
-              ) : (
-                <BookmarkOutline size={20} color={color.textMuted} />
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  haptics.toggle();
+                  bookmarks.toggle(item.id);
+                }}
+                testID={`feed-bookmark-${item.id}`}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                {isBookmarked ? (
+                  <BookmarkFilled size={20} color={color.severity.medium} />
+                ) : (
+                  <BookmarkOutline size={20} color={color.textMuted} />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {item.description ? (
+              <Text secondary numberOfLines={3} style={styles.cardDesc}>
+                {item.description}
+              </Text>
+            ) : null}
           </View>
         </TouchableOpacity>
       );
@@ -155,10 +173,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
       testID="feed-sheet">
       {/* Sticky header */}
       <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
-          <Text variant="heading">{s.feed.title}</Text>
-          <Text variant="caption" muted>{s.feed.distance}</Text>
-        </View>
+        <Text variant="heading">{s.feed.title}</Text>
         <View style={styles.searchBox}>
           <Search size={16} color={color.textMuted} />
           <TextInput
@@ -170,21 +185,54 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
             autoCorrect={false}
           />
         </View>
+
+        {/* Time-range filter — browse history beyond the map's 24 h window */}
         <View style={styles.chipsRow}>
-          {FILTERS.map(key => (
+          {FEED_RANGES.map(key => (
             <Chip
               key={key}
-              label={s.feed.filters[key]}
-              active={filter === key}
+              label={s.feed.ranges[key]}
+              active={range === key}
               onPress={() => {
                 haptics.toggle();
-                setFilter(key);
+                setRange(key);
               }}
-              testID={`feed-filter-${key}`}
+              testID={`feed-range-${key}`}
               style={styles.chip}
             />
           ))}
         </View>
+
+        {/* Locality filter — e.g. "last month in Nazareth" */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.localityRow}
+          testID="feed-locality-filter">
+          <Chip
+            label={s.feed.allLocalities}
+            active={localityId === null}
+            onPress={() => {
+              haptics.toggle();
+              setLocalityId(null);
+            }}
+            testID="feed-locality-all"
+            style={styles.chip}
+          />
+          {LOCALITIES.map(loc => (
+            <Chip
+              key={loc.id}
+              label={localityName(loc, lang)}
+              active={localityId === loc.id}
+              onPress={() => {
+                haptics.toggle();
+                setLocalityId(loc.id);
+              }}
+              testID={`feed-locality-${loc.id}`}
+              style={styles.chip}
+            />
+          ))}
+        </ScrollView>
       </View>
 
       {loading ? (
@@ -221,15 +269,10 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: space(2),
-    paddingBottom: space(1),
+    paddingBottom: space(1.5),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: color.border,
     gap: space(1),
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
   },
   searchBox: {
     flexDirection: 'row',
@@ -251,41 +294,71 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: space(0.75),
   },
+  localityRow: {
+    flexDirection: 'row',
+    gap: space(0.75),
+    paddingEnd: space(2),
+  },
   chip: {
     marginEnd: space(0.5),
   },
   list: {
     padding: space(2),
-    gap: space(1),
+    gap: space(1.25),
     paddingBottom: space(6),
   },
   card: {
+    flexDirection: 'row',
     backgroundColor: color.card,
     borderRadius: radius.lg,
-    padding: space(2),
-    gap: space(1),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.border,
+    overflow: 'hidden',
     ...shadow.card,
+  },
+  cardAccent: {
+    width: 4,
+  },
+  cardBody: {
+    flex: 1,
+    padding: space(2),
+    gap: space(1),
   },
   cardTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: space(1.5),
   },
-  cardCategory: {
+  iconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitleArea: {
+    flex: 1,
+    gap: 2,
+  },
+  cardMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space(1),
+    gap: 5,
+    flexWrap: 'wrap',
+  },
+  resolvedBadge: {
+    backgroundColor: color.cardElevated,
+    borderRadius: radius.pill,
+    paddingHorizontal: space(1),
+    paddingVertical: 1,
+  },
+  resolvedBadgeText: {
+    fontSize: 11,
+    fontFamily: font.arabicMedium,
+    color: color.textSecondary,
   },
   cardDesc: {
     lineHeight: 20,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: space(0.5),
   },
   empty: {
     alignItems: 'center',

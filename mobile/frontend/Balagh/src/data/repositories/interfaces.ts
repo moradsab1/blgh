@@ -6,7 +6,10 @@ import type {
 } from '../../core/types';
 
 export interface IIncidentRepository {
+  /** Currently open incidents only — the backend closes pins after 24 h. */
   getIncidents(lat: number, lng: number, radiusKm: number): Promise<Incident[]>;
+  /** Incident history (incl. resolved) within a time range, optionally per locality. */
+  getIncidentHistory(rangeHours: number, localityId?: string): Promise<Incident[]>;
   getIncident(id: string): Promise<Incident>;
   submitReport(
     category: string,

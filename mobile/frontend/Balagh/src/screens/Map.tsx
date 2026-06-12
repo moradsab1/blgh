@@ -333,7 +333,7 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
 
   // ── Local state ────────────────────────────────────────────────────────────
 
-  const [incidents, setIncidents] = useState<Incident[]>(() => db.incidents.getAll());
+  const [incidents, setIncidents] = useState<Incident[]>(() => db.incidents.getOpen());
   const [localityCoords, setLocalityCoords] = useState<{ lat: number; lng: number }>(DEFAULT_LOCALITY);
   const [showPermOverlay, setShowPermOverlay] = useState(false);
   const [permDeniedBanner, setPermDeniedBanner] = useState(false);
@@ -571,13 +571,13 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
       if (event.t === 'incident.created') {
         const inc = event.incident;
         newIdsRef.current.set(inc.id, Date.now());
-        setIncidents(db.incidents.getAll());
+        setIncidents(db.incidents.getOpen());
         setUnreadCount(c => c + 1);
         haptics.impact();
       } else if (event.t === 'incident.resolved') {
         db.incidents.resolve(event.id);
         resolvingIdsRef.current.set(event.id, Date.now());
-        setIncidents(db.incidents.getAll());
+        setIncidents(db.incidents.getOpen());
       } else if (event.t === 'status.changed') {
         setSafetyState(event.state as SafetyState);
       } else if (event.t === 'notification.new') {

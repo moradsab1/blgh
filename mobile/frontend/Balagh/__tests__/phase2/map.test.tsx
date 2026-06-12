@@ -65,6 +65,7 @@ jest.mock('../../src/data/mock/db', () => ({
   db: {
     incidents: {
       getAll: jest.fn(() => [...mockIncidents]),
+      getOpen: jest.fn(() => [...mockIncidents]),
       getById: jest.fn((id: string) => mockIncidents.find((i: any) => i.id === id)),
       add: jest.fn(),
       update: jest.fn(),

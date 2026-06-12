@@ -21,6 +21,11 @@ export const WATCH_WINDOW_MIN = 60;
 export const ACTIVE_WINDOW_MIN = 15;
 export const ACTIVE_THRESHOLD = 3;
 
+// An incident counts as "open" (shown as a map pin) for 24 hours after it
+// is reported. The backend will enforce this window and serve only currently
+// open incidents to the map; the mock layer simulates the same behavior.
+export const OPEN_INCIDENT_WINDOW_HOURS = 24;
+
 // Location privacy — incidents are never rendered as an exact point.
 // Each open incident is drawn as a translucent circle covering roughly
 // this ground radius so the precise location stays hidden.

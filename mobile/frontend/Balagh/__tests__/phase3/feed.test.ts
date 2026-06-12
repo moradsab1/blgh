@@ -99,8 +99,35 @@ describe('feed history filters', () => {
   });
 
   it('month range in Nazareth shows that locality history only', () => {
-    const out = filterIncidents(dataset, { range: 'month', localityId: 'nazareth', now });
+    const out = filterIncidents(dataset, { range: 'month', localityIds: ['nazareth'], now });
     expect(out.map(i => i.id).sort()).toEqual(['f-3days', 'f-3weeks']);
+  });
+
+  it('locality filter is multi-select', () => {
+    const out = filterIncidents(dataset, {
+      range: 'month',
+      localityIds: ['nazareth', 'umm-al-fahm'],
+      now,
+    });
+    expect(out.map(i => i.id).sort()).toEqual(['f-3days', 'f-3weeks', 'f-today']);
+  });
+
+  it('category filter is multi-select and combines with the other filters', () => {
+    const mixed = [
+      ...dataset,
+      makeIncident('f-gunfire', { category: 'GUNFIRE', createdAt: at(5) }),
+      makeIncident('f-robbery', { category: 'ROBBERY', createdAt: at(6) }),
+    ];
+    const out = filterIncidents(mixed, {
+      range: 'day',
+      categories: ['GUNFIRE', 'ROBBERY'],
+      now,
+    });
+    expect(out.map(i => i.id).sort()).toEqual(['f-gunfire', 'f-robbery']);
+
+    // Empty array = no category restriction
+    const all = filterIncidents(mixed, { range: 'day', categories: [], now });
+    expect(all.length).toBe(3);
   });
 
   it('nothing older than a month is ever shown', () => {

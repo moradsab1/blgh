@@ -50,6 +50,7 @@ export {
   Search,
   Send,
   Settings,
+  Shapes,
   Shield,
   ShieldCheck,
   Siren,

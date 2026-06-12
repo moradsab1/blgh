@@ -10,7 +10,7 @@
  * options, so time + locality are the meaningful filters.)
  */
 
-import type { Incident } from '../../core/types';
+import type { Category, Incident } from '../../core/types';
 
 export type FeedRangeKey = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
@@ -40,8 +40,10 @@ export interface FeedFilter {
   /** Inclusive custom-range bounds (ms epoch) — used only when range === 'custom'. */
   customFrom?: number | null;
   customTo?: number | null;
-  /** Restrict to one locality; null/undefined = all localities. */
-  localityId?: string | null;
+  /** Restrict to these localities (multi-select); empty/null = all. */
+  localityIds?: string[] | null;
+  /** Restrict to these incident types (multi-select); empty/null = all. */
+  categories?: Category[] | null;
   now?: number;
 }
 
@@ -56,7 +58,8 @@ export function filterIncidents(incidents: Incident[], filter: FeedFilter): Inci
     } else {
       if (now - createdMs > FEED_RANGE_HOURS[filter.range] * 3_600_000) return false;
     }
-    if (filter.localityId && i.localityId !== filter.localityId) return false;
+    if (filter.localityIds?.length && !filter.localityIds.includes(i.localityId)) return false;
+    if (filter.categories?.length && !filter.categories.includes(i.category)) return false;
     return true;
   });
 }

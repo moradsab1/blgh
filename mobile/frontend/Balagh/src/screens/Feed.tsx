@@ -3,8 +3,9 @@
  *
  * A draggable bottom sheet (25 / 60 / 90 %) over the map. While the map only
  * shows currently open incidents (24 h window), the feed is the history
- * browser: a time-range filter (last 24 h / week / month) plus a locality
- * filter (e.g. "last month in Nazareth"), with search on top.
+ * browser: a time-range filter (quick chips + more-filters sheet with extended
+ * ranges and a custom calendar) plus multi-select city and incident-type
+ * pickers (e.g. "gunfire + robbery, last month, Nazareth + Haifa").
  *
  * Cards are modern severity-striped tiles: tinted icon badge, category title,
  * locality + relative time, description (≤3 lines), a resolved badge for
@@ -36,10 +37,12 @@ import {
   Check,
   ChevronDown,
   MapPin,
+  Shapes,
   ShieldCheck,
   SlidersHorizontal,
   X,
 } from '../core/icons';
+import type { IconProps } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
 import { FeedSkeleton } from '../presentation/components/Skeleton';
 import { relativeTime } from '../core/format/time';
@@ -53,121 +56,165 @@ import { DateRangeCalendar } from '../presentation/components/DateRangeCalendar'
 import type { DateRange } from '../presentation/components/DateRangeCalendar';
 import { db, LOCALITIES } from '../data/mock/db';
 import { wsEventEmitter } from '../data/mock/eventEmitter';
-import type { AppLanguage, Incident, Locality } from '../core/types';
+import type { AppLanguage, Category, Incident, Locality } from '../core/types';
 
 function localityName(loc: Locality, lang: AppLanguage): string {
   return lang === 'he' ? loc.nameHe : lang === 'en' ? loc.nameEn : loc.nameAr;
 }
 
-// ── City picker modal ─────────────────────────────────────────────────────────
-// One "choose city" button in the filter bar opens this bottom sheet instead of
-// rendering all 18 locality chips inline. Searchable across ar/he/en scripts.
+// ── Multi-select picker modal ─────────────────────────────────────────────────
+// Shared bottom sheet for the "choose city" and "incident type" filter buttons.
+// Rows toggle (multi-select) and stay open; the "all" row clears the selection;
+// an Apply button (or backdrop/✕) closes the sheet. Optionally searchable.
 
-interface CityPickerProps {
+interface PickerItem {
+  id: string;
+  label: string;
+  sub?: string;
+  /** Extra text the search matches against (e.g. names in other scripts). */
+  keywords?: string;
+  Icon: React.ComponentType<IconProps>;
+}
+
+interface MultiPickerProps {
   visible: boolean;
-  selectedId: string | null;
-  lang: AppLanguage;
-  onSelect: (id: string | null) => void;
+  title: string;
+  allLabel: string;
+  items: PickerItem[];
+  selectedIds: string[];
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  applyLabel: string;
+  testIDPrefix: string;
+  onToggle: (id: string) => void;
+  onClear: () => void;
   onClose: () => void;
 }
 
-const CityPickerModal = ({
+const MultiPickerModal = ({
   visible,
-  selectedId,
-  lang,
-  onSelect,
+  title,
+  allLabel,
+  items,
+  selectedIds,
+  searchable,
+  searchPlaceholder,
+  applyLabel,
+  testIDPrefix,
+  onToggle,
+  onClear,
   onClose,
-}: CityPickerProps): React.ReactElement => {
-  const s = strings[lang];
-  const [cityQuery, setCityQuery] = useState('');
+}: MultiPickerProps): React.ReactElement => {
+  const [query, setQuery] = useState('');
 
-  const cities = useMemo(() => {
-    const q = cityQuery.trim().toLowerCase();
-    if (!q) return LOCALITIES;
-    return LOCALITIES.filter(
-      loc =>
-        loc.nameAr.toLowerCase().includes(q) ||
-        loc.nameHe.toLowerCase().includes(q) ||
-        loc.nameEn.toLowerCase().includes(q),
+  const visibleItems = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!searchable || !q) return items;
+    return items.filter(
+      item =>
+        item.label.toLowerCase().includes(q) ||
+        (item.sub ?? '').toLowerCase().includes(q) ||
+        (item.keywords ?? '').toLowerCase().includes(q),
     );
-  }, [cityQuery]);
+  }, [items, query, searchable]);
 
-  const pick = (id: string | null): void => {
-    haptics.toggle();
-    onSelect(id);
-    setCityQuery('');
+  const close = (): void => {
+    setQuery('');
     onClose();
   };
 
+  const noneSelected = selectedIds.length === 0;
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={pickerStyles.backdrop} onPress={onClose} testID="feed-city-backdrop" />
-      <View style={pickerStyles.sheet} testID="feed-city-modal">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
+      <Pressable style={pickerStyles.backdrop} onPress={close} testID={`${testIDPrefix}-backdrop`} />
+      <View style={pickerStyles.sheet} testID={`${testIDPrefix}-modal`}>
         <View style={pickerStyles.handle} />
         <View style={pickerStyles.titleRow}>
-          <Text variant="heading">{s.feed.chooseCity}</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text variant="heading">{title}</Text>
+          <TouchableOpacity onPress={close} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <X size={20} color={color.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        <View style={pickerStyles.searchBox}>
-          <Search size={16} color={color.textMuted} />
-          <TextInput
-            style={pickerStyles.searchInput}
-            value={cityQuery}
-            onChangeText={setCityQuery}
-            placeholder={s.locality.searchPlaceholder}
-            placeholderTextColor={color.textMuted}
-            autoCorrect={false}
-            testID="feed-city-search"
-          />
-        </View>
+        {searchable ? (
+          <View style={pickerStyles.searchBox}>
+            <Search size={16} color={color.textMuted} />
+            <TextInput
+              style={pickerStyles.searchInput}
+              value={query}
+              onChangeText={setQuery}
+              placeholder={searchPlaceholder}
+              placeholderTextColor={color.textMuted}
+              autoCorrect={false}
+              testID={`${testIDPrefix}-search`}
+            />
+          </View>
+        ) : null}
 
         <FlatList
-          data={cities}
-          keyExtractor={loc => loc.id}
+          data={visibleItems}
+          keyExtractor={item => item.id}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={pickerStyles.list}
           ListHeaderComponent={
             <TouchableOpacity
-              style={[pickerStyles.row, selectedId === null && pickerStyles.rowActive]}
-              onPress={() => pick(null)}
-              testID="feed-city-all">
-              <MapPin size={16} color={selectedId === null ? color.accent : color.textMuted} />
+              style={[pickerStyles.row, noneSelected && pickerStyles.rowActive]}
+              onPress={() => {
+                haptics.toggle();
+                onClear();
+              }}
+              testID={`${testIDPrefix}-all`}>
+              <Check size={16} color={noneSelected ? color.accent : color.textMuted} />
               <View style={pickerStyles.rowNames}>
                 <Text
                   variant="label"
-                  style={[pickerStyles.rowLabel, selectedId === null && pickerStyles.rowLabelActive]}>
-                  {s.feed.allLocalities}
+                  style={[pickerStyles.rowLabel, noneSelected && pickerStyles.rowLabelActive]}>
+                  {allLabel}
                 </Text>
               </View>
-              {selectedId === null && <Check size={18} color={color.accent} />}
             </TouchableOpacity>
           }
-          renderItem={({ item: loc }) => {
-            const active = selectedId === loc.id;
+          renderItem={({ item }) => {
+            const active = selectedIds.includes(item.id);
+            const ItemIcon = item.Icon;
             return (
               <TouchableOpacity
                 style={[pickerStyles.row, active && pickerStyles.rowActive]}
-                onPress={() => pick(loc.id)}
-                testID={`feed-city-${loc.id}`}>
-                <MapPin size={16} color={active ? color.accent : color.textMuted} />
+                onPress={() => {
+                  haptics.toggle();
+                  onToggle(item.id);
+                }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: active }}
+                testID={`${testIDPrefix}-${item.id}`}>
+                <ItemIcon size={16} color={active ? color.accent : color.textMuted} />
                 <View style={pickerStyles.rowNames}>
                   <Text
                     variant="label"
                     style={[pickerStyles.rowLabel, active && pickerStyles.rowLabelActive]}>
-                    {localityName(loc, lang)}
+                    {item.label}
                   </Text>
-                  {lang !== 'ar' ? (
-                    <Text variant="caption" muted>{loc.nameAr}</Text>
+                  {item.sub ? (
+                    <Text variant="caption" muted>{item.sub}</Text>
                   ) : null}
                 </View>
-                {active && <Check size={18} color={color.accent} />}
+                <View style={[pickerStyles.checkbox, active && pickerStyles.checkboxActive]}>
+                  {active && <Check size={13} color={color.textOnAccent} />}
+                </View>
               </TouchableOpacity>
             );
           }}
+        />
+
+        <Button
+          label={applyLabel}
+          variant="primary"
+          fullWidth
+          onPress={close}
+          style={filtersStyles.applyBtn}
+          testID={`${testIDPrefix}-apply`}
         />
       </View>
     </Modal>
@@ -291,8 +338,10 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
 
   const [incidents, setIncidents] = useState<Incident[]>(() => db.incidents.getAll());
   const [range, setRange] = useState<FeedRangeKey>('day');
-  const [localityId, setLocalityId] = useState<string | null>(null);
+  const [localityIds, setLocalityIds] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [customRange, setCustomRange] = useState<DateRange>({ from: null, to: null });
   const [, setTick] = useState(0);
@@ -339,17 +388,56 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
     () =>
       filterIncidents(incidents, {
         range,
-        localityId,
+        localityIds,
+        categories,
         customFrom: customRange.from,
         customTo: customRange.to,
       }),
-    [incidents, range, localityId, customRange],
+    [incidents, range, localityIds, categories, customRange],
   );
 
-  const selectedCity = useMemo(
-    () => LOCALITIES.find(l => l.id === localityId) ?? null,
-    [localityId],
+  // Multi-select button labels: "first selection +N" when several are chosen.
+  const cityLabel = useMemo(() => {
+    if (localityIds.length === 0) return s.feed.allLocalities;
+    const first = LOCALITIES.find(l => l.id === localityIds[0]);
+    const name = first ? localityName(first, lang) : s.feed.allLocalities;
+    return localityIds.length === 1
+      ? name
+      : `${name} +${formatNumber(localityIds.length - 1)}`;
+  }, [localityIds, lang, s]);
+
+  const typeLabel = useMemo(() => {
+    if (categories.length === 0) return s.feed.chooseType;
+    const name = s.category[categories[0]];
+    return categories.length === 1
+      ? name
+      : `${name} +${formatNumber(categories.length - 1)}`;
+  }, [categories, s]);
+
+  const cityItems = useMemo<PickerItem[]>(
+    () =>
+      LOCALITIES.map(loc => ({
+        id: loc.id,
+        label: localityName(loc, lang),
+        sub: lang !== 'ar' ? loc.nameAr : undefined,
+        keywords: `${loc.nameAr} ${loc.nameHe} ${loc.nameEn}`,
+        Icon: MapPin,
+      })),
+    [lang],
   );
+
+  const typeItems = useMemo<PickerItem[]>(
+    () =>
+      (Object.keys(CATEGORY_ICON) as Category[]).map(cat => ({
+        id: cat,
+        label: s.category[cat],
+        Icon: CATEGORY_ICON[cat],
+      })),
+    [s],
+  );
+
+  const toggleIn = <T extends string>(list: T[], id: T): T[] =>
+    list.includes(id) ? list.filter(x => x !== id) : [...list, id];
 
   // The "more" button reflects the extended selection (3 months / year / custom).
   const extendedActive = range === 'quarter' || range === 'year' || range === 'custom';
@@ -485,38 +573,85 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
           </TouchableOpacity>
         </ScrollView>
 
-        <View style={styles.cityRow}>
+        {/* City + incident-type filter buttons — both multi-select pickers. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.cityRow}>
           <TouchableOpacity
-            style={[styles.cityButton, selectedCity && styles.cityButtonActive]}
+            style={[styles.cityButton, localityIds.length > 0 && styles.cityButtonActive]}
             onPress={() => {
               haptics.toggle();
               setCityPickerOpen(true);
             }}
             activeOpacity={0.8}
             testID="feed-city-button">
-            <MapPin size={15} color={selectedCity ? color.accent : color.textSecondary} />
+            <MapPin
+              size={15}
+              color={localityIds.length > 0 ? color.accent : color.textSecondary}
+            />
             <Text
               variant="label"
-              style={selectedCity ? styles.cityButtonTextActive : styles.cityButtonText}
+              style={localityIds.length > 0 ? styles.cityButtonTextActive : styles.cityButtonText}
               numberOfLines={1}>
-              {selectedCity ? localityName(selectedCity, lang) : s.feed.allLocalities}
+              {cityLabel}
             </Text>
-            <ChevronDown size={15} color={selectedCity ? color.accent : color.textSecondary} />
+            <ChevronDown
+              size={15}
+              color={localityIds.length > 0 ? color.accent : color.textSecondary}
+            />
           </TouchableOpacity>
 
-          {selectedCity ? (
+          {localityIds.length > 0 ? (
             <TouchableOpacity
               style={styles.cityClear}
               onPress={() => {
                 haptics.toggle();
-                setLocalityId(null);
+                setLocalityIds([]);
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               testID="feed-city-clear">
               <X size={14} color={color.textSecondary} />
             </TouchableOpacity>
           ) : null}
-        </View>
+
+          <TouchableOpacity
+            style={[styles.cityButton, categories.length > 0 && styles.cityButtonActive]}
+            onPress={() => {
+              haptics.toggle();
+              setTypePickerOpen(true);
+            }}
+            activeOpacity={0.8}
+            testID="feed-type-button">
+            <Shapes
+              size={15}
+              color={categories.length > 0 ? color.accent : color.textSecondary}
+            />
+            <Text
+              variant="label"
+              style={categories.length > 0 ? styles.cityButtonTextActive : styles.cityButtonText}
+              numberOfLines={1}>
+              {typeLabel}
+            </Text>
+            <ChevronDown
+              size={15}
+              color={categories.length > 0 ? color.accent : color.textSecondary}
+            />
+          </TouchableOpacity>
+
+          {categories.length > 0 ? (
+            <TouchableOpacity
+              style={styles.cityClear}
+              onPress={() => {
+                haptics.toggle();
+                setCategories([]);
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID="feed-type-clear">
+              <X size={14} color={color.textSecondary} />
+            </TouchableOpacity>
+          ) : null}
+        </ScrollView>
       </View>
 
       {loading ? (
@@ -547,12 +682,32 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
         />
       )}
 
-      <CityPickerModal
+      <MultiPickerModal
         visible={cityPickerOpen}
-        selectedId={localityId}
-        lang={lang}
-        onSelect={setLocalityId}
+        title={s.feed.chooseCity}
+        allLabel={s.feed.allLocalities}
+        items={cityItems}
+        selectedIds={localityIds}
+        searchable
+        searchPlaceholder={s.locality.searchPlaceholder}
+        applyLabel={s.feed.apply}
+        testIDPrefix="feed-city"
+        onToggle={id => setLocalityIds(prev => toggleIn(prev, id))}
+        onClear={() => setLocalityIds([])}
         onClose={() => setCityPickerOpen(false)}
+      />
+
+      <MultiPickerModal
+        visible={typePickerOpen}
+        title={s.feed.chooseType}
+        allLabel={s.feed.allTypes}
+        items={typeItems}
+        selectedIds={categories}
+        applyLabel={s.feed.apply}
+        testIDPrefix="feed-type"
+        onToggle={id => setCategories(prev => toggleIn(prev, id as Category))}
+        onClear={() => setCategories([])}
+        onClose={() => setTypePickerOpen(false)}
       />
 
       <MoreFiltersModal
@@ -626,6 +781,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space(1),
+    paddingEnd: space(2),
   },
   cityButton: {
     flexDirection: 'row',
@@ -635,7 +791,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingHorizontal: space(1.75),
     minHeight: 36,
-    maxWidth: '80%',
+    maxWidth: 240,
   },
   cityButtonActive: {
     backgroundColor: color.accent + '14',
@@ -797,6 +953,20 @@ const pickerStyles = StyleSheet.create({
   },
   rowLabelActive: {
     color: color.accent,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: color.border,
+    backgroundColor: color.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxActive: {
+    borderColor: color.accent,
+    backgroundColor: color.accent,
   },
 });
 

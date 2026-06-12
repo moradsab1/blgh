@@ -1,9 +1,15 @@
 import type { Incident, AppNotification, Locality } from '../../core/types';
 import { OPEN_INCIDENT_WINDOW_HOURS } from '../../core/config';
+import { strings } from '../../core/strings';
 
 // How long a just-resolved incident keeps appearing in the "open" set so the
 // map can play its 30 s fade-out before the pin disappears.
 const RESOLVED_LINGER_MS = 60_000;
+
+// Seeded descriptions are never free text — reporters can only pick one of
+// the prepared situation descriptions (§5.13), so the mock data references
+// those exact options (Arabic, like the rest of the seed content).
+const SITUATIONS = strings.ar.report.situations;
 
 export const LOCALITIES: Locality[] = [
   { id: 'umm-al-fahm', nameAr: 'أم الفحم', nameHe: 'אום אל-פחם', nameEn: 'Umm al-Fahm', lat: 32.5139, lng: 35.1566 },
@@ -32,7 +38,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-7Q2K9X',
     category: 'SUSPICIOUS',
     severity: 'medium',
-    description: 'سيارة بيضاء تتحرك ببطء قرب مدرسة الرشيد منذ نصف ساعة. السائق يراقب الأطفال أثناء خروجهم.',
+    description: SITUATIONS.SUSPICIOUS[1],
     lat: 32.5145,
     lng: 35.1570,
     localityId: 'umm-al-fahm',
@@ -43,7 +49,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-8A3M2Y',
     category: 'ASSAULT',
     severity: 'high',
-    description: 'مشاجرة بين شابين في المنطقة التجارية، أحدهما يحمل عصا. الناس يتجمعون حولهم.',
+    description: SITUATIONS.ASSAULT[3],
     lat: 32.5130,
     lng: 35.1550,
     localityId: 'umm-al-fahm',
@@ -54,7 +60,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-9C4N1Z',
     category: 'GUNFIRE',
     severity: 'critical',
-    description: 'صوت إطلاق رصاص في الهواء قرب الحديقة العامة. ٣ طلقات على الأقل خلال دقيقة.',
+    description: SITUATIONS.GUNFIRE[2],
     lat: 32.7956,
     lng: 34.9921,
     localityId: 'haifa',
@@ -65,7 +71,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-3F7P5K',
     category: 'ROBBERY',
     severity: 'high',
-    description: 'سرقة من سوبرماركت في الشارع الرئيسي. السارقون فروا في سيارة سوداء صغيرة باتجاه الجنوب.',
+    description: SITUATIONS.ROBBERY[2],
     lat: 31.9530,
     lng: 34.8970,
     localityId: 'lod',
@@ -76,7 +82,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-5H8Q3L',
     category: 'STABBING',
     severity: 'critical',
-    description: 'اعتداء بسكين في منطقة المحطة المركزية. الإسعاف وصل والمصاب نُقل إلى المستشفى.',
+    description: SITUATIONS.STABBING[0],
     lat: 32.7010,
     lng: 35.3050,
     localityId: 'nazareth',
@@ -87,7 +93,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-2D6R4M',
     category: 'SUSPICIOUS',
     severity: 'low',
-    description: 'شخص يحاول فتح أبواب السيارات في الموقف خلف العمارة. غادر بعد دقائق.',
+    description: SITUATIONS.SUSPICIOUS[2],
     lat: 32.0510,
     lng: 34.7530,
     localityId: 'jaffa',
@@ -98,7 +104,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-6J9S2N',
     category: 'OTHER',
     severity: 'medium',
-    description: 'تجمع مشبوه بالقرب من الجامع بعد منتصف الليل. الأصوات عالية والأمور تبدو متوترة.',
+    description: SITUATIONS.OTHER[2],
     lat: 32.4180,
     lng: 35.0395,
     localityId: 'baqa',
@@ -109,7 +115,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-4K1T7P',
     category: 'ASSAULT',
     severity: 'high',
-    description: 'شجار جماعي قرب ملعب كرة القدم. على الأقل ٥ أشخاص متورطين والوضع يتصاعد.',
+    description: SITUATIONS.ASSAULT[1],
     lat: 32.2670,
     lng: 34.9960,
     localityId: 'taibe',
@@ -124,7 +130,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-H1A2B3',
     category: 'ASSAULT',
     severity: 'high',
-    description: 'مشاجرة عنيفة قرب السوق القديم انتهت بتدخل الأهالي.',
+    description: SITUATIONS.ASSAULT[0],
     lat: 32.7001,
     lng: 35.2980,
     localityId: 'nazareth',
@@ -136,7 +142,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-H2C4D5',
     category: 'SUSPICIOUS',
     severity: 'medium',
-    description: 'سيارة مجهولة وقفت أمام المدرسة الابتدائية لساعات متأخرة.',
+    description: SITUATIONS.SUSPICIOUS[0],
     lat: 32.6975,
     lng: 35.3060,
     localityId: 'nazareth',
@@ -148,7 +154,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-H3E6F7',
     category: 'ROBBERY',
     severity: 'high',
-    description: 'سطو على محل مجوهرات في شارع بولس السادس فجراً.',
+    description: SITUATIONS.ROBBERY[0],
     lat: 32.7012,
     lng: 35.3041,
     localityId: 'nazareth',
@@ -160,7 +166,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-H4G8H9',
     category: 'GUNFIRE',
     severity: 'critical',
-    description: 'إطلاق نار كثيف في حي عين إبراهيم استمر عدة دقائق.',
+    description: SITUATIONS.GUNFIRE[3],
     lat: 32.5102,
     lng: 35.1493,
     localityId: 'umm-al-fahm',
@@ -172,7 +178,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-H5J1K2',
     category: 'SUSPICIOUS',
     severity: 'low',
-    description: 'أشخاص غرباء يصورون مداخل العمارات في الحي الشرقي.',
+    description: SITUATIONS.SUSPICIOUS[0],
     lat: 31.9495,
     lng: 34.8902,
     localityId: 'lod',
@@ -184,7 +190,7 @@ let _incidents: Incident[] = [
     ref: 'BLG-H6L3M4',
     category: 'OTHER',
     severity: 'medium',
-    description: 'حريق في مخزن قرب الميناء وتصاعد دخان كثيف.',
+    description: SITUATIONS.OTHER[0],
     lat: 32.7925,
     lng: 34.9889,
     localityId: 'haifa',

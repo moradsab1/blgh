@@ -1,5 +1,10 @@
 import type { WsEvent, Category, Severity, AppNotification } from '../../core/types';
+import { strings } from '../../core/strings';
 import { db } from './db';
+
+// Emitted incidents use only the prepared situation descriptions (§5.13) —
+// the product has no free-text descriptions anywhere.
+const SITUATIONS = strings.ar.report.situations;
 
 type EventHandler = (event: WsEvent) => void;
 
@@ -42,49 +47,49 @@ const MOCK_SEEDS: MockSeed[] = [
   {
     category: 'SUSPICIOUS',
     severity: 'medium',
-    description: 'دراجة نارية بدون لوحة تتجول في الشوارع الفرعية.',
+    description: SITUATIONS.SUSPICIOUS[1],
     localityId: 'umm-al-fahm',
     coords: { lat: 32.5175, lng: 35.1612 },
   },
   {
     category: 'ASSAULT',
     severity: 'high',
-    description: 'مشاجرة بين مجموعتين قرب المحطة. الوضع يتصاعد.',
+    description: SITUATIONS.ASSAULT[1],
     localityId: 'lod',
     coords: { lat: 31.9528, lng: 34.8990 },
   },
   {
     category: 'GUNFIRE',
     severity: 'critical',
-    description: 'إطلاق رصاص متعدد في الهواء. الناس يهربون.',
+    description: SITUATIONS.GUNFIRE[0],
     localityId: 'nazareth',
     coords: { lat: 32.7020, lng: 35.3015 },
   },
   {
     category: 'ROBBERY',
     severity: 'high',
-    description: 'سرقة كابلات نحاسية من مبنى قيد الإنشاء.',
+    description: SITUATIONS.ROBBERY[0],
     localityId: 'haifa',
     coords: { lat: 32.7910, lng: 34.9870 },
   },
   {
     category: 'SUSPICIOUS',
     severity: 'low',
-    description: 'حقيبة متروكة عند مدخل المركز التجاري.',
+    description: SITUATIONS.SUSPICIOUS[3],
     localityId: 'taibe',
     coords: { lat: 32.2680, lng: 34.9975 },
   },
   {
     category: 'OTHER',
     severity: 'medium',
-    description: 'تجمع غير عادي خارج عيادة الحي بعد ساعات العمل.',
+    description: SITUATIONS.OTHER[2],
     localityId: 'baqa',
     coords: { lat: 32.4195, lng: 35.0410 },
   },
   {
     category: 'STABBING',
     severity: 'critical',
-    description: 'بلاغ عن اعتداء بآلة حادة. الإسعاف في الطريق.',
+    description: SITUATIONS.STABBING[0],
     localityId: 'jaffa',
     coords: { lat: 32.0525, lng: 34.7520 },
   },

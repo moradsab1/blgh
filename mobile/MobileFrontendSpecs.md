@@ -2,6 +2,7 @@
 
 > **Target:** **Bare React Native CLI** (no Expo) · iOS + Android · Mock API (contract defined here) · Phased build · TypeScript strict · **New Architecture (mandatory)**
 > **Simplified to a minimal dependency set (2026-05-29).** The architecture was deliberately stripped from a heavy native stack to a minimal one to fix cold-start crashes (see §16). Only a minimal runtime dependency set remains; persistence is AsyncStorage, icons are **lucide-react-native** SVG vectors, i18n is a plain strings object.
+> **Product revision (2026-06-12).** Five product changes are baked into this spec: **(1)** report descriptions are no longer free text — the reporter picks one of four **prepared situation descriptions** per category (§5.13); **(2)** the **Confirm/Deny verification-vote feature is removed** end to end (§5.11, §10); **(3)** incidents are never rendered as an exact point — every pin is a **~150 m privacy circle** (§5.5, §5.12); **(4)** the map shows only **currently open incidents (24 h window)**, enforced by the backend, while the feed browses history (§5.5, §5.10, §10.3); **(5)** the incidents feed was redesigned with **time-range + locality history filters** and modern severity-striped cards (§5.10). Category icons were also modernized (§4).
 > **Stack validated against live docs:** 28 May 2026. Every native module below is confirmed New-Architecture-compatible. See the compatibility matrix in §6.4.
 > **Single source of truth:** product principles → full UI spec → architecture → native config → mock API → phased plan → the AI build prompt.
 
@@ -85,14 +86,14 @@ Exactly **one** runtime permission (Location, "while using"). The app **never** 
 **Haptics:** *(currently no-op stubs — see note below.)*
 - Light tap → toggle/chips
 - Medium press → primary buttons
-- Success notification → confirmed submit or vote
+- Success notification → confirmed submit
 - Warning notification → high-severity status appears
 - Error notification → submit or validation failure
 - Heavy impact → Active (red) status transition
 
 > In the current minimal build the haptic API (`core/haptics`) is a set of **no-op stubs** — the semantic surface (`haptics.success()` etc.) exists so callers stay stable, but no native haptic library is installed. On Android the OS provides implicit touch feedback via ripples. A real haptics implementation can be wired later behind the same API.
 
-**Icons:** **`lucide-react-native`** SVG vector icons (over `react-native-svg`), re-exported through `core/icons` so screens keep importing the same names (`<IconName size color style />`). All icons are monochrome strokes tinted via the `color` prop — no emoji anywhere in the UI. Category icons map to Crosshair / Slice / HandFist / Wallet / Eye / TriangleAlert. Directional icons (chevrons, arrows) are chosen per `I18nManager.isRTL` at call sites.
+**Icons:** **`lucide-react-native`** SVG vector icons (over `react-native-svg`), re-exported through `core/icons` so screens keep importing the same names (`<IconName size color style />`). All icons are monochrome strokes tinted via the `color` prop — no emoji anywhere in the UI. Category icons use modern, instantly-readable glyphs: **Target** (gunfire) / **Sword** (stabbing) / **HandFist** (assault) / **HandCoins** (robbery) / **ScanEye** (suspicious) / **Siren** (other emergency). Directional icons (chevrons, arrows) are chosen per `I18nManager.isRTL` at call sites.
 
 ---
 
@@ -133,15 +134,17 @@ Single home screen. Everything else slides over it as sheets/modals. *(This is t
 └──────────────────────────────────────┘
 ```
 
-> **Current implementation (Mapbox deferred):** The Map screen (`src/screens/Map.tsx`) is currently a basic **incident-feed preview**, not a live map. It shows the locality name (from storage), a derived **calm / watch / active** status dot computed from incident severity, a `FlatList` of mock incidents (severity pill + category + relative time-ago + confirm/deny counts + monospace reference), a settings gear, and a Report FAB. The full-bleed Mapbox canvas, pins/clusters, recenter, and offline regions below are deferred to a later phase (§14).
+> **Current implementation:** The Map screen (`src/screens/Map.tsx`) is the real Mapbox dashboard — full-bleed streets canvas, clustered privacy circles fed by `db.incidents.getOpen()` (the 24 h open window), pulse on the highest-priority incident, status pill, recenter FAB, action tray, and offline pack download.
 
 **Map canvas (target):** full-bleed streets map (`mapbox://styles/mapbox/streets-v12` — Mapbox's most complete, continuously-updated road network) with street/place labels localized to **Arabic** via an explicit fallback expression (`name_ar` → `name` → `name_en`, applied to the style's label layers by `<ArabicLabels />`) so roads whose names exist only in Hebrew still show a label instead of going blank. Mapbox logo/attribution/scale-bar hidden, user location dot, **north-up fixed**.
 
-**Incident pins:**
+**Incident pins (privacy circles, 24 h open window):**
+- The map shows **only currently open incidents**: unresolved and reported within the last **24 hours**. The backend enforces this window and serves the frontend only open incidents (mocked today by `db.incidents.getOpen()`). Older or resolved incidents are browsable in the feed's history filters (§5.10), never on the map.
+- **Location privacy:** an incident is never rendered as an exact point. Each open incident draws as a **translucent severity-tinted circle covering ~150 m of ground radius** (`INCIDENT_PRIVACY_RADIUS_M`) around the reported location, hiding the precise spot from viewers. The pixel radius is zoom-interpolated (Web Mercator, exponential base-2 — `presentation/map/privacyCircle.ts`) so the circle covers the same ground area at every zoom.
 - Lower zoom: cluster bubbles tinted to highest-severity member, with count.
-- Higher zoom: teardrop pins in severity color; highest-priority active pin pulses.
-- New pins: **320 ms scale-in** + **warning haptic**.
-- Resolved: fade to 30% opacity, removed after 30 s.
+- Higher zoom: individual privacy circles in severity color; the highest-priority active incident's circle edge pulses.
+- New circles: **320 ms scale-in** + **warning haptic**.
+- Resolved: fade to 30% opacity, removed after 30 s (just-resolved incidents linger briefly in the open set so the fade can play).
 - Tap: opens Incident Detail Sheet + centers the map.
 
 ### 5.6 Safety Status Pill
@@ -151,7 +154,7 @@ Floating top-left:
 |---|---|---|---|
 | Calm | Green | *هادئ* | No active alerts within 3 km |
 | Watch | Amber | *يقظة* | ≥1 active alert within 3 km in the last 60 min |
-| Active | Red | *خطر نشط* | ≥3 verified alerts within 1 km in the last 15 min |
+| Active | Red | *خطر نشط* | ≥3 alerts within 1 km in the last 15 min |
 
 Watch/Active show a slow pulsing dot. Tap → popover explaining criteria. → Watch fires a **warning haptic**; → Active fires the **heavy haptic**.
 
@@ -166,16 +169,19 @@ Controls float free over the map, each with its own elevation (no dark band).
 - **Feed pill** (bottom-left): white pill, *"قائمة الحوادث"* + list icon → Safety Feed drawer.
 - **Report FAB** (bottom-right): **64×64 pt** orange circle, white plus glyph. Breathes subtly when Calm; pulse **stops** on Watch/Active.
 
-### 5.10 Safety Feed Drawer
-Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses.
-**Header (sticky):** drag handle · *"حول منطقتك"* + locality + distance · search icon · filter chips: **الكل** | **بلاغات** | **إرشادات أمان** | **وساطة** | **مبادرات** (active chip crimson).
-**Feed cards:** severity pill (left) + relative time (right, 30 s refresh); category icon + label + description (≤3 lines); Confirm/Deny pills + bookmark (red when set). Tap body → Incident Detail Sheet.
+### 5.10 Incidents Feed Drawer (history browser)
+Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses. While the map shows only the open 24 h window, the feed is where users **browse incident history**.
+**Header (sticky):** drag handle · title *"البلاغات"* · search box · two filter rows:
+- **Time-range chips:** **آخر 24 ساعة** (default) | **آخر أسبوع** | **آخر شهر** — history beyond the map's 24 h window.
+- **Locality chips (horizontal scroll):** **كل البلدات** (default) + one chip per locality, so a user can e.g. see *last month's incidents in Nazareth*.
+Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range × locality × search query over description/ref/localized category).
+**Feed cards (modern):** a severity-colored **accent strip** on the card edge; a severity-tinted rounded **icon badge**; category label as the title; a meta row with locality name (map-pin glyph) + relative time (30 s refresh) + a muted **"منتهي" (resolved) badge** for closed incidents; description (≤3 lines); bookmark (persisted, red when set). No vote pills (§5.11). Tap body → Incident Detail Sheet.
 
-### 5.11 Verification Votes
-Confirm/Deny per card. Tap = optimistic tint + count increment + send. One-way, irrevocable per incident. Already voted → button reverts + toast *"لقد صوّتَّ على هذا البلاغ مسبقاً"*.
+### 5.11 Verification Votes — REMOVED
+The Confirm/Deny verification-vote feature was **removed from the product** (2026-06-12). Incidents carry no vote counts, no `myVote` state, no vote endpoints, and no vote UI anywhere. The "active" status rule (§5.6) consequently no longer requires verified incidents.
 
 ### 5.12 Incident Detail Sheet
-Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + category; locality + distance; description; non-interactive **140 pt** map snippet (light style, Arabic labels); Confirm/Deny row. *(The comments thread/composer was removed from the product — incidents carry no comments.)*
+Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + category; locality + distance; the prepared situation description (§5.13); non-interactive **140 pt** map snippet (light style, Arabic labels) rendering the **~150 m privacy circle** — never an exact pin. *(The comments thread/composer and the Confirm/Deny vote row were removed from the product.)*
 
 ### 5.13 Report Flow
 
@@ -192,7 +198,7 @@ Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + cat
 
 Severity-tinted icon on top, label below. Tap → Step 2.
 
-**Step 2 — Details.** Sticky header with back + *"تفاصيل البلاغ"*. Context card shows selected category with location/time (tappable to return to Step 1). Optional multiline description (**≤200 chars**, live counter). **No photo attachment** — by design. **"إرسال البلاغ"** CTA pinned bottom. On submit: spinner → GPS fix → queue → modal closes → pulsing "syncing" pin at user location. If retries exhausted: pin turns amber + dismissable banner *"بلاغك لم يُرسل بعد — جارٍ إعادة المحاولة"*.
+**Step 2 — Situation picker (no typing).** Sticky header with back + *"وصف الحالة"*. Subtitle *"اختر الوصف الأقرب لما يحدث"*. Users **never type a description** — the screen lists **four prepared situation descriptions** for the chosen category (localized ar/he/en, defined in `core/strings` under `report.situations`), rendered as radio-style selectable cards. The **"إرسال البلاغ"** CTA is pinned bottom and stays **disabled until a situation is selected**; the selected text is submitted as the incident description. **No free-text field, no photo attachment** — by design. On submit: spinner → GPS fix → queue → modal closes → pulsing "syncing" pin at user location. If retries exhausted: pin turns amber + dismissable banner *"بلاغك لم يُرسل بعد — جارٍ إعادة المحاولة"*.
 
 **Step 3 — Success.** Full-screen. Centered green animated checkmark (draws **480 ms** + success haptic). *"تم إرسال بلاغك"*. Monospace reference **#BLG-XXXXXX** — long-press copies + *"تم النسخ"* toast. Thank-you: *"شكراً لمساعدتك على حماية حيّك."* **"إغلاق"** returns to map. **No share, no rating, no social.**
 
@@ -238,7 +244,7 @@ Never: camera, microphone, photo library, contacts, calendar, motion, advertisin
 - **Network:** *"تحقّق من اتصالك بالإنترنت ثم أعد المحاولة"*.
 - **Map load failure:** full-screen replacement + retry that reinitializes the map.
 - **Submit failure (retries exhausted):** sticky dismissable orange banner + reference ID + retry.
-- **Feed empty:** shield-check · *"منطقتك هادئة الآن"* · *"لا توجد بلاغات نشطة ضمن ٣ كم من موقعك"*.
+- **Feed empty:** shield-check · *"منطقتك هادئة الآن"* · *"لا توجد بلاغات مطابقة في النطاق الزمني المحدد"*.
 - **Search no results:** search icon · *"لا توجد نتائج"*.
 - **Skeleton loading:** feed = 5 shimmer cards (static under reduce-motion); inbox = 7 rows; submit = inline spinner.
 - **Offline indicator:** offline 3 s+ → 28 pt amber banner under toolbar *"أنت غير متصل. سيتم إرسال بلاغاتك عند عودة الاتصال."*; on reconnect briefly green *"اتصلت مجدداً. جارٍ إرسال بلاغاتك المعلّقة."* then slides away.
@@ -336,7 +342,7 @@ No remote/local push is installed in the minimal build. The notification **toggl
 
 ### 6.6 Maps (Phase 2)
 
-The Map screen currently ships as an incident-feed preview (§5.5); **Phase 2 (§14) replaces it with the real Mapbox surface.** Target: `@rnmapbox/maps` (Mapbox Maps SDK v11) — the streets style (`streets-v12`, full road-name coverage) with labels localized to Arabic via the `<ArabicLabels />` fallback expression, logo/attribution hidden, north-up fixed (rotation/pitch off), `ShapeSource` clustering tinted to the highest-severity member, individual severity teardrop pins at high zoom rendering the mock `db.incidents`, a `LocationPuck` after permission, and offline regions around the chosen locality. Keep the secret download token out of git (Gradle property / `.netrc`); set the public token at runtime via `Mapbox.setAccessToken()`. Verify the New-Arch badge and a clean release-build cold start before merging.
+The Map screen ships the real Mapbox surface (§5.5): `@rnmapbox/maps` (Mapbox Maps SDK v11) — the streets style (`streets-v12`, full road-name coverage) with labels localized to Arabic via the `<ArabicLabels />` fallback expression, logo/attribution hidden, north-up fixed (rotation/pitch off), `ShapeSource` clustering tinted to the highest-severity member, individual **~150 m privacy circles** at high zoom rendering the open mock incidents (`db.incidents.getOpen()`), a `LocationPuck` after permission, and offline regions around the chosen locality. Keep the secret download token out of git (Gradle property / `.netrc`); set the public token at runtime via `Mapbox.setAccessToken()`. Verify the New-Arch badge and a clean release-build cold start before merging.
 
 ---
 
@@ -446,7 +452,7 @@ balagh/
 ### 9.2 Data flow (current)
 - **Read incidents:** screens call a `Mock*Repo` (or the `db` directly, as `Map.tsx` does) → in-memory data → rendered in a `FlatList`. No network, no cache layer.
 - **Live updates:** a mock `eventEmitter` (`startMockEmitter`) exists for future use but is **not wired into any screen yet**.
-- **Write (report/vote):** not implemented yet. `signRequest()` returns an empty signature (no backend). When wired, mutations will go through the repository interfaces.
+- **Write (report):** not implemented yet. `signRequest()` returns an empty signature (no backend). When wired, mutations will go through the repository interfaces.
 - **Status pill:** `Map.tsx` derives **calm / watch / active** synchronously from the severity of open incidents (high/critical → active, medium → watch, else calm). The 3 km / 60 min / 1 km / 15 min geo rules in §5.6 arrive with real maps + location.
 - **Language/RTL:** `App.tsx`'s `useHydrated()` reads the saved language from storage, sets the `lang` zustand store, and calls `applyRTL()`.
 
@@ -468,11 +474,9 @@ type SafetyState = 'calm' | 'watch' | 'active';
 interface Incident {
   id: string; ref: string;            // ref e.g. "BLG-7Q2K9X"
   category: Category; severity: Severity;
-  description?: string;                // ≤200
+  description?: string;                // one of the prepared situation descriptions (§5.13)
   lat: number; lng: number; localityId: string;
   createdAt: string; resolvedAt?: string;
-  confirmations: number; denials: number;
-  myVote?: 'confirm' | 'deny' | null;
 }
 interface AppNotification {
   id: string; type: 'nearby' | 'verification' | 'status' | 'follow_up';
@@ -483,17 +487,19 @@ interface AppNotification {
 ### 10.3 Endpoints
 | Method | Path | Purpose | Returns |
 |---|---|---|---|
-| `GET` | `/incidents?lat&lng&radiusKm` | Nearby active + recently-resolved | `Incident[]` |
+| `GET` | `/incidents?lat&lng&radiusKm` | **Currently open** incidents only — the backend closes pins **24 h** after they are reported (+ just-resolved linger for the fade-out) | `Incident[]` |
+| `GET` | `/incidents/history?rangeHours&localityId` | Incident history (incl. resolved) within a time range, optionally per locality — feeds the §5.10 history filters | `Incident[]` |
 | `GET` | `/incidents/:id` | Detail | `Incident` |
 | `POST` | `/incidents` | Submit report *(signed)* | `{ id, ref }` |
-| `POST` | `/incidents/:id/vote` | `{ vote }` *(signed, one-way)* | `Incident` |
 | `GET` | `/status?lat&lng` | Safety state | `{ state, reason }` |
 | `GET` | `/localities?q=` | Search ar/he/en | `Locality[]` |
 | `GET` | `/notifications` | Inbox | `AppNotification[]` |
 | `POST` | `/notifications/read` | Mark read | `204` |
 | `POST` | `/follow-up/:ref` | Extra details *(signed)* | `204` |
 
-**Errors:** JSON `{ code, message }`. **426** → non-dismissable update gate. **409** on duplicate vote → "already voted" toast.
+*(The `POST /incidents/:id/vote` endpoint was removed with the verification-vote feature — §5.11.)*
+
+**Errors:** JSON `{ code, message }`. **426** → non-dismissable update gate.
 
 ### 10.4 WebSocket events (`/ws`)
 ```ts
@@ -501,13 +507,12 @@ type WsEvent =
   | { t: 'incident.created'; incident: Incident }
   | { t: 'incident.resolved'; id: string }
   | { t: 'status.changed'; state: SafetyState; reason: string }
-  | { t: 'vote.updated'; id: string; confirmations: number; denials: number }
   | { t: 'notification.new'; notification: AppNotification };
 ```
 
 ### 10.5 Mock implementation (as built)
 The in-memory mock is the only data source today:
-- `data/mock/db.ts` — the in-memory store: seeded incidents/notifications + `LOCALITIES` (18 cities). Exposes `db.incidents` and `db.notifications` with getters/mutators.
+- `data/mock/db.ts` — the in-memory store: seeded incidents/notifications + `LOCALITIES` (18 cities). Exposes `db.incidents` and `db.notifications` with getters/mutators. `db.incidents.getOpen()` simulates the backend's 24 h open-incident window for the map (unresolved + < 24 h old, with a ~60 s linger after resolve so the fade-out can play); `getAll()` remains the full history backing the feed filters. Seeds include **historical incidents** (3–25 days old, several in Nazareth) so the week/month history filters have data.
 - `data/mock/Mock*Repo.ts` — `MockIncidentRepo`, `MockLocalityRepo`, `MockNotificationRepo`, `MockStatusRepo` implementing the `data/repositories/interfaces.ts` contracts over `db`.
 - `data/mock/eventEmitter.ts` — `startMockEmitter()` pushes `incident.created` / `status.changed` for future live-update wiring (not yet consumed by a screen).
 - `core/config.ts`: `export const USE_MOCK_API = true;`
@@ -563,7 +568,7 @@ The semantic API exists so callers stay stable, but every method is a no-op (no 
 |---|---|---|
 | Toggle / chip | `haptics.toggle()` | light impact |
 | Primary button | `haptics.press()` | medium impact |
-| Confirmed submit / vote | `haptics.success()` | success notification |
+| Confirmed submit | `haptics.success()` | success notification |
 | High-severity status appears | `haptics.warning()` | warning notification |
 | Submit / validation failure | `haptics.error()` | error notification |
 | → Active (red) status | `haptics.heavy()` | heavy impact |
@@ -582,10 +587,9 @@ On Android the OS still gives implicit ripple feedback. Wire a real library late
 
 > **Status:** most of this is **deferred** until there is a backend to be offline *from*. With a mock-only data layer there are no real network writes to queue. The targets below describe the intended behaviour; what exists today is the persistence primitive (AsyncStorage) and a `net` zustand store stub.
 
-- **Write queue (deferred):** when a backend exists, reports/votes enqueue to AsyncStorage (`pending → syncing → sent | failed`) — **not** MMKV. A sync engine drains on reconnect with exponential backoff. No queue is implemented yet.
+- **Write queue (deferred):** when a backend exists, reports enqueue to AsyncStorage (`pending → syncing → sent | failed`) — **not** MMKV. A sync engine drains on reconnect with exponential backoff. No queue is implemented yet.
 - **Syncing pin (deferred):** pulses while `syncing`; amber on `failed` (retries exhausted) + dismissable banner + retry.
 - **Offline banner (deferred):** 3 s offline → amber 28 pt; reconnect → brief green → auto-dismiss. Connectivity detection (previously NetInfo) is deferred; a `net` store stub holds the flag.
-- **Optimistic votes (deferred):** instant tint + count bump; reconcile/revert on response; `409` → "already voted" toast.
 - **Update gate (426) (deferred):** full-screen, non-dismissable, "Open Store".
 - **Offline maps (deferred):** ships with Mapbox in a later phase — download an offline region around the chosen locality so the map renders with no connectivity. Cap pack size; let users clear it in Settings.
 - **Screen-capture protection (future):** consider Android `FLAG_SECURE` and an iOS app-switcher blur on sensitive screens (report/crisis) so a shoulder-surfer or recents preview can't reveal activity. Make it a toggle, default on for crisis screens.
@@ -619,20 +623,20 @@ Each phase **must compile, run on a device/emulator (New Arch), and pass its tes
 Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real dashboard described in §5.5–§5.9.
 - **Native setup:** install `@rnmapbox/maps`; set the **secret download token** via a Gradle property (`~/.gradle/gradle.properties`) + the iOS `Podfile`/`.netrc` (keep it out of git); set the **public token** at runtime with `Mapbox.setAccessToken()` early in `App.tsx`. `pod install` for iOS; verify the Fabric component autolinks under New Arch. Confirm a **release-build cold start** is clean.
 - **Map canvas:** full-bleed streets style (`mapbox://styles/mapbox/streets-v12`) with street/place labels localized to Arabic via `<ArabicLabels />` (a `name_ar` → `name` → `name_en` coalesce over the style's label layers — never blank), logo/attribution/scale-bar hidden, **north-up fixed** (rotation + pitch gestures disabled), user-location `LocationPuck` shown only after permission.
-- **Mock incident pins (the deliverable):** render the `db.incidents` mock data on the map. Each open incident → a teardrop pin in its severity color; the highest-priority active pin pulses. Use a `ShapeSource` with `cluster: true` + a `CircleLayer`/`SymbolLayer` so low zoom shows cluster bubbles tinted to the highest-severity member with a count, and high zoom shows individual severity pins. New pins scale-in over 320 ms; resolved incidents fade to 30% then drop after 30 s. Tap a pin → centers the map + opens the Incident Detail sheet (a stub sheet here; fully built in Phase 3). The mock `eventEmitter` (`startMockEmitter`) feeds live `incident.created` / `incident.resolved` so pins appear/disappear in real time.
+- **Mock incident pins (the deliverable):** render the **currently open** mock incidents (`db.incidents.getOpen()` — the 24 h window, §5.5) on the map. Each open incident → a **~150 m privacy circle** in its severity color (never an exact point — `privacyCircleRadius()`); the highest-priority active incident's circle edge pulses. Use a `ShapeSource` with `cluster: true` + a `CircleLayer`/`SymbolLayer` so low zoom shows cluster bubbles tinted to the highest-severity member with a count, and high zoom shows individual privacy circles. New circles scale-in over 320 ms; resolved incidents fade to 30% then drop after 30 s. Tap → centers the map + opens the Incident Detail sheet (a stub sheet here; fully built in Phase 3). The mock `eventEmitter` (`startMockEmitter`) feeds live `incident.created` / `incident.resolved` so circles appear/disappear in real time.
 - **Location permission:** pre-prompt screen (why) → native **"while using"** request. On deny: center on the chosen locality, show the user no dot, and surface a settings banner. Background location is **never** requested.
 - **Surrounding UI:** the Safety Status pill (calm/watch/active, with the §5.6 radius/time rules computed in a `domain/status` helper from nearby incidents), the recenter FAB (appears when panned away), and the bottom action tray (Feed pill + breathing Report FAB that stops pulsing on Watch/Active).
 - **Offline region:** download a Mapbox offline pack around the chosen locality so the map renders without connectivity; cap the pack size.
-- **Tests:** status-rule unit tests (3 km/60 min → watch; 1 km/15 min/≥3-verified → active); cluster→individual pin transition; permission grant/deny branches; reduce-motion disables pin pulse. Mock `@rnmapbox/maps` in jest.
+- **Tests:** status-rule unit tests (3 km/60 min → watch; 1 km/15 min/≥3 → active); privacy-circle meter→pixel math; cluster→individual circle transition; permission grant/deny branches; reduce-motion disables the pulse. Mock `@rnmapbox/maps` in jest.
 
 ### Phase 3 — Feed & incident detail
-- Safety Feed drawer: a draggable bottom sheet snapping 25 / 60 / 90 % with a backdrop. Build it with plain RN `Animated` + `PanResponder` (no `@gorhom/bottom-sheet`/reanimated) to keep the stack minimal; if a richer sheet is justified later, add the library deliberately (§16).
-- Sticky header (drag handle, locality + distance, search) + filter chips (الكل / بلاغات / إرشادات أمان / وساطة / مبادرات). Feed cards: severity pill, relative time refreshing every 30 s, category icon (`core/icons`) + label + description (≤3 lines), Confirm/Deny vote pills, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
-- Incident Detail sheet (60 → 95 %): full description, a 140 pt non-interactive Mapbox snippet, vote row. Votes are optimistic + one-way; the feed and the map pins read the same mock `db` so they stay in sync. *(Comments were removed from the product.)*
-- **Tests:** 30 s timestamp refresh; bookmark persistence; feed↔map data consistency.
+- Incidents Feed drawer: a draggable bottom sheet snapping 25 / 60 / 90 % with a backdrop. Build it with plain RN `Animated` + `PanResponder` (no `@gorhom/bottom-sheet`/reanimated) to keep the stack minimal; if a richer sheet is justified later, add the library deliberately (§16).
+- Sticky header (drag handle, title, search) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + a horizontal locality chip row (كل البلدات + every locality). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
+- Incident Detail sheet (60 → 95 %): the prepared situation description, a 140 pt non-interactive Mapbox snippet drawing the ~150 m privacy circle. The feed and the map read the same mock `db` so they stay in sync. *(Comments and votes were removed from the product.)*
+- **Tests:** 30 s timestamp refresh; bookmark persistence; feed↔map data consistency; 24 h open-window behavior (`getOpen`); history range/locality filtering (`filterIncidents`).
 
 ### Phase 4 — Reporting & crisis
-- Report flow: category grid (2×3, severity-tinted icons; GUNFIRE/STABBING = critical, ASSAULT/ROBBERY = high, SUSPICIOUS/OTHER = medium) → details (optional ≤200-char description with live counter, **no media**) → success (green checkmark draw 480 ms, mono `#BLG-XXXXXX`, long-press copy via the built-in **`Share`** API + "تم النسخ" toast, no share-to-social/rating).
+- Report flow: category grid (2×3, severity-tinted icons; GUNFIRE/STABBING = critical, ASSAULT/ROBBERY = high, SUSPICIOUS/OTHER = medium) → **situation picker** (four prepared descriptions per category, radio-style cards, submit disabled until one is chosen — **no typing, no media**) → success (green checkmark draw 480 ms, mono `#BLG-XXXXXX`, long-press copy via the built-in **`Share`** API + "تم النسخ" toast, no share-to-social/rating).
 - Submit: spinner → acquire GPS fix → write to the mock `db` (a new pin appears on the map via `eventEmitter`); with a real backend later this enqueues to an AsyncStorage write-queue with a pulsing "syncing" pin, and on retry-exhaustion an amber pin + dismissable banner + retry.
 - Crisis one-shot (≤3 taps): deep link `balagh://crisis` (route reserved in `linking.ts`) → reassure → category → geo-confirm (140 pt map) → success. The app-icon long-press shortcut that fires this deep link is wired in Phase 6 native steps.
 - **Tests:** report happy path adds an incident the map renders; crisis flow ≤3 taps; deep link resolves; **assert camera/mic/photo permissions are absent from the native manifest**.
@@ -744,8 +748,10 @@ ARCHITECTURE (match spec §9.1 exactly)
 
 DATA CONTRACT — types, endpoints, and WS events exactly as in spec §10.2–§10.4 (the FUTURE
 backend contract). Signing is a stub today (empty signature). When a backend exists,
-mutations carry X-Device-Key / X-Signature / X-Timestamp; 426 → update gate; 409 on a vote →
-"already voted" toast.
+mutations carry X-Device-Key / X-Signature / X-Timestamp; 426 → update gate. There is NO
+vote feature: incidents carry no vote fields and no vote endpoint exists. GET /incidents
+serves only currently OPEN incidents (24 h window); GET /incidents/history serves the
+feed's time-range/locality history filters.
 
 DESIGN SYSTEM — tokens from spec §12: light-only, bg #F8FAFC / card #FFFFFF, crimson accent
 #DC2626 with white textOnAccent, the severity & status palettes, 8-pt spacing grid, tap
@@ -811,43 +817,53 @@ git); set the PUBLIC token at runtime via Mapbox.setAccessToken() early in App.t
 install; confirm the Fabric component autolinks under New Arch; verify a RELEASE-build cold
 start is clean. Build: full-bleed streets style (mapbox://styles/mapbox/streets-v12) with
 labels localized to Arabic (localizeLabels), north-up fixed (rotation + pitch gestures
-disabled), LocationPuck only after permission. RENDER THE MOCK INCIDENTS AS PINS: read db.incidents and draw a ShapeSource with
-cluster:true — low zoom = cluster bubbles tinted to the highest-severity member with a count;
-high zoom = teardrop pins in severity color, highest-priority active pin pulses. New pins
-scale-in 320ms; resolved fade to 30% then drop after 30s; tap a pin centers the map + opens a
-(stub) Incident Detail sheet. Wire startMockEmitter so incident.created/resolved animate pins
-live. Location pre-prompt screen (why) → native "while using" request; on deny center on the
-chosen locality, no dot, settings banner — NEVER request background location. Add the Safety
-Status pill (calm/watch/active via a domain/status helper: 3km/60min→watch,
-1km/15min/≥3-verified→active), the recenter FAB (when panned away), and the bottom action tray
-(Feed pill + breathing Report FAB that stops pulsing on Watch/Active). Download a Mapbox
-offline pack around the locality (capped size).
-Tests: status-rule units (watch/active thresholds); cluster→individual pin transition;
-permission grant/deny branches; reduce-motion disables pin pulse. Mock @rnmapbox/maps in jest.
+disabled), LocationPuck only after permission. RENDER THE OPEN MOCK INCIDENTS: read
+db.incidents.getOpen() (the 24h open window — older/resolved incidents NEVER reach the map)
+and draw a ShapeSource with cluster:true — low zoom = cluster bubbles tinted to the
+highest-severity member with a count; high zoom = ~150m PRIVACY CIRCLES in severity color
+(translucent fill + stroke, zoom-interpolated meters→pixels via privacyCircleRadius() — never
+an exact point), the highest-priority active circle's edge pulses. New circles scale-in 320ms;
+resolved fade to 30% then drop after 30s; tap centers the map + opens a (stub) Incident Detail
+sheet. Wire startMockEmitter so incident.created/resolved animate circles live. Location
+pre-prompt screen (why) → native "while using" request; on deny center on the chosen locality,
+no dot, settings banner — NEVER request background location. Add the Safety Status pill
+(calm/watch/active via a domain/status helper: 3km/60min→watch, 1km/15min/≥3→active), the
+recenter FAB (when panned away), and the bottom action tray (Feed pill + breathing Report FAB
+that stops pulsing on Watch/Active). Download a Mapbox offline pack around the locality
+(capped size).
+Tests: status-rule units (watch/active thresholds); privacy-circle meter→pixel math;
+cluster→individual transition; permission grant/deny branches; reduce-motion disables the
+pulse. Mock @rnmapbox/maps in jest.
 ```
 
 ```
 PHASE 3 — Feed & incidents.
-Build the Safety Feed using plain React Native primitives (a FlatList; if a draggable
+Build the Incidents Feed using plain React Native primitives (a FlatList; if a draggable
 bottom sheet is wanted, build it with Animated/PanResponder — do NOT add
-@gorhom/bottom-sheet or reanimated). Sticky header with locality+distance, search, filter
-chips (الكل / بلاغات / إرشادات أمان / وساطة / مبادرات). Feed cards: severity pill, relative
-timestamp refreshing every 30s, category icon (from core/icons) + label + description (≤3
-lines), Confirm/Deny vote pills, bookmark (red when set, persisted to AsyncStorage).
-Incident Detail (60→95% sheet or full screen), full description, vote row — no comments
-(the comments feature was removed from the product).
-Votes are optimistic, one-way, irrevocable; with a backend a 409 reverts the button and
-shows "لقد صوّتَّ على هذا البلاغ مسبقاً". (Mock eventEmitter can drive live updates.)
-Tests: timestamp refresh; bookmark persistence (AsyncStorage).
+@gorhom/bottom-sheet or reanimated). The feed is the HISTORY browser (the map only shows
+the open 24h window): sticky header with title + search + time-range chips
+(آخر 24 ساعة / آخر أسبوع / آخر شهر) + a horizontal locality chip row (كل البلدات + every
+locality) so e.g. "last month in Nazareth" works. Filtering = domain/feed/filters.ts
+(range × locality × query). Feed cards (modern): severity accent strip, severity-tinted
+icon badge, category title, locality + relative timestamp refreshing every 30s,
+description (≤3 lines), a muted "منتهي" resolved badge for closed incidents, bookmark
+(red when set, persisted to AsyncStorage). Incident Detail (60→95% sheet or full screen):
+full description + a 140pt non-interactive snippet drawing the ~150m privacy circle — no
+comments and NO votes (both features were removed from the product). (Mock eventEmitter
+can drive live updates.)
+Tests: timestamp refresh; bookmark persistence (AsyncStorage); getOpen 24h window;
+filterIncidents range/locality/query.
 ```
 
 ```
 PHASE 4 — Reporting & crisis.
 Report flow: category grid (2×3, severity-tinted icons; GUNFIRE/STABBING=critical,
-ASSAULT/ROBBERY=high, SUSPICIOUS/OTHER=medium) → details (optional ≤200-char description
-with live counter, NO media attachment) → success (green checkmark draw 480ms, monospace
-#BLG-XXXXXX, long-press to copy via the built-in Share API + "تم النسخ" toast,
-no share-to-social/rating). Submit: spinner → acquire GPS fix → (with backend) enqueue →
+ASSAULT/ROBBERY=high, SUSPICIOUS/OTHER=medium) → situation picker: the user NEVER types a
+description — show the four prepared situation descriptions for the chosen category
+(core/strings report.situations, localized ar/he/en) as radio-style cards, submit disabled
+until one is selected (NO free-text field, NO media attachment) → success (green checkmark
+draw 480ms, monospace #BLG-XXXXXX, long-press to copy via the built-in Share API +
+"تم النسخ" toast, no share-to-social/rating). Submit: spinner → acquire GPS fix → (with backend) enqueue →
 pulsing syncing pin; on retry-exhausted failure, amber pin + dismissable banner
 "بلاغك لم يُرسل بعد — جارٍ إعادة المحاولة" + retry. Crisis one-shot (≤3 taps) via the
 deep link balagh://crisis (route already reserved in linking.ts; app-icon shortcut library

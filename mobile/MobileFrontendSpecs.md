@@ -175,8 +175,8 @@ Controls float free over the map, each with its own elevation (no dark band).
 Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses. While the map shows only the open 24 h window, the feed is where users **browse incident history**.
 **Header (sticky):** drag handle · title *"البلاغات"* with a live **results-count pill** · two filter rows *(no search bar — descriptions are prepared options, so time range + locality are the meaningful filters; only the city picker keeps a search field)*:
 - **Time-range chips (horizontally scrollable row):** **آخر 24 ساعة** (default) | **آخر أسبوع** | **آخر شهر** — history beyond the map's 24 h window — followed by a **"المزيد" (more) button** (sliders glyph) that opens a **more-filters bottom sheet**: the extended presets **آخر 3 أشهر** and **آخر سنة** (apply instantly) plus a **custom date range** picked on a compact in-app month calendar (`DateRangeCalendar`, plain RN primitives — tap start day then end day, future days disabled, range highlighted) confirmed with **تطبيق**. While an extended/custom selection is active, the more button tints accent and shows the active preset label or the chosen *from–to* dates.
-- **City selector (single button):** instead of listing all 18 locality chips inline, one **"اختر البلدة"** pill (map-pin glyph + current selection + chevron-down; defaults to *كل البلدات*, shows a clear ✕ button when a city is active). Tapping it opens a **city-picker bottom sheet**: drag handle, title, a search field matching across ar/he/en names, the *كل البلدات* option, and a radio-style city list with a check mark on the current selection — so a user can e.g. see *last month's incidents in Nazareth*.
-Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range — quick `day/week/month`, extended `quarter/year`, or `custom` with inclusive from/to bounds — × locality).
+- **City + incident-type selectors (multi-select, horizontally scrollable row):** one **"اختر البلدة"** pill (map-pin glyph + selection summary + chevron-down) and one **"نوع البلاغ"** pill (shapes glyph) — never inline chips for all options. Each opens a shared **multi-select bottom sheet**: drag handle, title, checkbox rows that toggle and stay open, a *كل البلدات / كل الأنواع* row that clears the selection, and a **تطبيق** button to close. The city sheet keeps a search field matching across ar/he/en names; the type sheet lists the six categories with their icons. Button labels summarize multi-selections (*الناصرة +2*) and show a clear ✕ when active — so a user can e.g. see *gunfire + robbery over the last month in Nazareth + Haifa*.
+Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range — quick `day/week/month`, extended `quarter/year`, or `custom` with inclusive from/to bounds — × `localityIds[]` × `categories[]`; empty arrays mean no restriction).
 **Feed cards (modern):** a severity-colored **accent strip** on the card edge; a severity-tinted rounded **icon badge**; category label as the title; a meta row with locality name (map-pin glyph) + relative time (30 s refresh) + a muted **"منتهي" (resolved) badge** for closed incidents; description (≤3 lines); bookmark (persisted, red when set). No vote pills (§5.11). Tap body → Incident Detail Sheet.
 
 ### 5.11 Verification Votes — REMOVED
@@ -633,7 +633,7 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 
 ### Phase 3 — Feed & incident detail
 - Incidents Feed drawer: a draggable bottom sheet snapping 25 / 60 / 90 % with a backdrop. Build it with plain RN `Animated` + `PanResponder` (no `@gorhom/bottom-sheet`/reanimated) to keep the stack minimal; if a richer sheet is justified later, add the library deliberately (§16).
-- Sticky header (drag handle, title + results-count pill — no search bar) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + the **"المزيد" more-filters sheet** (آخر 3 أشهر / آخر سنة / custom date range on the in-app `DateRangeCalendar`) + a single **"اختر البلدة" button** opening the searchable city-picker bottom sheet (كل البلدات + every locality, check on the selection, clear ✕ when active). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
+- Sticky header (drag handle, title + results-count pill — no search bar) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + the **"المزيد" more-filters sheet** (آخر 3 أشهر / آخر سنة / custom date range on the in-app `DateRangeCalendar`) + **multi-select "اختر البلدة" and "نوع البلاغ" buttons** opening the shared checkbox picker sheet (searchable for cities; the *all* row clears; labels summarize as *الناصرة +2*; clear ✕ when active). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
 - Incident Detail sheet (60 → 95 %): the prepared situation description, a 140 pt non-interactive Mapbox snippet drawing the ~150 m privacy circle. The feed and the map read the same mock `db` so they stay in sync. *(Comments and votes were removed from the product.)*
 - **Tests:** 30 s timestamp refresh; bookmark persistence; feed↔map data consistency; 24 h open-window behavior (`getOpen`); history range/locality filtering (`filterIncidents`).
 
@@ -847,11 +847,12 @@ the open 24h window): sticky header with title + results-count pill (NO search b
 time-range chips
 (آخر 24 ساعة / آخر أسبوع / آخر شهر) + a "المزيد" more-filters sheet (آخر 3 أشهر / آخر سنة
 presets + a custom date range on a compact in-app calendar — NO date-picker library) +
-ONE "اختر البلدة" button (NOT inline chips for all cities) that opens a searchable
-city-picker bottom sheet (كل البلدات + every locality, check mark on selection, clear ✕)
-so e.g. "last month in Nazareth" works.
+MULTI-SELECT "اختر البلدة" and "نوع البلاغ" buttons (NOT inline chips for all options)
+opening a shared checkbox picker sheet (searchable for cities; the "all" row clears;
+labels summarize as "الناصرة +2"; clear ✕ when active) so e.g. "gunfire + robbery, last
+month, Nazareth + Haifa" works.
 Filtering = domain/feed/filters.ts
-(range × locality × query). Feed cards (modern): severity accent strip, severity-tinted
+(range × localityIds[] × categories[]). Feed cards (modern): severity accent strip, severity-tinted
 icon badge, category title, locality + relative timestamp refreshing every 30s,
 description (≤3 lines), a muted "منتهي" resolved badge for closed incidents, bookmark
 (red when set, persisted to AsyncStorage). Incident Detail (60→95% sheet or full screen):

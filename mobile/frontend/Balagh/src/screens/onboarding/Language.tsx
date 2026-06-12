@@ -3,8 +3,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  I18nManager,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronRight, ChevronLeft } from '../../core/icons';
@@ -12,9 +10,9 @@ import { color, space, hit, shadow } from '../../core/theme/tokens';
 import { Text } from '../../core/theme/components';
 import { haptics } from '../../core/haptics';
 import store, { StorageKeys } from '../../core/storage';
-import { strings, applyRTL } from '../../core/strings';
+import { applyRTL } from '../../core/strings';
 import { setCurrentScript } from '../../core/theme/components';
-import { useLangStore } from '../../domain/stores/lang';
+import { useIsRTL, useLangStore } from '../../domain/stores/lang';
 import type { LanguageProps } from '../../navigation/types';
 import type { AppLanguage } from '../../core/types';
 
@@ -32,8 +30,8 @@ const LANGUAGES: LanguageOption[] = [
 ];
 
 const LanguageScreen = ({ navigation, route }: LanguageProps): React.ReactElement => {
-  const { lang, setLang } = useLangStore();
-  const s = strings[lang];
+  const { setLang } = useLangStore();
+  const isRTL = useIsRTL();
   const fromSettings = route.params?.fromSettings ?? false;
 
   const selectLanguage = (option: LanguageOption): void => {
@@ -42,11 +40,9 @@ const LanguageScreen = ({ navigation, route }: LanguageProps): React.ReactElemen
     store.setString(StorageKeys.LANGUAGE, option.code);
     setCurrentScript(option.script);
 
-    const needsReload = applyRTL(option.code);
-    if (needsReload) {
-      Alert.alert(s.language.restartTitle, s.language.restartMessage);
-      return;
-    }
+    // Layout direction flips live (JS-driven, see App.tsx); applyRTL only
+    // syncs the native flag for the next cold start — no relaunch prompt.
+    applyRTL(option.code);
 
     if (fromSettings) {
       navigation.goBack();
@@ -55,7 +51,7 @@ const LanguageScreen = ({ navigation, route }: LanguageProps): React.ReactElemen
     }
   };
 
-  const ChevronIcon = I18nManager.isRTL ? ChevronLeft : ChevronRight;
+  const ChevronIcon = isRTL ? ChevronLeft : ChevronRight;
 
   return (
     <SafeAreaView style={styles.container}>

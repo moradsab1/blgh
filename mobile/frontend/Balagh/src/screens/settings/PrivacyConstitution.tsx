@@ -7,7 +7,6 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, Shield, Check } from '../../core/icons';
@@ -15,7 +14,7 @@ import { color, space, radius, fontSize } from '../../core/theme/tokens';
 import { Text } from '../../core/theme/components';
 import { haptics } from '../../core/haptics';
 import { strings } from '../../core/strings';
-import { useLangStore } from '../../domain/stores/lang';
+import { useIsRTL, useLangStore } from '../../domain/stores/lang';
 import { getReduceMotion } from '../../core/a11y/useReduceMotion';
 import type { RootStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -47,7 +46,7 @@ const PrivacyConstitutionScreen = ({ navigation }: Props): React.ReactElement =>
   const { lang } = useLangStore();
   const s = strings[lang];
   const c = s.constitution;
-  const isRTL = I18nManager.isRTL;
+  const isRTL = useIsRTL();
 
   const [expanded, setExpanded] = useState<RuleKey | null>(null);
 

@@ -8,12 +8,23 @@ export function isRTL(lang: AppLanguage): boolean {
   return RTL_LANGUAGES.includes(lang);
 }
 
+/**
+ * Keep the native I18nManager flag in sync with the chosen language.
+ *
+ * This does NOT require (or prompt for) an app relaunch: the live layout
+ * direction is driven in JS — the app root applies a `direction` style from
+ * the lang store (App.tsx + useIsRTL), which Yoga propagates to every screen
+ * immediately. The native flag is updated here only so the next cold start
+ * boots with the correct native direction as well.
+ *
+ * Returns whether the native flag changed (informational only).
+ */
 export function applyRTL(lang: AppLanguage): boolean {
   const shouldBeRTL = isRTL(lang);
   if (I18nManager.isRTL !== shouldBeRTL) {
-    I18nManager.forceRTL(shouldBeRTL);
     I18nManager.allowRTL(shouldBeRTL);
-    return true; // app restart needed to fully apply
+    I18nManager.forceRTL(shouldBeRTL);
+    return true;
   }
   return false;
 }
@@ -25,8 +36,6 @@ const ar = {
     arabic: 'العربية',
     hebrew: 'עברית',
     english: 'English',
-    restartTitle: 'إعادة التشغيل',
-    restartMessage: 'يرجى إعادة تشغيل التطبيق لتطبيق اتجاه النص.',
   },
   welcome: {
     slide1: { title: 'بلّغ. شاهد. احمِ', subtitle: 'منصة تقارير مجتمعية فورية لمنطقتك' },
@@ -314,8 +323,6 @@ const he: typeof ar = {
     arabic: 'العربية',
     hebrew: 'עברית',
     english: 'English',
-    restartTitle: 'הפעלה מחדש',
-    restartMessage: 'אנא הפעל מחדש את האפליקציה כדי להחיל את כיוון הטקסט.',
   },
   welcome: {
     slide1: { title: 'דווח. צפה. הגן.', subtitle: 'פלטפורמת דיווח קהילתי מיידי לאזורך' },
@@ -592,8 +599,6 @@ const en: typeof ar = {
     arabic: 'العربية',
     hebrew: 'עברית',
     english: 'English',
-    restartTitle: 'Restart Required',
-    restartMessage: 'Please restart the app to apply the text direction.',
   },
   welcome: {
     slide1: { title: 'Report. Watch. Protect.', subtitle: 'Instant community reporting platform for your area' },

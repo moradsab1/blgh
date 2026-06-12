@@ -8,7 +8,7 @@ import { RootNavigator } from './navigation/RootNavigator';
 import OfflineBanner from './presentation/components/OfflineBanner';
 import store, { StorageKeys, hydrateStorage } from './core/storage';
 import { applyRTL } from './core/strings';
-import { useLangStore } from './domain/stores/lang';
+import { useIsRTL, useLangStore } from './domain/stores/lang';
 import type { AppLanguage } from './core/types';
 
 // Set the public Mapbox token. Replace with your token from account.mapbox.com.
@@ -76,8 +76,8 @@ const boundaryStyles = StyleSheet.create({
 // ── Storage hydration gate ──────────────────────────────────────────────────
 // AsyncStorage is async, so we load the cache once before rendering the tree.
 // This is a single multiGet — fast. Until it resolves we show a blank splash.
-// (I18nManager.forceRTL is persisted natively by Android across restarts, so
-// the layout direction is already correct from the previous session.)
+// (The live layout direction is JS-driven below; applyRTL only syncs the
+// native I18nManager flag so future cold starts boot natively correct too.)
 
 function useHydrated(): boolean {
   const [ready, setReady] = useState(false);
@@ -100,13 +100,21 @@ function useHydrated(): boolean {
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
-const AppInner = (): React.ReactElement => (
-  <NavigationContainer linking={linking}>
-    <RootNavigator />
-    {/* Global connectivity banner — sits above every screen (§14 Phase 6). */}
-    <OfflineBanner />
-  </NavigationContainer>
-);
+const AppInner = (): React.ReactElement => {
+  // JS-driven RTL: Yoga propagates this `direction` to the whole tree, so
+  // switching language flips the layout immediately — no relaunch prompt.
+  const isRTL = useIsRTL();
+
+  return (
+    <View style={[styles.direction, isRTL ? styles.rtl : styles.ltr]}>
+      <NavigationContainer linking={linking}>
+        <RootNavigator />
+        {/* Global connectivity banner — sits above every screen (§14 Phase 6). */}
+        <OfflineBanner />
+      </NavigationContainer>
+    </View>
+  );
+};
 
 const App = (): React.ReactElement => {
   const hydrated = useHydrated();
@@ -126,6 +134,9 @@ const App = (): React.ReactElement => {
 
 const styles = StyleSheet.create({
   splash: { flex: 1, backgroundColor: '#F8FAFC' },
+  direction: { flex: 1 },
+  rtl: { direction: 'rtl' },
+  ltr: { direction: 'ltr' },
 });
 
 export default App;

@@ -8,7 +8,6 @@ import {
   Alert,
   Linking,
   Share,
-  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -33,7 +32,7 @@ import { getPublicKeyHex, getPublicIdentifier, deleteIdentity } from '../../core
 import { notificationService } from '../../domain/services/notifications';
 import { strings } from '../../core/strings';
 import { APP_VERSION } from '../../core/version';
-import { useLangStore } from '../../domain/stores/lang';
+import { useIsRTL, useLangStore } from '../../domain/stores/lang';
 import type { SettingsProps } from '../../navigation/types';
 import { useOnboardingStore } from '../../domain/stores/onboarding';
 
@@ -43,7 +42,7 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
   const { lang } = useLangStore();
   const s = strings[lang];
   const { resetOnboarding } = useOnboardingStore();
-  const isRTL = I18nManager.isRTL;
+  const isRTL = useIsRTL();
   const ChevronIcon = isRTL ? ChevronLeft : ChevronRight;
 
   const [notifNearby, setNotifNearby] = useState(

@@ -8,11 +8,11 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { I18nManager, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '../../core/theme/components';
 import { color, radius, space } from '../../core/theme/tokens';
 import { ChevronLeft, ChevronRight } from '../../core/icons';
-import { strings } from '../../core/strings';
+import { isRTL, strings } from '../../core/strings';
 import type { AppLanguage } from '../../core/types';
 
 export interface DateRange {
@@ -66,9 +66,11 @@ export const DateRangeCalendar = ({ lang, range, onChange }: Props): React.React
     }
   };
 
-  // Chevrons follow reading direction so "next month" always points forward.
-  const PrevIcon = I18nManager.isRTL ? ChevronRight : ChevronLeft;
-  const NextIcon = I18nManager.isRTL ? ChevronLeft : ChevronRight;
+  // Chevrons follow the current language's reading direction (live, not the
+  // native I18nManager flag) so "next month" always points forward.
+  const rtl = isRTL(lang);
+  const PrevIcon = rtl ? ChevronRight : ChevronLeft;
+  const NextIcon = rtl ? ChevronLeft : ChevronRight;
   const canGoNext = new Date(viewYear, viewMonth + 1, 1).getTime() <= today;
 
   return (

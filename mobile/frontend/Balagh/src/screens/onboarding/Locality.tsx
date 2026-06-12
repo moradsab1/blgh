@@ -5,7 +5,6 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowRight, ArrowLeft, Search, Check } from '../../core/icons';
@@ -14,7 +13,7 @@ import { Text, Button } from '../../core/theme/components';
 import { haptics } from '../../core/haptics';
 import store, { StorageKeys } from '../../core/storage';
 import { strings } from '../../core/strings';
-import { useLangStore } from '../../domain/stores/lang';
+import { useIsRTL, useLangStore } from '../../domain/stores/lang';
 import type { LocalityProps } from '../../navigation/types';
 import type { Locality } from '../../core/types';
 import { LOCALITIES } from '../../data/mock/db';
@@ -27,7 +26,7 @@ const LocalityScreen = ({ navigation, route }: LocalityProps): React.ReactElemen
   const [selectedId, setSelectedId] = useState<string | null>(
     store.getString(StorageKeys.LOCALITY_ID) ?? null,
   );
-  const isRTL = I18nManager.isRTL;
+  const isRTL = useIsRTL();
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
 
   const getLocalityName = useCallback(

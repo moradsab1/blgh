@@ -6,7 +6,6 @@ import {
   Pressable,
   Linking,
   Alert,
-  I18nManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, Shield, Globe } from '../../core/icons';
@@ -14,7 +13,7 @@ import { color, space, radius, fontSize } from '../../core/theme/tokens';
 import { Text } from '../../core/theme/components';
 import { haptics } from '../../core/haptics';
 import { strings } from '../../core/strings';
-import { useLangStore } from '../../domain/stores/lang';
+import { useIsRTL, useLangStore } from '../../domain/stores/lang';
 import { OSS_LIBRARIES, GITHUB_URL } from '../../core/oss';
 import { APP_VERSION } from '../../core/version';
 import type { RootStackParamList } from '../../navigation/types';
@@ -26,7 +25,7 @@ const AboutScreen = ({ navigation }: Props): React.ReactElement => {
   const { lang } = useLangStore();
   const s = strings[lang];
   const a = s.about;
-  const isRTL = I18nManager.isRTL;
+  const isRTL = useIsRTL();
 
   const openGithub = async (): Promise<void> => {
     haptics.press();

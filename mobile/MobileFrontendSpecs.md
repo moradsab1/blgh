@@ -81,6 +81,8 @@ Exactly **one** runtime permission (Location, "while using"). The app **never** 
 
 **Layout:** 8-point spacing grid. Primary CTAs always sit in the bottom 40% of the screen for thumb-first reachability. All tap targets ≥ 48×48 pt. No gradients, no illustrations beyond onboarding glyphs; soft functional shadows (`shadow.card` / `shadow.float`) lift cards and floating chrome off the light background.
 
+**Component language (2026-06-12 polish):** filter **chips** are soft borderless pills — inset gray (`cardElevated`) when idle, solid accent with white text when active. Filled primary/danger **buttons** carry a soft `shadow.card` lift. Category/severity context is conveyed by **tinted icon badges** (a rounded square filled with the severity color at ~8% opacity holding the category icon) used consistently across feed cards, the category grids, and the incident detail sheet; the report/crisis category grid uses white cards with these badges and a subtle press-scale.
+
 **Motion:** Transitions range 100 ms (instant) → 480 ms (deliberate). All pulsing/motion effects disabled when the OS reduce-motion setting is on.
 
 **Haptics:** *(currently no-op stubs — see note below.)*
@@ -173,7 +175,7 @@ Controls float free over the map, each with its own elevation (no dark band).
 Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses. While the map shows only the open 24 h window, the feed is where users **browse incident history**.
 **Header (sticky):** drag handle · title *"البلاغات"* · search box · two filter rows:
 - **Time-range chips:** **آخر 24 ساعة** (default) | **آخر أسبوع** | **آخر شهر** — history beyond the map's 24 h window.
-- **Locality chips (horizontal scroll):** **كل البلدات** (default) + one chip per locality, so a user can e.g. see *last month's incidents in Nazareth*.
+- **City selector (single button):** instead of listing all 18 locality chips inline, one **"اختر البلدة"** pill (map-pin glyph + current selection + chevron-down; defaults to *كل البلدات*, shows a clear ✕ button when a city is active). Tapping it opens a **city-picker bottom sheet**: drag handle, title, a search field matching across ar/he/en names, the *كل البلدات* option, and a radio-style city list with a check mark on the current selection — so a user can e.g. see *last month's incidents in Nazareth*.
 Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range × locality × search query over description/ref/localized category).
 **Feed cards (modern):** a severity-colored **accent strip** on the card edge; a severity-tinted rounded **icon badge**; category label as the title; a meta row with locality name (map-pin glyph) + relative time (30 s refresh) + a muted **"منتهي" (resolved) badge** for closed incidents; description (≤3 lines); bookmark (persisted, red when set). No vote pills (§5.11). Tap body → Incident Detail Sheet.
 
@@ -631,7 +633,7 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 
 ### Phase 3 — Feed & incident detail
 - Incidents Feed drawer: a draggable bottom sheet snapping 25 / 60 / 90 % with a backdrop. Build it with plain RN `Animated` + `PanResponder` (no `@gorhom/bottom-sheet`/reanimated) to keep the stack minimal; if a richer sheet is justified later, add the library deliberately (§16).
-- Sticky header (drag handle, title, search) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + a horizontal locality chip row (كل البلدات + every locality). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
+- Sticky header (drag handle, title, search) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + a single **"اختر البلدة" button** opening the searchable city-picker bottom sheet (كل البلدات + every locality, check on the selection, clear ✕ when active). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
 - Incident Detail sheet (60 → 95 %): the prepared situation description, a 140 pt non-interactive Mapbox snippet drawing the ~150 m privacy circle. The feed and the map read the same mock `db` so they stay in sync. *(Comments and votes were removed from the product.)*
 - **Tests:** 30 s timestamp refresh; bookmark persistence; feed↔map data consistency; 24 h open-window behavior (`getOpen`); history range/locality filtering (`filterIncidents`).
 
@@ -842,8 +844,10 @@ Build the Incidents Feed using plain React Native primitives (a FlatList; if a d
 bottom sheet is wanted, build it with Animated/PanResponder — do NOT add
 @gorhom/bottom-sheet or reanimated). The feed is the HISTORY browser (the map only shows
 the open 24h window): sticky header with title + search + time-range chips
-(آخر 24 ساعة / آخر أسبوع / آخر شهر) + a horizontal locality chip row (كل البلدات + every
-locality) so e.g. "last month in Nazareth" works. Filtering = domain/feed/filters.ts
+(آخر 24 ساعة / آخر أسبوع / آخر شهر) + ONE "اختر البلدة" button (NOT inline chips for all
+cities) that opens a searchable city-picker bottom sheet (كل البلدات + every locality,
+check mark on selection, clear ✕) so e.g. "last month in Nazareth" works.
+Filtering = domain/feed/filters.ts
 (range × locality × query). Feed cards (modern): severity accent strip, severity-tinted
 icon badge, category title, locality + relative timestamp refreshing every 30s,
 description (≤3 lines), a muted "منتهي" resolved badge for closed incidents, bookmark

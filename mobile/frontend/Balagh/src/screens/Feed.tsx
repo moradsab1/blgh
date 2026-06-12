@@ -24,17 +24,19 @@ import {
   View,
 } from 'react-native';
 import type { FeedProps } from '../navigation/types';
-import { color, fontSize, font, radius, shadow, space } from '../core/theme/tokens';
-import { Text, Chip } from '../core/theme/components';
+import { color, fontSize, font, formatNumber, radius, shadow, space } from '../core/theme/tokens';
+import { Text, Chip, Button } from '../core/theme/components';
 import {
   Search,
   BookmarkFilled,
   BookmarkOutline,
+  CalendarRange,
   CATEGORY_ICON,
   Check,
   ChevronDown,
   MapPin,
   ShieldCheck,
+  SlidersHorizontal,
   X,
 } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
@@ -44,8 +46,10 @@ import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
 import { useLangStore } from '../domain/stores/lang';
 import { useBookmarksStore } from '../domain/stores/bookmarks';
-import { FEED_RANGES, filterIncidents } from '../domain/feed/filters';
+import { FEED_MORE_RANGES, FEED_RANGES, filterIncidents } from '../domain/feed/filters';
 import type { FeedRangeKey } from '../domain/feed/filters';
+import { DateRangeCalendar } from '../presentation/components/DateRangeCalendar';
+import type { DateRange } from '../presentation/components/DateRangeCalendar';
 import { db, LOCALITIES } from '../data/mock/db';
 import { wsEventEmitter } from '../data/mock/eventEmitter';
 import type { AppLanguage, Incident, Locality } from '../core/types';
@@ -169,6 +173,117 @@ const CityPickerModal = ({
   );
 };
 
+// ── More-filters modal ────────────────────────────────────────────────────────
+// Opened by the "more" button after the quick range chips. Offers the extended
+// ranges (last 3 months / last year) and a custom date-range calendar.
+
+const formatShortDate = (ms: number): string => {
+  const d = new Date(ms);
+  return formatNumber(`${d.getDate()}/${d.getMonth() + 1}`);
+};
+
+interface MoreFiltersProps {
+  visible: boolean;
+  range: FeedRangeKey;
+  customRange: DateRange;
+  lang: AppLanguage;
+  onApply: (range: FeedRangeKey, customRange: DateRange) => void;
+  onClose: () => void;
+}
+
+const MoreFiltersModal = ({
+  visible,
+  range,
+  customRange,
+  lang,
+  onApply,
+  onClose,
+}: MoreFiltersProps): React.ReactElement => {
+  const s = strings[lang];
+  const [pending, setPending] = useState<DateRange>(customRange);
+
+  // Re-sync the draft selection each time the sheet opens.
+  useEffect(() => {
+    if (visible) setPending(customRange);
+  }, [visible, customRange]);
+
+  const pickPreset = (key: FeedRangeKey): void => {
+    haptics.toggle();
+    onApply(key, { from: null, to: null });
+    onClose();
+  };
+
+  const applyCustom = (): void => {
+    if (pending.from === null || pending.to === null) return;
+    haptics.toggle();
+    onApply('custom', pending);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={pickerStyles.backdrop} onPress={onClose} testID="feed-filters-backdrop" />
+      <View style={pickerStyles.sheet} testID="feed-filters-modal">
+        <View style={pickerStyles.handle} />
+        <View style={pickerStyles.titleRow}>
+          <Text variant="heading">{s.feed.filtersTitle}</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <X size={20} color={color.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {FEED_MORE_RANGES.map(key => {
+          const active = range === key;
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[pickerStyles.row, active && pickerStyles.rowActive]}
+              onPress={() => pickPreset(key)}
+              testID={`feed-range-${key}`}>
+              <CalendarRange size={16} color={active ? color.accent : color.textMuted} />
+              <View style={pickerStyles.rowNames}>
+                <Text
+                  variant="label"
+                  style={[pickerStyles.rowLabel, active && pickerStyles.rowLabelActive]}>
+                  {s.feed.ranges[key]}
+                </Text>
+              </View>
+              {active && <Check size={18} color={color.accent} />}
+            </TouchableOpacity>
+          );
+        })}
+
+        <View style={filtersStyles.customHeader}>
+          <CalendarRange size={16} color={range === 'custom' ? color.accent : color.textMuted} />
+          <Text
+            variant="label"
+            style={range === 'custom' ? pickerStyles.rowLabelActive : pickerStyles.rowLabel}>
+            {s.feed.customRange}
+          </Text>
+          {pending.from !== null ? (
+            <Text variant="caption" muted>
+              {formatShortDate(pending.from)}
+              {pending.to !== null ? ` – ${formatShortDate(pending.to)}` : ''}
+            </Text>
+          ) : null}
+        </View>
+
+        <DateRangeCalendar lang={lang} range={pending} onChange={setPending} />
+
+        <Button
+          label={s.feed.apply}
+          variant="primary"
+          fullWidth
+          disabled={pending.from === null || pending.to === null}
+          onPress={applyCustom}
+          style={filtersStyles.applyBtn}
+          testID="feed-filters-apply"
+        />
+      </View>
+    </Modal>
+  );
+};
+
 const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   const { lang } = useLangStore();
   const s = strings[lang];
@@ -178,6 +293,8 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   const [range, setRange] = useState<FeedRangeKey>('day');
   const [localityId, setLocalityId] = useState<string | null>(null);
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [customRange, setCustomRange] = useState<DateRange>({ from: null, to: null });
   const [, setTick] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -219,14 +336,29 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   }, []);
 
   const visible = useMemo(
-    () => filterIncidents(incidents, { range, localityId, query }, s.category),
-    [incidents, range, localityId, query, s],
+    () =>
+      filterIncidents(
+        incidents,
+        { range, localityId, query, customFrom: customRange.from, customTo: customRange.to },
+        s.category,
+      ),
+    [incidents, range, localityId, query, customRange, s],
   );
 
   const selectedCity = useMemo(
     () => LOCALITIES.find(l => l.id === localityId) ?? null,
     [localityId],
   );
+
+  // The "more" button reflects the extended selection (3 months / year / custom).
+  const extendedActive = range === 'quarter' || range === 'year' || range === 'custom';
+  const moreButtonLabel = useMemo(() => {
+    if (range === 'quarter' || range === 'year') return s.feed.ranges[range];
+    if (range === 'custom' && customRange.from !== null && customRange.to !== null) {
+      return `${formatShortDate(customRange.from)} – ${formatShortDate(customRange.to)}`;
+    }
+    return s.feed.moreFilters;
+  }, [range, customRange, s]);
 
   const renderCard = useCallback(
     ({ item }: { item: Incident }): React.ReactElement => {
@@ -318,8 +450,8 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
           />
         </View>
 
-        {/* Filter bar — time-range chips + one "choose city" button that
-            opens the searchable city picker (instead of 18 inline chips). */}
+        {/* Filter bar — quick range chips + a "more" button (3 months / year /
+            custom dates) + one "choose city" button opening the city picker. */}
         <View style={styles.chipsRow}>
           {FEED_RANGES.map(key => (
             <Chip
@@ -334,6 +466,26 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
               style={styles.chip}
             />
           ))}
+
+          <TouchableOpacity
+            style={[styles.moreButton, extendedActive && styles.moreButtonActive]}
+            onPress={() => {
+              haptics.toggle();
+              setMoreFiltersOpen(true);
+            }}
+            activeOpacity={0.8}
+            testID="feed-more-filters">
+            <SlidersHorizontal
+              size={14}
+              color={extendedActive ? color.textOnAccent : color.textSecondary}
+            />
+            <Text
+              variant="label"
+              style={extendedActive ? styles.moreButtonTextActive : styles.moreButtonText}
+              numberOfLines={1}>
+              {moreButtonLabel}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.cityRow}>
@@ -405,6 +557,18 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
         onSelect={setLocalityId}
         onClose={() => setCityPickerOpen(false)}
       />
+
+      <MoreFiltersModal
+        visible={moreFiltersOpen}
+        range={range}
+        customRange={customRange}
+        lang={lang}
+        onApply={(nextRange, nextCustom) => {
+          setRange(nextRange);
+          setCustomRange(nextCustom);
+        }}
+        onClose={() => setMoreFiltersOpen(false)}
+      />
     </BottomSheet>
   );
 };
@@ -439,6 +603,27 @@ const styles = StyleSheet.create({
   },
   chip: {
     marginEnd: space(0.5),
+  },
+  moreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(0.75),
+    backgroundColor: color.cardElevated,
+    borderRadius: radius.pill,
+    paddingHorizontal: space(1.75),
+    minHeight: 34,
+    maxWidth: '60%',
+  },
+  moreButtonActive: {
+    backgroundColor: color.accent,
+  },
+  moreButtonText: {
+    color: color.textSecondary,
+    flexShrink: 1,
+  },
+  moreButtonTextActive: {
+    color: color.textOnAccent,
+    flexShrink: 1,
   },
   cityRow: {
     flexDirection: 'row',
@@ -615,6 +800,20 @@ const pickerStyles = StyleSheet.create({
   },
   rowLabelActive: {
     color: color.accent,
+  },
+});
+
+const filtersStyles = StyleSheet.create({
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(1.5),
+    paddingHorizontal: space(1.5),
+    minHeight: 44,
+    marginTop: space(0.5),
+  },
+  applyBtn: {
+    marginTop: space(1.5),
   },
 });
 

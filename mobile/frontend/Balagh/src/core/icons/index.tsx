@@ -28,6 +28,7 @@ export {
   ArrowRight,
   Bell,
   Bookmark,
+  CalendarRange,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -52,6 +53,7 @@ export {
   Shield,
   ShieldCheck,
   Siren,
+  SlidersHorizontal,
   Trash2,
   X,
 } from 'lucide-react-native';

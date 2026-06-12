@@ -117,9 +117,39 @@ describe('feed history filters', () => {
     expect(out.length).toBeGreaterThan(0);
   });
 
-  it('range hours are 24 / 168 / 720', () => {
+  it('range hours are 24 / 168 / 720 / 2160 / 8760', () => {
     expect(FEED_RANGE_HOURS.day).toBe(24);
     expect(FEED_RANGE_HOURS.week).toBe(168);
     expect(FEED_RANGE_HOURS.month).toBe(720);
+    expect(FEED_RANGE_HOURS.quarter).toBe(24 * 90);
+    expect(FEED_RANGE_HOURS.year).toBe(24 * 365);
+  });
+
+  it('quarter (90 d) and year ranges include progressively older incidents', () => {
+    const quarter = filterIncidents(dataset, { range: 'quarter', now });
+    expect(quarter.map(i => i.id).sort()).toEqual(['f-2months', 'f-3days', 'f-3weeks', 'f-today']);
+
+    const year = filterIncidents(dataset, { range: 'year', now });
+    expect(year.find(i => i.id === 'f-2months')).toBeTruthy();
+  });
+
+  it('custom range returns only incidents between the chosen dates', () => {
+    const out = filterIncidents(dataset, {
+      range: 'custom',
+      customFrom: now - 24 * 30 * HOUR_MS, // 30 days ago
+      customTo: now - 24 * 2 * HOUR_MS, // 2 days ago
+      now,
+    });
+    expect(out.map(i => i.id).sort()).toEqual(['f-3days', 'f-3weeks']);
+  });
+
+  it('custom range with open bounds falls back to no cut-off on that side', () => {
+    const out = filterIncidents(dataset, {
+      range: 'custom',
+      customFrom: null,
+      customTo: now - 24 * 40 * HOUR_MS, // everything older than 40 days
+      now,
+    });
+    expect(out.map(i => i.id)).toEqual(['f-2months']);
   });
 });

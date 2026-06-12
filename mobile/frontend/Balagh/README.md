@@ -9,7 +9,8 @@ src/
 ├── core/         # config, types, theme, mapbox token, i18n strings
 ├── data/
 │   ├── maps/
-│   │   └── mapDataSources.ts   # catalog of candidate map datasets (NEW)
+│   │   ├── mapDataSources.ts   # catalog of candidate map datasets (NEW)
+│   │   └── README.md           # dataset comparison + Mapbox integration guide
 │   └── mock/
 │       └── db.ts               # static localities + mock incidents
 ├── domain/       # zustand stores, services
@@ -21,18 +22,22 @@ src/
 
 `src/data/maps/mapDataSources.ts` is a typed catalog of candidate datasets for
 enriching the Mapbox map with up-to-date Israeli street data. The key distinction
-is **geometry vs. names**:
+is **geometry vs. names** — and which source is most current:
 
 | Dataset | Geometry? | Use |
 | --- | --- | --- |
-| [`israel-streets-synom`](https://data.gov.il/he/datasets/population_authority/israel-streets-synom) (data.gov.il) | ❌ names only | Street-name search/autocomplete & Hebrew name enrichment. Cannot draw roads. |
-| [`osm-israel-palestine`](https://download.geofabrik.de/asia/israel-and-palestine.html) (OpenStreetMap) | ✅ road lines | **Add to Mapbox for updated roads + names.** Multilingual (`name`/`name:he`/`name:ar`/`name:en`). |
+| [`survey-of-israel-ntdb`](https://data.gov.il/organization/survey_of_israel) (Survey of Israel / מפ"י) | ✅ road lines | **Recommended.** Official national topographic DB, refreshed quarterly — most complete Israeli street coverage. |
+| [`israel-streets-synom`](https://data.gov.il/he/datasets/population_authority/israel-streets-synom) (data.gov.il) | ❌ names only | Canonical street-name list; join to geometry by `city_code` + `street_code`. Cannot draw roads. |
+| [`osm-israel-palestine`](https://download.geofabrik.de/asia/israel-and-palestine.html) (OpenStreetMap) | ✅ road lines | Patchy minor-street coverage; use as an Arabic-name (`name:ar`) supplement/fallback. |
 
-To put **updated road geometry** on the map, use the OSM extract
-(`RECOMMENDED_ROAD_GEOMETRY_SOURCE`): extract roads → GeoJSON → upload via
-[Mapbox Tiling Service](https://docs.mapbox.com/mapbox-tiling-service/) to a custom
-tileset → add it as a vector source/layer in `src/screens/Map.tsx`, reusing the
-`ArabicLabels` name fallback chain (`name_ar → name → name_en`).
+To put **updated road geometry** on the map, use the official Survey of Israel layer
+(`RECOMMENDED_ROAD_GEOMETRY_SOURCE`): download → reproject ITM→WGS84 + convert to
+GeoJSON → upload via [Mapbox Tiling Service](https://docs.mapbox.com/mapbox-tiling-service/)
+to a custom tileset → add it as a vector source/layer in `src/screens/Map.tsx`, reusing
+the `ArabicLabels` name fallback chain (`name_ar → name → name_en`).
+
+→ Full step-by-step guide (commands + recipe + `Map.tsx` snippet) in
+[`src/data/maps/README.md`](src/data/maps/README.md).
 
 # Getting Started
 

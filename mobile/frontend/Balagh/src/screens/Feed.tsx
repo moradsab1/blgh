@@ -18,6 +18,7 @@ import {
   Modal,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -289,7 +290,6 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   const s = strings[lang];
 
   const [incidents, setIncidents] = useState<Incident[]>(() => db.incidents.getAll());
-  const [query, setQuery] = useState('');
   const [range, setRange] = useState<FeedRangeKey>('day');
   const [localityId, setLocalityId] = useState<string | null>(null);
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
@@ -337,12 +337,13 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
 
   const visible = useMemo(
     () =>
-      filterIncidents(
-        incidents,
-        { range, localityId, query, customFrom: customRange.from, customTo: customRange.to },
-        s.category,
-      ),
-    [incidents, range, localityId, query, customRange, s],
+      filterIncidents(incidents, {
+        range,
+        localityId,
+        customFrom: customRange.from,
+        customTo: customRange.to,
+      }),
+    [incidents, range, localityId, customRange],
   );
 
   const selectedCity = useMemo(
@@ -435,24 +436,20 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
       initialSnapIndex={1}
       onClose={() => navigation.goBack()}
       testID="feed-sheet">
-      {/* Sticky header */}
+      {/* Sticky header — no search bar: descriptions are prepared options, so
+          the filters (time range, more-filters sheet, city) drive the list. */}
       <View style={styles.header}>
-        <Text variant="heading">{s.feed.title}</Text>
-        <View style={styles.searchBox}>
-          <Search size={16} color={color.textMuted} />
-          <TextInput
-            style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
-            placeholder={s.feed.searchPlaceholder}
-            placeholderTextColor={color.textMuted}
-            autoCorrect={false}
-          />
+        <View style={styles.titleRow}>
+          <Text variant="heading">{s.feed.title}</Text>
+          <View style={styles.countPill} testID="feed-count">
+            <Text variant="caption" secondary>{formatNumber(visible.length)}</Text>
+          </View>
         </View>
 
-        {/* Filter bar — quick range chips + a "more" button (3 months / year /
-            custom dates) + one "choose city" button opening the city picker. */}
-        <View style={styles.chipsRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}>
           {FEED_RANGES.map(key => (
             <Chip
               key={key}
@@ -486,7 +483,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
               {moreButtonLabel}
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
         <View style={styles.cityRow}>
           <TouchableOpacity
@@ -581,25 +578,25 @@ const styles = StyleSheet.create({
     borderBottomColor: color.border,
     gap: space(1),
   },
-  searchBox: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space(1),
-    backgroundColor: color.cardElevated,
-    borderRadius: radius.md,
-    paddingHorizontal: space(1.5),
-    minHeight: 40,
   },
-  searchInput: {
-    flex: 1,
-    color: color.textPrimary,
-    fontSize: fontSize.base,
-    paddingVertical: space(1),
+  countPill: {
+    backgroundColor: color.cardElevated,
+    borderRadius: radius.pill,
+    paddingHorizontal: space(1.25),
+    minWidth: 28,
+    minHeight: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chipsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: space(0.75),
+    paddingEnd: space(2),
   },
   chip: {
     marginEnd: space(0.5),

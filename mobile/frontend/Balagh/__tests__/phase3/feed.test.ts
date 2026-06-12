@@ -108,15 +108,6 @@ describe('feed history filters', () => {
     expect(out.find(i => i.id === 'f-2months')).toBeUndefined();
   });
 
-  it('query matches description, ref, and localized category label', () => {
-    const out = filterIncidents(
-      dataset,
-      { range: 'month', query: 'نشاط مشبوه', now },
-      { SUSPICIOUS: 'نشاط مشبوه' },
-    );
-    expect(out.length).toBeGreaterThan(0);
-  });
-
   it('range hours are 24 / 168 / 720 / 2160 / 8760', () => {
     expect(FEED_RANGE_HOURS.day).toBe(24);
     expect(FEED_RANGE_HOURS.week).toBe(168);

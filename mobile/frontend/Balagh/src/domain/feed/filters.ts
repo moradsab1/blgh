@@ -6,9 +6,11 @@
  * (24 h / last week / last month), extended ranges behind the "more filters"
  * sheet (last 3 months / last year), or a fully custom date range — all
  * optionally narrowed to a single locality, e.g. "last month in Nazareth".
+ * (Free-text search was removed from the feed — descriptions are prepared
+ * options, so time + locality are the meaningful filters.)
  */
 
-import type { Category, Incident } from '../../core/types';
+import type { Incident } from '../../core/types';
 
 export type FeedRangeKey = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
@@ -40,17 +42,11 @@ export interface FeedFilter {
   customTo?: number | null;
   /** Restrict to one locality; null/undefined = all localities. */
   localityId?: string | null;
-  query?: string;
   now?: number;
 }
 
-export function filterIncidents(
-  incidents: Incident[],
-  filter: FeedFilter,
-  categoryLabels?: Partial<Record<Category, string>>,
-): Incident[] {
+export function filterIncidents(incidents: Incident[], filter: FeedFilter): Incident[] {
   const now = filter.now ?? Date.now();
-  const q = filter.query?.trim().toLowerCase() ?? '';
 
   return incidents.filter(i => {
     const createdMs = new Date(i.createdAt).getTime();
@@ -61,10 +57,6 @@ export function filterIncidents(
       if (now - createdMs > FEED_RANGE_HOURS[filter.range] * 3_600_000) return false;
     }
     if (filter.localityId && i.localityId !== filter.localityId) return false;
-    if (q) {
-      const haystack = `${i.description ?? ''} ${i.ref} ${categoryLabels?.[i.category] ?? ''}`.toLowerCase();
-      if (!haystack.includes(q)) return false;
-    }
     return true;
   });
 }

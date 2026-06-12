@@ -124,7 +124,6 @@ const ar = {
   },
   feed: {
     title: 'البلاغات',
-    searchPlaceholder: 'ابحث في البلاغات...',
     ranges: {
       day: 'آخر 24 ساعة',
       week: 'آخر أسبوع',
@@ -414,7 +413,6 @@ const he: typeof ar = {
   },
   feed: {
     title: 'דיווחים',
-    searchPlaceholder: 'חפש בדיווחים...',
     ranges: {
       day: '24 השעות האחרונות',
       week: 'השבוע האחרון',
@@ -693,7 +691,6 @@ const en: typeof ar = {
   },
   feed: {
     title: 'Incidents',
-    searchPlaceholder: 'Search reports...',
     ranges: {
       day: 'Last 24h',
       week: 'Last week',

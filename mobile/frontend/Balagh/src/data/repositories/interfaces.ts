@@ -14,7 +14,6 @@ export interface IIncidentRepository {
     lng: number,
     description?: string,
   ): Promise<{ id: string; ref: string }>;
-  vote(incidentId: string, vote: 'confirm' | 'deny'): Promise<Incident>;
 }
 
 export interface INotificationRepository {

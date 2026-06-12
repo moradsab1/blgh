@@ -54,29 +54,9 @@ export class MockIncidentRepo implements IIncidentRepository {
       lng,
       localityId,
       createdAt: new Date().toISOString(),
-      confirmations: 0,
-      denials: 0,
-      myVote: null,
     };
     db.incidents.add(incident);
     wsEventEmitter.emit({ t: 'incident.created', incident });
     return { id, ref };
-  }
-
-  async vote(incidentId: string, vote: 'confirm' | 'deny'): Promise<Incident> {
-    await sleep(latency());
-    const incident = db.incidents.getById(incidentId);
-    if (!incident) throw new Error('NOT_FOUND');
-    if (incident.myVote !== null && incident.myVote !== undefined) {
-      const err = Object.assign(new Error('DUPLICATE_VOTE'), { code: 409 });
-      throw err;
-    }
-    const patch = {
-      myVote: vote,
-      confirmations: vote === 'confirm' ? incident.confirmations + 1 : incident.confirmations,
-      denials: vote === 'deny' ? incident.denials + 1 : incident.denials,
-    };
-    db.incidents.update(incidentId, patch);
-    return { ...incident, ...patch };
   }
 }

@@ -3,7 +3,7 @@
  *
  *  calm   — no active alerts within 3 km
  *  watch  — ≥1 active alert within 3 km in the last 60 min
- *  active — ≥3 verified (≥1 confirmation) alerts within 1 km in the last 15 min
+ *  active — ≥3 alerts within 1 km in the last 15 min
  *
  * "Active" means not yet resolved (resolvedAt is absent).
  * Locality coordinates are used as the reference point when the user has not
@@ -71,14 +71,12 @@ export function computeStatus(
   // Filter to non-resolved incidents only
   const active = incidents.filter(i => !i.resolvedAt);
 
-  // ── Active check: ≥3 verified incidents within 1 km in the last 15 min ──
+  // ── Active check: ≥3 incidents within 1 km in the last 15 min ──
   const activeWindow = active.filter(i => {
     const age = now - new Date(i.createdAt).getTime();
     if (age > MIN_15) return false;
     const dist = haversineKm(refLat, refLng, i.lat, i.lng);
-    if (dist > KM_1) return false;
-    // "Verified" means ≥1 confirmation
-    return i.confirmations >= 1;
+    return dist <= KM_1;
   });
 
   if (activeWindow.length >= 3) {

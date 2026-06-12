@@ -32,9 +32,6 @@ let _incidents: Incident[] = [
     lng: 35.1570,
     localityId: 'umm-al-fahm',
     createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-    confirmations: 4,
-    denials: 1,
-    myVote: null,
   },
   {
     id: '2',
@@ -46,9 +43,6 @@ let _incidents: Incident[] = [
     lng: 35.1550,
     localityId: 'umm-al-fahm',
     createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    confirmations: 7,
-    denials: 0,
-    myVote: null,
   },
   {
     id: '3',
@@ -60,9 +54,6 @@ let _incidents: Incident[] = [
     lng: 34.9921,
     localityId: 'haifa',
     createdAt: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
-    confirmations: 12,
-    denials: 0,
-    myVote: null,
   },
   {
     id: '4',
@@ -74,9 +65,6 @@ let _incidents: Incident[] = [
     lng: 34.8970,
     localityId: 'lod',
     createdAt: new Date(Date.now() - 1000 * 60 * 38).toISOString(),
-    confirmations: 6,
-    denials: 1,
-    myVote: null,
   },
   {
     id: '5',
@@ -88,9 +76,6 @@ let _incidents: Incident[] = [
     lng: 35.3050,
     localityId: 'nazareth',
     createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
-    confirmations: 9,
-    denials: 0,
-    myVote: null,
   },
   {
     id: '6',
@@ -102,9 +87,6 @@ let _incidents: Incident[] = [
     lng: 34.7530,
     localityId: 'jaffa',
     createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    confirmations: 3,
-    denials: 0,
-    myVote: null,
   },
   {
     id: '7',
@@ -116,9 +98,6 @@ let _incidents: Incident[] = [
     lng: 35.0395,
     localityId: 'baqa',
     createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    confirmations: 5,
-    denials: 2,
-    myVote: null,
   },
   {
     id: '8',
@@ -130,9 +109,6 @@ let _incidents: Incident[] = [
     lng: 34.9960,
     localityId: 'taibe',
     createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    confirmations: 8,
-    denials: 0,
-    myVote: null,
   },
 ];
 
@@ -149,8 +125,8 @@ let _notifications: AppNotification[] = [
   {
     id: 'n2',
     type: 'verification',
-    title: 'بلاغك تم تأكيده',
-    body: 'تم تأكيد بلاغك من ٤ أشخاص في منطقتك. شكراً لمساهمتك.',
+    title: 'بلاغك وصل',
+    body: 'بلاغك يظهر الآن لسكان منطقتك. شكراً لمساهمتك.',
     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     read: false,
     incidentRef: 'BLG-8A3M2Y',

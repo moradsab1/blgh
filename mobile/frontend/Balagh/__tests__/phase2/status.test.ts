@@ -4,7 +4,7 @@
  * Covers all §5.6 rules:
  *  calm   — no active alerts within 3 km
  *  watch  — ≥1 active alert within 3 km in the last 60 min
- *  active — ≥3 verified (≥1 confirmation) alerts within 1 km in the last 15 min
+ *  active — ≥3 alerts within 1 km in the last 15 min
  */
 
 import { computeStatus, haversineKm } from '../../src/domain/status';
@@ -31,14 +31,12 @@ let _idSeq = 1;
  * @param lat            Latitude
  * @param lng            Longitude
  * @param ageMinutes     How many minutes ago the incident was created
- * @param confirmations  Number of confirmations (default 0)
  * @param resolvedAt     Optional ISO string if the incident is resolved
  */
 function makeIncident(
   lat: number,
   lng: number,
   ageMinutes: number,
-  confirmations = 0,
   resolvedAt?: string,
 ): Incident {
   const id = String(_idSeq++);
@@ -51,9 +49,6 @@ function makeIncident(
     lng,
     localityId: 'umm-al-fahm',
     createdAt: new Date(Date.now() - ageMinutes * 60 * 1000).toISOString(),
-    confirmations,
-    denials: 0,
-    myVote: null,
     ...(resolvedAt ? { resolvedAt } : {}),
   };
 }
@@ -109,7 +104,6 @@ describe('computeStatus', () => {
       USER_LAT,
       USER_LNG,
       5,
-      2,
       new Date().toISOString(),
     );
     expect(computeStatus([resolved], USER_LAT, USER_LNG, LOCALITY)).toBe('calm');
@@ -117,14 +111,14 @@ describe('computeStatus', () => {
 
   it('returns calm when active incident is outside the 3 km watch radius', () => {
     const { lat, lng } = coordsAtKm(3.5); // 3.5 km away → outside 3 km window
-    const incident = makeIncident(lat, lng, 10, 0);
+    const incident = makeIncident(lat, lng, 10);
     expect(computeStatus([incident], USER_LAT, USER_LNG, LOCALITY)).toBe('calm');
   });
 
   it('returns calm when active incident within 3 km is older than 60 min', () => {
     // 0.5 km away but 61 minutes old → outside the 60-min watch window
     const { lat, lng } = coordsAtKm(0.5);
-    const incident = makeIncident(lat, lng, 61, 0);
+    const incident = makeIncident(lat, lng, 61);
     expect(computeStatus([incident], USER_LAT, USER_LNG, LOCALITY)).toBe('calm');
   });
 
@@ -132,48 +126,36 @@ describe('computeStatus', () => {
 
   it('returns watch when ≥1 active incident is within 3 km and within 60 min', () => {
     const { lat, lng } = coordsAtKm(1.5); // 1.5 km away
-    const incident = makeIncident(lat, lng, 30, 0); // 30 min ago
+    const incident = makeIncident(lat, lng, 30); // 30 min ago
     expect(computeStatus([incident], USER_LAT, USER_LNG, LOCALITY)).toBe('watch');
   });
 
-  it('returns watch (not active) when fewer than 3 verified incidents are within 1 km', () => {
-    // 2 verified incidents within 1 km in last 15 min — not enough for active
+  it('returns watch (not active) when fewer than 3 incidents are within 1 km', () => {
+    // 2 incidents within 1 km in last 15 min — not enough for active
     const nearby = coordsAtKm(0.5);
-    const i1 = makeIncident(nearby.lat, nearby.lng, 5, 1);
-    const i2 = makeIncident(nearby.lat, nearby.lng, 8, 1);
+    const i1 = makeIncident(nearby.lat, nearby.lng, 5);
+    const i2 = makeIncident(nearby.lat, nearby.lng, 8);
     expect(computeStatus([i1, i2], USER_LAT, USER_LNG, LOCALITY)).toBe('watch');
   });
 
-  it('returns watch (not active) when ≥3 verified incidents are within 1 km but older than 15 min', () => {
+  it('returns watch (not active) when ≥3 incidents are within 1 km but older than 15 min', () => {
     // All 3 are 16 minutes old — beyond the 15-min active window
     const nearby = coordsAtKm(0.5);
-    const i1 = makeIncident(nearby.lat, nearby.lng, 16, 1);
-    const i2 = makeIncident(nearby.lat, nearby.lng, 17, 1);
-    const i3 = makeIncident(nearby.lat, nearby.lng, 18, 1);
+    const i1 = makeIncident(nearby.lat, nearby.lng, 16);
+    const i2 = makeIncident(nearby.lat, nearby.lng, 17);
+    const i3 = makeIncident(nearby.lat, nearby.lng, 18);
     // They ARE within the 60-min watch window, so should be watch not calm
     expect(computeStatus([i1, i2, i3], USER_LAT, USER_LNG, LOCALITY)).toBe('watch');
   });
 
   // ── active ──────────────────────────────────────────────────────────────
 
-  it('returns active when ≥3 verified incidents are within 1 km in the last 15 min', () => {
+  it('returns active when ≥3 incidents are within 1 km in the last 15 min', () => {
     const nearby = coordsAtKm(0.5);
-    const i1 = makeIncident(nearby.lat, nearby.lng, 5, 1);
-    const i2 = makeIncident(nearby.lat, nearby.lng, 8, 2);
-    const i3 = makeIncident(nearby.lat, nearby.lng, 12, 1);
+    const i1 = makeIncident(nearby.lat, nearby.lng, 5);
+    const i2 = makeIncident(nearby.lat, nearby.lng, 8);
+    const i3 = makeIncident(nearby.lat, nearby.lng, 12);
     expect(computeStatus([i1, i2, i3], USER_LAT, USER_LNG, LOCALITY)).toBe('active');
-  });
-
-  it('does NOT return active when incidents have 0 confirmations (unverified)', () => {
-    // 3 unverified incidents near and recent → cannot trigger active
-    const nearby = coordsAtKm(0.3);
-    const i1 = makeIncident(nearby.lat, nearby.lng, 5, 0);
-    const i2 = makeIncident(nearby.lat, nearby.lng, 7, 0);
-    const i3 = makeIncident(nearby.lat, nearby.lng, 10, 0);
-    // Still within watch window, so watch (not calm)
-    const result = computeStatus([i1, i2, i3], USER_LAT, USER_LNG, LOCALITY);
-    expect(result).not.toBe('active');
-    expect(result).toBe('watch');
   });
 
   // ── locality fallback ────────────────────────────────────────────────────
@@ -181,13 +163,13 @@ describe('computeStatus', () => {
   it('falls back to locality coords when userLat/userLng are null', () => {
     // Incident close to the locality centre → should trigger watch
     const nearby = coordsAtKm(0.5);
-    const incident = makeIncident(nearby.lat, nearby.lng, 10, 0);
+    const incident = makeIncident(nearby.lat, nearby.lng, 10);
     expect(computeStatus([incident], null, null, LOCALITY)).toBe('watch');
   });
 
   it('returns calm when userLat/userLng are null and locality is also null', () => {
     const nearby = coordsAtKm(0.5);
-    const incident = makeIncident(nearby.lat, nearby.lng, 10, 0);
+    const incident = makeIncident(nearby.lat, nearby.lng, 10);
     // No reference point at all
     expect(computeStatus([incident], null, null, null)).toBe('calm');
   });
@@ -196,15 +178,14 @@ describe('computeStatus', () => {
 
   it('ignores resolved incidents when computing status', () => {
     const nearby = coordsAtKm(0.3);
-    // 3 resolved + 3 unresolved non-verified within 15 min → watch (not active)
-    const r1 = makeIncident(nearby.lat, nearby.lng, 5, 1, new Date().toISOString());
-    const r2 = makeIncident(nearby.lat, nearby.lng, 6, 1, new Date().toISOString());
-    const r3 = makeIncident(nearby.lat, nearby.lng, 7, 1, new Date().toISOString());
-    // Without resolved these three unverified won't reach active
-    const u1 = makeIncident(nearby.lat, nearby.lng, 5, 0);
-    const u2 = makeIncident(nearby.lat, nearby.lng, 6, 0);
-    const u3 = makeIncident(nearby.lat, nearby.lng, 7, 0);
-    const result = computeStatus([r1, r2, r3, u1, u2, u3], USER_LAT, USER_LNG, LOCALITY);
+    // 3 resolved + 2 unresolved within 15 min → watch (not active)
+    const r1 = makeIncident(nearby.lat, nearby.lng, 5, new Date().toISOString());
+    const r2 = makeIncident(nearby.lat, nearby.lng, 6, new Date().toISOString());
+    const r3 = makeIncident(nearby.lat, nearby.lng, 7, new Date().toISOString());
+    // Without the resolved three, these two are below the active threshold
+    const u1 = makeIncident(nearby.lat, nearby.lng, 5);
+    const u2 = makeIncident(nearby.lat, nearby.lng, 6);
+    const result = computeStatus([r1, r2, r3, u1, u2], USER_LAT, USER_LNG, LOCALITY);
     expect(result).not.toBe('active');
   });
 
@@ -213,17 +194,17 @@ describe('computeStatus', () => {
   it('counts an incident at exactly ~1 km as being within the active zone', () => {
     // Haversine 1 km north → should be ≤ 1 km
     const { lat, lng } = coordsAtKm(0.99); // slightly under 1 km
-    const i1 = makeIncident(lat, lng, 5, 1);
-    const i2 = makeIncident(lat, lng, 7, 1);
-    const i3 = makeIncident(lat, lng, 10, 1);
+    const i1 = makeIncident(lat, lng, 5);
+    const i2 = makeIncident(lat, lng, 7);
+    const i3 = makeIncident(lat, lng, 10);
     expect(computeStatus([i1, i2, i3], USER_LAT, USER_LNG, LOCALITY)).toBe('active');
   });
 
   it('does not count an incident just beyond 1 km toward the active threshold', () => {
     const beyond1km = coordsAtKm(1.1);
-    const i1 = makeIncident(beyond1km.lat, beyond1km.lng, 5, 1);
-    const i2 = makeIncident(beyond1km.lat, beyond1km.lng, 7, 1);
-    const i3 = makeIncident(beyond1km.lat, beyond1km.lng, 10, 1);
+    const i1 = makeIncident(beyond1km.lat, beyond1km.lng, 5);
+    const i2 = makeIncident(beyond1km.lat, beyond1km.lng, 7);
+    const i3 = makeIncident(beyond1km.lat, beyond1km.lng, 10);
     // Within 3 km → watch, but not active because > 1 km
     const result = computeStatus([i1, i2, i3], USER_LAT, USER_LNG, LOCALITY);
     expect(result).toBe('watch');

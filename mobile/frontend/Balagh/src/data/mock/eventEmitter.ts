@@ -150,9 +150,6 @@ export const startMockEmitter = (): void => {
         lng: seed.coords.lng,
         localityId: seed.localityId,
         createdAt: new Date().toISOString(),
-        confirmations: 0,
-        denials: 0,
-        myVote: null,
       };
       db.incidents.add(incident);
       wsEventEmitter.emit({ t: 'incident.created', incident });

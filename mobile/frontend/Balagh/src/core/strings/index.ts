@@ -137,9 +137,6 @@ const ar = {
     emptySub: 'لا توجد بلاغات نشطة ضمن ٣ كم من موقعك',
   },
   detail: {
-    confirm: 'تأكيد',
-    deny: 'نفي',
-    alreadyVoted: 'لقد صوّتَّ على هذا البلاغ مسبقاً',
     distanceAway: 'على بُعد',
     km: 'كم',
   },
@@ -420,9 +417,6 @@ const he: typeof ar = {
     emptySub: 'אין דיווחים פעילים בטווח 3 ק"מ ממיקומך',
   },
   detail: {
-    confirm: 'אישור',
-    deny: 'הכחשה',
-    alreadyVoted: 'כבר הצבעת על דיווח זה',
     distanceAway: 'במרחק',
     km: 'ק"מ',
   },
@@ -692,9 +686,6 @@ const en: typeof ar = {
     emptySub: 'No active reports within 3 km of your location',
   },
   detail: {
-    confirm: 'Confirm',
-    deny: 'Deny',
-    alreadyVoted: 'You have already voted on this report',
     distanceAway: 'Away',
     km: 'km',
   },

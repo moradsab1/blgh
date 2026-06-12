@@ -23,9 +23,6 @@ export interface Incident {
   localityId: string;
   createdAt: string;
   resolvedAt?: string;
-  confirmations: number;
-  denials: number;
-  myVote?: 'confirm' | 'deny' | null;
 }
 
 export interface AppNotification {
@@ -47,7 +44,6 @@ export type WsEvent =
   | { t: 'incident.created'; incident: Incident }
   | { t: 'incident.resolved'; id: string }
   | { t: 'status.changed'; state: SafetyState; reason: string }
-  | { t: 'vote.updated'; id: string; confirmations: number; denials: number }
   | { t: 'notification.new'; notification: AppNotification };
 
 export interface ApiError {

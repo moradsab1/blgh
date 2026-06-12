@@ -1,16 +1,14 @@
 /**
- * Safety Feed drawer — §5.10 – §5.11
+ * Safety Feed drawer — §5.10
  *
  * A draggable bottom sheet (25 / 60 / 90 %) over the map. Sticky header with
  * locality + distance + search, filter chips, and a FlatList of incident cards.
  * Cards show severity, relative time (30 s refresh), category, description,
- * Confirm/Deny vote pills, and a bookmark (persisted).
- * Tapping a card opens the Incident Detail route.
+ * and a bookmark (persisted). Tapping a card opens the Incident Detail route.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Animated,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -30,12 +28,8 @@ import { strings } from '../core/strings';
 import { useLangStore } from '../domain/stores/lang';
 import { useBookmarksStore } from '../domain/stores/bookmarks';
 import { db } from '../data/mock/db';
-import { MockIncidentRepo } from '../data/mock/MockIncidentRepo';
 import { wsEventEmitter } from '../data/mock/eventEmitter';
-import { formatNumber } from '../core/theme/tokens';
 import type { Incident } from '../core/types';
-
-const repo = new MockIncidentRepo();
 
 // Only the filters with real seeded content are surfaced; "Safety tips",
 // "Mediation", and "Initiatives" were always-empty dead UI before content
@@ -51,10 +45,8 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [, setTick] = useState(0);
-  const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const toastOpacity = useMemo(() => new Animated.Value(0), []);
 
   const bookmarks = useBookmarksStore();
 
@@ -79,7 +71,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   // Live updates from the shared mock db keep feed ↔ map in sync.
   useEffect(() => {
     const unsub = wsEventEmitter.subscribe(ev => {
-      if (ev.t === 'incident.created' || ev.t === 'incident.resolved' || ev.t === 'vote.updated') {
+      if (ev.t === 'incident.created' || ev.t === 'incident.resolved') {
         refresh();
       }
     });
@@ -91,18 +83,6 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
     const id = setInterval(() => setTick(t => t + 1), 30_000);
     return () => clearInterval(id);
   }, []);
-
-  const showToast = useCallback(
-    (msg: string) => {
-      setToast(msg);
-      Animated.sequence([
-        Animated.timing(toastOpacity, { toValue: 1, duration: 150, useNativeDriver: true }),
-        Animated.delay(1800),
-        Animated.timing(toastOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-      ]).start(() => setToast(null));
-    },
-    [toastOpacity],
-  );
 
   const visible = useMemo(() => {
     let list = incidents;
@@ -117,43 +97,6 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
     }
     return list;
   }, [incidents, query, s]);
-
-  const handleVote = useCallback(
-    async (incident: Incident, vote: 'confirm' | 'deny') => {
-      if (incident.myVote) {
-        showToast(s.detail.alreadyVoted);
-        return;
-      }
-      // Optimistic update
-      haptics.success();
-      db.incidents.update(incident.id, {
-        myVote: vote,
-        confirmations: vote === 'confirm' ? incident.confirmations + 1 : incident.confirmations,
-        denials: vote === 'deny' ? incident.denials + 1 : incident.denials,
-      });
-      refresh();
-      try {
-        await repo.vote(incident.id, vote);
-        wsEventEmitter.emit({
-          t: 'vote.updated',
-          id: incident.id,
-          confirmations: db.incidents.getById(incident.id)?.confirmations ?? 0,
-          denials: db.incidents.getById(incident.id)?.denials ?? 0,
-        });
-      } catch (e) {
-        // 409 duplicate (or any failure) → revert + toast
-        const code = (e as { code?: number }).code;
-        if (code === 409) showToast(s.detail.alreadyVoted);
-        db.incidents.update(incident.id, {
-          myVote: null,
-          confirmations: incident.confirmations,
-          denials: incident.denials,
-        });
-        refresh();
-      }
-    },
-    [refresh, showToast, s],
-  );
 
   const renderCard = useCallback(
     ({ item }: { item: Incident }): React.ReactElement => {
@@ -185,28 +128,6 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
 
           <View style={styles.cardActions}>
             <TouchableOpacity
-              style={[styles.votePill, item.myVote === 'confirm' && styles.votePillConfirm]}
-              onPress={() => handleVote(item, 'confirm')}
-              testID={`feed-confirm-${item.id}`}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-              <Text variant="caption" style={styles.voteText}>
-                ✓ {formatNumber(item.confirmations)}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.votePill, item.myVote === 'deny' && styles.votePillDeny]}
-              onPress={() => handleVote(item, 'deny')}
-              testID={`feed-deny-${item.id}`}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-              <Text variant="caption" style={styles.voteText}>
-                ✕ {formatNumber(item.denials)}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.spacer} />
-
-            <TouchableOpacity
               onPress={() => {
                 haptics.toggle();
                 bookmarks.toggle(item.id);
@@ -223,7 +144,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
         </TouchableOpacity>
       );
     },
-    [s, lang, bookmarks, handleVote, navigation],
+    [s, lang, bookmarks, navigation],
   );
 
   return (
@@ -293,12 +214,6 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
           }
         />
       )}
-
-      {toast ? (
-        <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
-          <Text variant="caption" style={styles.toastText}>{toast}</Text>
-        </Animated.View>
-      ) : null}
     </BottomSheet>
   );
 };
@@ -369,32 +284,8 @@ const styles = StyleSheet.create({
   cardActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space(1),
+    justifyContent: 'flex-end',
     marginTop: space(0.5),
-  },
-  votePill: {
-    backgroundColor: color.bg,
-    borderWidth: 1,
-    borderColor: color.border,
-    borderRadius: radius.pill,
-    paddingHorizontal: space(1.5),
-    paddingVertical: 4,
-    minHeight: 30,
-    justifyContent: 'center',
-  },
-  votePillConfirm: {
-    backgroundColor: color.status.calm + '1A',
-    borderColor: color.status.calm,
-  },
-  votePillDeny: {
-    backgroundColor: color.accent + '1A',
-    borderColor: color.accent,
-  },
-  voteText: {
-    color: color.textSecondary,
-  },
-  spacer: {
-    flex: 1,
   },
   empty: {
     alignItems: 'center',
@@ -408,20 +299,6 @@ const styles = StyleSheet.create({
   emptySub: {
     textAlign: 'center',
     paddingHorizontal: space(4),
-  },
-  toast: {
-    position: 'absolute',
-    bottom: space(4),
-    alignSelf: 'center',
-    backgroundColor: color.cardElevated,
-    borderRadius: radius.pill,
-    paddingHorizontal: space(2),
-    paddingVertical: space(1),
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.border,
-  },
-  toastText: {
-    color: color.textPrimary,
   },
 });
 

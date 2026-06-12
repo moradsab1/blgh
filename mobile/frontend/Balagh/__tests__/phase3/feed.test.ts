@@ -1,8 +1,5 @@
 import { db } from '../../src/data/mock/db';
-import { MockIncidentRepo } from '../../src/data/mock/MockIncidentRepo';
 import type { Incident } from '../../src/core/types';
-
-const repo = new MockIncidentRepo();
 
 const makeIncident = (id: string): Incident => ({
   id,
@@ -14,9 +11,6 @@ const makeIncident = (id: string): Incident => ({
   lng: 35.15,
   localityId: 'umm-al-fahm',
   createdAt: new Date().toISOString(),
-  confirmations: 0,
-  denials: 0,
-  myVote: null,
 });
 
 describe('feed ↔ map data consistency', () => {
@@ -30,29 +24,13 @@ describe('feed ↔ map data consistency', () => {
     expect(db.incidents.getById('consistency-1')).toMatchObject({ id: 'consistency-1' });
   });
 
-  it('a vote mutation is reflected in subsequent reads', async () => {
+  it('a resolve mutation is reflected in subsequent reads', () => {
     const inc = makeIncident('consistency-2');
     db.incidents.add(inc);
 
-    await repo.vote('consistency-2', 'confirm');
+    db.incidents.resolve('consistency-2');
 
     const updated = db.incidents.getById('consistency-2');
-    expect(updated?.confirmations).toBe(1);
-    expect(updated?.myVote).toBe('confirm');
-  });
-});
-
-describe('votes are one-way and irrevocable', () => {
-  it('a second vote on the same incident throws a 409', async () => {
-    const inc = makeIncident('vote-1');
-    db.incidents.add(inc);
-
-    await repo.vote('vote-1', 'confirm');
-
-    await expect(repo.vote('vote-1', 'deny')).rejects.toMatchObject({ code: 409 });
-
-    // The count did not change after the rejected duplicate.
-    expect(db.incidents.getById('vote-1')?.confirmations).toBe(1);
-    expect(db.incidents.getById('vote-1')?.denials).toBe(0);
+    expect(updated?.resolvedAt).toBeTruthy();
   });
 });

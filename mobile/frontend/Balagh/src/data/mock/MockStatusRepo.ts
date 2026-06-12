@@ -38,12 +38,11 @@ export class MockStatusRepo implements IStatusRepository {
     const nearActive = incidents.filter(
       i =>
         haversineKm(lat, lng, i.lat, i.lng) <= ACTIVE_RADIUS_KM &&
-        now - new Date(i.createdAt).getTime() <= activeWindow &&
-        i.confirmations >= 1,
+        now - new Date(i.createdAt).getTime() <= activeWindow,
     );
 
     if (nearActive.length >= ACTIVE_THRESHOLD) {
-      return { state: 'active', reason: 'multiple_verified_nearby' };
+      return { state: 'active', reason: 'multiple_incidents_nearby' };
     }
 
     const nearWatch = incidents.filter(

@@ -29,6 +29,7 @@ export {
   Bell,
   Bookmark,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Compass,

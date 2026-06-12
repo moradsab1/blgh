@@ -174,9 +174,9 @@ Controls float free over the map, each with its own elevation (no dark band).
 ### 5.10 Incidents Feed Drawer (history browser)
 Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses. While the map shows only the open 24 h window, the feed is where users **browse incident history**.
 **Header (sticky):** drag handle · title *"البلاغات"* · search box · two filter rows:
-- **Time-range chips:** **آخر 24 ساعة** (default) | **آخر أسبوع** | **آخر شهر** — history beyond the map's 24 h window.
+- **Time-range chips:** **آخر 24 ساعة** (default) | **آخر أسبوع** | **آخر شهر** — history beyond the map's 24 h window — followed by a **"المزيد" (more) button** (sliders glyph) that opens a **more-filters bottom sheet**: the extended presets **آخر 3 أشهر** and **آخر سنة** (apply instantly) plus a **custom date range** picked on a compact in-app month calendar (`DateRangeCalendar`, plain RN primitives — tap start day then end day, future days disabled, range highlighted) confirmed with **تطبيق**. While an extended/custom selection is active, the more button tints accent and shows the active preset label or the chosen *from–to* dates.
 - **City selector (single button):** instead of listing all 18 locality chips inline, one **"اختر البلدة"** pill (map-pin glyph + current selection + chevron-down; defaults to *كل البلدات*, shows a clear ✕ button when a city is active). Tapping it opens a **city-picker bottom sheet**: drag handle, title, a search field matching across ar/he/en names, the *كل البلدات* option, and a radio-style city list with a check mark on the current selection — so a user can e.g. see *last month's incidents in Nazareth*.
-Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range × locality × search query over description/ref/localized category).
+Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range — quick `day/week/month`, extended `quarter/year`, or `custom` with inclusive from/to bounds — × locality × search query over description/ref/localized category).
 **Feed cards (modern):** a severity-colored **accent strip** on the card edge; a severity-tinted rounded **icon badge**; category label as the title; a meta row with locality name (map-pin glyph) + relative time (30 s refresh) + a muted **"منتهي" (resolved) badge** for closed incidents; description (≤3 lines); bookmark (persisted, red when set). No vote pills (§5.11). Tap body → Incident Detail Sheet.
 
 ### 5.11 Verification Votes — REMOVED
@@ -514,7 +514,7 @@ type WsEvent =
 
 ### 10.5 Mock implementation (as built)
 The in-memory mock is the only data source today:
-- `data/mock/db.ts` — the in-memory store: seeded incidents/notifications + `LOCALITIES` (18 cities). Exposes `db.incidents` and `db.notifications` with getters/mutators. `db.incidents.getOpen()` simulates the backend's 24 h open-incident window for the map (unresolved + < 24 h old, with a ~60 s linger after resolve so the fade-out can play); `getAll()` remains the full history backing the feed filters. Seeds include **historical incidents** (3–25 days old, several in Nazareth) so the week/month history filters have data.
+- `data/mock/db.ts` — the in-memory store: seeded incidents/notifications + `LOCALITIES` (18 cities). Exposes `db.incidents` and `db.notifications` with getters/mutators. `db.incidents.getOpen()` simulates the backend's 24 h open-incident window for the map (unresolved + < 24 h old, with a ~60 s linger after resolve so the fade-out can play); `getAll()` remains the full history backing the feed filters. Seeds include **historical incidents** (3–25 days old, several in Nazareth) so the week/month history filters have data. **Seeded/emitted descriptions are never free text** — both `db.ts` and `eventEmitter.ts` reference the prepared situation options (`strings.ar.report.situations`) directly, and a seed-integrity test asserts every description is one of the prepared options for its category.
 - `data/mock/Mock*Repo.ts` — `MockIncidentRepo`, `MockLocalityRepo`, `MockNotificationRepo`, `MockStatusRepo` implementing the `data/repositories/interfaces.ts` contracts over `db`.
 - `data/mock/eventEmitter.ts` — `startMockEmitter()` pushes `incident.created` / `status.changed` for future live-update wiring (not yet consumed by a screen).
 - `core/config.ts`: `export const USE_MOCK_API = true;`
@@ -633,7 +633,7 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 
 ### Phase 3 — Feed & incident detail
 - Incidents Feed drawer: a draggable bottom sheet snapping 25 / 60 / 90 % with a backdrop. Build it with plain RN `Animated` + `PanResponder` (no `@gorhom/bottom-sheet`/reanimated) to keep the stack minimal; if a richer sheet is justified later, add the library deliberately (§16).
-- Sticky header (drag handle, title, search) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + a single **"اختر البلدة" button** opening the searchable city-picker bottom sheet (كل البلدات + every locality, check on the selection, clear ✕ when active). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
+- Sticky header (drag handle, title, search) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + the **"المزيد" more-filters sheet** (آخر 3 أشهر / آخر سنة / custom date range on the in-app `DateRangeCalendar`) + a single **"اختر البلدة" button** opening the searchable city-picker bottom sheet (كل البلدات + every locality, check on the selection, clear ✕ when active). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
 - Incident Detail sheet (60 → 95 %): the prepared situation description, a 140 pt non-interactive Mapbox snippet drawing the ~150 m privacy circle. The feed and the map read the same mock `db` so they stay in sync. *(Comments and votes were removed from the product.)*
 - **Tests:** 30 s timestamp refresh; bookmark persistence; feed↔map data consistency; 24 h open-window behavior (`getOpen`); history range/locality filtering (`filterIncidents`).
 
@@ -844,9 +844,11 @@ Build the Incidents Feed using plain React Native primitives (a FlatList; if a d
 bottom sheet is wanted, build it with Animated/PanResponder — do NOT add
 @gorhom/bottom-sheet or reanimated). The feed is the HISTORY browser (the map only shows
 the open 24h window): sticky header with title + search + time-range chips
-(آخر 24 ساعة / آخر أسبوع / آخر شهر) + ONE "اختر البلدة" button (NOT inline chips for all
-cities) that opens a searchable city-picker bottom sheet (كل البلدات + every locality,
-check mark on selection, clear ✕) so e.g. "last month in Nazareth" works.
+(آخر 24 ساعة / آخر أسبوع / آخر شهر) + a "المزيد" more-filters sheet (آخر 3 أشهر / آخر سنة
+presets + a custom date range on a compact in-app calendar — NO date-picker library) +
+ONE "اختر البلدة" button (NOT inline chips for all cities) that opens a searchable
+city-picker bottom sheet (كل البلدات + every locality, check mark on selection, clear ✕)
+so e.g. "last month in Nazareth" works.
 Filtering = domain/feed/filters.ts
 (range × locality × query). Feed cards (modern): severity accent strip, severity-tinted
 icon badge, category title, locality + relative timestamp refreshing every 30s,

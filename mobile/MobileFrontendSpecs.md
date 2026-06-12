@@ -173,10 +173,10 @@ Controls float free over the map, each with its own elevation (no dark band).
 
 ### 5.10 Incidents Feed Drawer (history browser)
 Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses. While the map shows only the open 24 h window, the feed is where users **browse incident history**.
-**Header (sticky):** drag handle · title *"البلاغات"* · search box · two filter rows:
-- **Time-range chips:** **آخر 24 ساعة** (default) | **آخر أسبوع** | **آخر شهر** — history beyond the map's 24 h window — followed by a **"المزيد" (more) button** (sliders glyph) that opens a **more-filters bottom sheet**: the extended presets **آخر 3 أشهر** and **آخر سنة** (apply instantly) plus a **custom date range** picked on a compact in-app month calendar (`DateRangeCalendar`, plain RN primitives — tap start day then end day, future days disabled, range highlighted) confirmed with **تطبيق**. While an extended/custom selection is active, the more button tints accent and shows the active preset label or the chosen *from–to* dates.
+**Header (sticky):** drag handle · title *"البلاغات"* with a live **results-count pill** · two filter rows *(no search bar — descriptions are prepared options, so time range + locality are the meaningful filters; only the city picker keeps a search field)*:
+- **Time-range chips (horizontally scrollable row):** **آخر 24 ساعة** (default) | **آخر أسبوع** | **آخر شهر** — history beyond the map's 24 h window — followed by a **"المزيد" (more) button** (sliders glyph) that opens a **more-filters bottom sheet**: the extended presets **آخر 3 أشهر** and **آخر سنة** (apply instantly) plus a **custom date range** picked on a compact in-app month calendar (`DateRangeCalendar`, plain RN primitives — tap start day then end day, future days disabled, range highlighted) confirmed with **تطبيق**. While an extended/custom selection is active, the more button tints accent and shows the active preset label or the chosen *from–to* dates.
 - **City selector (single button):** instead of listing all 18 locality chips inline, one **"اختر البلدة"** pill (map-pin glyph + current selection + chevron-down; defaults to *كل البلدات*, shows a clear ✕ button when a city is active). Tapping it opens a **city-picker bottom sheet**: drag handle, title, a search field matching across ar/he/en names, the *كل البلدات* option, and a radio-style city list with a check mark on the current selection — so a user can e.g. see *last month's incidents in Nazareth*.
-Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range — quick `day/week/month`, extended `quarter/year`, or `custom` with inclusive from/to bounds — × locality × search query over description/ref/localized category).
+Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range — quick `day/week/month`, extended `quarter/year`, or `custom` with inclusive from/to bounds — × locality).
 **Feed cards (modern):** a severity-colored **accent strip** on the card edge; a severity-tinted rounded **icon badge**; category label as the title; a meta row with locality name (map-pin glyph) + relative time (30 s refresh) + a muted **"منتهي" (resolved) badge** for closed incidents; description (≤3 lines); bookmark (persisted, red when set). No vote pills (§5.11). Tap body → Incident Detail Sheet.
 
 ### 5.11 Verification Votes — REMOVED
@@ -456,7 +456,7 @@ balagh/
 - **Live updates:** a mock `eventEmitter` (`startMockEmitter`) exists for future use but is **not wired into any screen yet**.
 - **Write (report):** not implemented yet. `signRequest()` returns an empty signature (no backend). When wired, mutations will go through the repository interfaces.
 - **Status pill:** `Map.tsx` derives **calm / watch / active** synchronously from the severity of open incidents (high/critical → active, medium → watch, else calm). The 3 km / 60 min / 1 km / 15 min geo rules in §5.6 arrive with real maps + location.
-- **Language/RTL:** `App.tsx`'s `useHydrated()` reads the saved language from storage, sets the `lang` zustand store, and calls `applyRTL()`.
+- **Language/RTL:** `App.tsx`'s `useHydrated()` reads the saved language from storage, sets the `lang` zustand store, and calls `applyRTL()` (native-flag sync only). The live layout direction is a `direction` style on the app root driven by `useIsRTL` — language switches apply instantly with no relaunch (§12.5).
 
 ---
 
@@ -580,8 +580,8 @@ On Android the OS still gives implicit ripple feedback. Wire a real library late
 > **Zero-sound is a hard rule.** Never play audio. CI check: fail if anything imports an audio API (`react-native-sound`, `react-native-video`, `expo-av`, `Audio`).
 
 ### 12.5 RTL & icons
-- RTL via `core/strings.applyRTL(lang)` → `I18nManager.forceRTL` on ar/he; relaunch may be required — handle first-run gracefully.
-- Directional icons: call sites pick the mirrored variant (e.g. ChevronLeft vs ChevronRight) via `I18nManager.isRTL`. Non-directional icons untouched.
+- **JS-driven RTL — no relaunch.** The app root (`App.tsx`) applies a `direction: 'rtl' | 'ltr'` style derived reactively from the lang store (`useIsRTL`), which Yoga propagates to the entire tree — switching to/from Arabic or Hebrew flips the layout instantly, with **no restart prompt** (first launch or from Settings). `core/strings.applyRTL(lang)` still syncs `I18nManager.forceRTL`, but only so the *next* cold start boots with the correct native direction.
+- Directional icons: call sites pick the mirrored variant (e.g. ChevronLeft vs ChevronRight) via the reactive `useIsRTL()` hook (or `isRTL(lang)` where lang is a prop) — never `I18nManager.isRTL`, which is stale until the next cold start. Non-directional icons untouched.
 
 ---
 
@@ -633,7 +633,7 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 
 ### Phase 3 — Feed & incident detail
 - Incidents Feed drawer: a draggable bottom sheet snapping 25 / 60 / 90 % with a backdrop. Build it with plain RN `Animated` + `PanResponder` (no `@gorhom/bottom-sheet`/reanimated) to keep the stack minimal; if a richer sheet is justified later, add the library deliberately (§16).
-- Sticky header (drag handle, title, search) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + the **"المزيد" more-filters sheet** (آخر 3 أشهر / آخر سنة / custom date range on the in-app `DateRangeCalendar`) + a single **"اختر البلدة" button** opening the searchable city-picker bottom sheet (كل البلدات + every locality, check on the selection, clear ✕ when active). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
+- Sticky header (drag handle, title + results-count pill — no search bar) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + the **"المزيد" more-filters sheet** (آخر 3 أشهر / آخر سنة / custom date range on the in-app `DateRangeCalendar`) + a single **"اختر البلدة" button** opening the searchable city-picker bottom sheet (كل البلدات + every locality, check on the selection, clear ✕ when active). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
 - Incident Detail sheet (60 → 95 %): the prepared situation description, a 140 pt non-interactive Mapbox snippet drawing the ~150 m privacy circle. The feed and the map read the same mock `db` so they stay in sync. *(Comments and votes were removed from the product.)*
 - **Tests:** 30 s timestamp refresh; bookmark persistence; feed↔map data consistency; 24 h open-window behavior (`getOpen`); history range/locality filtering (`filterIncidents`).
 
@@ -843,7 +843,8 @@ PHASE 3 — Feed & incidents.
 Build the Incidents Feed using plain React Native primitives (a FlatList; if a draggable
 bottom sheet is wanted, build it with Animated/PanResponder — do NOT add
 @gorhom/bottom-sheet or reanimated). The feed is the HISTORY browser (the map only shows
-the open 24h window): sticky header with title + search + time-range chips
+the open 24h window): sticky header with title + results-count pill (NO search bar) +
+time-range chips
 (آخر 24 ساعة / آخر أسبوع / آخر شهر) + a "المزيد" more-filters sheet (آخر 3 أشهر / آخر سنة
 presets + a custom date range on a compact in-app calendar — NO date-picker library) +
 ONE "اختر البلدة" button (NOT inline chips for all cities) that opens a searchable
@@ -945,7 +946,7 @@ These were the actual cold-start crashes that drove the move to the minimal stac
 - **`index.js` is minimal.** `enableScreens()` first, then `AppRegistry.registerComponent`. No RNG polyfill (Hermes has `crypto.getRandomValues`), no Firebase background handler.
 - **Hermes has crypto.** `crypto.getRandomValues` is built into Hermes since RN 0.73 — no `react-native-get-random-values` needed for `core/identity`.
 - **Jest preset.** RN 0.85 ships the Jest preset as a separate package — install `@react-native/jest-preset` and set `preset: "@react-native/jest-preset"`.
-- **RTL relaunch.** `I18nManager.forceRTL` may need an app reload to fully apply on first language pick — handle the first-run case.
+- **RTL without relaunch.** Don't depend on `I18nManager.isRTL` mid-session — it only changes on the next cold start. The live direction is JS-driven (`direction` style at the app root + `useIsRTL`, §12.5); `applyRTL` keeps the native flag in sync for future cold starts.
 - **Adding a heavy lib later (maps/push).** Treat it as a deliberate decision, not a default — it reintroduces the CMake build and startup-init surfaces this stack was trimmed to avoid. Mapbox tokens, when added: download (secret) token ≠ public token; keep the secret out of git.
 - **Reduce-motion vs haptics.** Haptics are no-op stubs today; if a real library is wired later, decide whether reduce-motion also silences them (default: keep, as an accessibility aid).
 - **Zero-sound enforcement.** A reviewer can miss an audio import; the CI forbidden-API check (already in the Android workflow) is the real guard.

@@ -11,12 +11,12 @@ import type { LucideProps } from 'lucide-react-native';
 import {
   Bookmark as LucideBookmark,
   CircleQuestionMark,
-  Crosshair,
-  Eye,
+  HandCoins,
   HandFist,
-  Slice,
-  TriangleAlert,
-  Wallet,
+  ScanEye,
+  Siren,
+  Sword,
+  Target,
 } from 'lucide-react-native';
 
 import type { Category } from '../types';
@@ -68,13 +68,17 @@ export const BookmarkFilled = ({
 );
 export const BookmarkOutline = LucideBookmark;
 
-// Category icons (feed, report + crisis category grids)
-export const CategoryGunfire = Crosshair;
-export const CategoryStabbing = Slice;
+// Category icons (feed, report + crisis category grids).
+// Chosen to read instantly under stress: a shooting target for gunfire, a
+// blade for stabbing, a fist for assault, a hand taking money for robbery,
+// a scanned eye for suspicious surveillance, and a siren for any other
+// emergency — all modern monochrome lucide strokes.
+export const CategoryGunfire = Target;
+export const CategoryStabbing = Sword;
 export const CategoryAssault = HandFist;
-export const CategoryRobbery = Wallet;
-export const CategorySuspicious = Eye;
-export const CategoryOther = TriangleAlert;
+export const CategoryRobbery = HandCoins;
+export const CategorySuspicious = ScanEye;
+export const CategoryOther = Siren;
 
 export const CATEGORY_ICON: Record<Category, React.ComponentType<LucideProps>> = {
   GUNFIRE: CategoryGunfire,

@@ -224,7 +224,7 @@ Modal; sticky header *"التنبيهات"* + "Mark all read". Grouped by day (T
 **Empty:** bell-slash · *"لا توجد تنبيهات"* · *"ستظهر التنبيهات هنا عند ورودها"*.
 
 ### 5.17 Settings
-Grouped list with section headers:
+Inset-grouped list (iOS Settings style): each section is an elevated white card with hairline dividers; every row carries a **tinted icon badge** (the same visual language as feed cards and the category grid). The locality and language rows show the **current selection** as a value; toggles use a green on-state; the delete-data row is destructive red. Section headers:
 - **Account:** Change locality · Change language · Public identifier (first/last 6 chars of the key; long-press reveals full key + copy).
 - **Privacy & Security:** Privacy Constitution · Delete my data (destructive, confirm — wipes everything, returns to onboarding).
 - **Notifications:** Toggles — Nearby incidents · Area status changes · Follow-up invitations. **All on by default.**

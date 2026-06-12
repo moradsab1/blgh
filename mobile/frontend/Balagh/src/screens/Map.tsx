@@ -41,6 +41,7 @@ import { color, fontSize, font, motion, radius, shadow, space } from '../core/th
 import { Text } from '../core/theme/components';
 import { List, Locate, Mail, Plus, Settings, Shield } from '../core/icons';
 import ArabicLabels from '../presentation/components/ArabicLabels';
+import { privacyCircleRadius } from '../presentation/map/privacyCircle';
 import { useReduceMotion } from '../core/a11y/useReduceMotion';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
@@ -851,18 +852,22 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
             }}
           />
 
-          {/* Individual non-cluster pins */}
+          {/* Individual non-cluster incidents — translucent privacy circles
+              covering ~150 m of ground so the exact location stays hidden. */}
           <MapboxGL.CircleLayer
             id="pinLayer"
             filter={['!', ['has', 'point_count']]}
             style={{
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               circleColor: pinCircleColor as any,
-              circleRadius: 10,
+              circleRadius: privacyCircleRadius(),
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              circleOpacity: ['get', 'opacity'] as any,
-              circleStrokeWidth: 2.5,
-              circleStrokeColor: '#FFFFFF',
+              circleOpacity: ['*', 0.22, ['get', 'opacity']] as any,
+              circleStrokeWidth: 2,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              circleStrokeColor: pinCircleColor as any,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              circleStrokeOpacity: ['*', 0.55, ['get', 'opacity']] as any,
             }}
           />
         </MapboxGL.ShapeSource>
@@ -875,7 +880,8 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           <MapboxGL.CircleLayer
             id="pulseLayer"
             style={{
-              circleRadius: 24,
+              // Pulse traces the edge of the privacy circle, not an exact point.
+              circleRadius: privacyCircleRadius(),
               circleColor: 'transparent',
               circleStrokeWidth: 3,
               circleStrokeColor: pulseIncident

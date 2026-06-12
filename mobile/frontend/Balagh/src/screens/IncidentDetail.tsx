@@ -19,6 +19,7 @@ import { Text, SeverityPill } from '../core/theme/components';
 import { CATEGORY_ICON, MapPin } from '../core/icons';
 import { BottomSheet } from '../presentation/components/BottomSheet';
 import ArabicLabels from '../presentation/components/ArabicLabels';
+import { privacyCircleRadius } from '../presentation/map/privacyCircle';
 import { relativeTime } from '../core/format/time';
 import { strings } from '../core/strings';
 import { useLangStore } from '../domain/stores/lang';
@@ -154,13 +155,16 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
                 ],
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } as any}>
+              {/* Privacy circle (~150 m ground radius) — never an exact pin. */}
               <MapboxGL.CircleLayer
                 id="detailSnippetPin"
                 style={{
                   circleColor: color.severity[incident.severity],
-                  circleRadius: 9,
-                  circleStrokeWidth: 2.5,
-                  circleStrokeColor: '#FFFFFF',
+                  circleRadius: privacyCircleRadius(),
+                  circleOpacity: 0.22,
+                  circleStrokeWidth: 2,
+                  circleStrokeColor: color.severity[incident.severity],
+                  circleStrokeOpacity: 0.55,
                 }}
               />
             </MapboxGL.ShapeSource>

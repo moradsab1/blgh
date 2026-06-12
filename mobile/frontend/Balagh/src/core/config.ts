@@ -20,3 +20,8 @@ export const ACTIVE_RADIUS_KM = 1;
 export const WATCH_WINDOW_MIN = 60;
 export const ACTIVE_WINDOW_MIN = 15;
 export const ACTIVE_THRESHOLD = 3;
+
+// Location privacy — incidents are never rendered as an exact point.
+// Each open incident is drawn as a translucent circle covering roughly
+// this ground radius so the precise location stays hidden.
+export const INCIDENT_PRIVACY_RADIUS_M = 150;

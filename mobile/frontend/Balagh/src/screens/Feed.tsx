@@ -8,9 +8,8 @@
  * pickers (e.g. "gunfire + robbery, last month, Nazareth + Haifa").
  *
  * Cards are modern severity-striped tiles: tinted icon badge, category title,
- * locality + relative time, description (≤3 lines), a resolved badge for
- * closed incidents, and a persisted bookmark. Tapping a card opens the
- * Incident Detail route.
+ * locality + relative time, description (≤3 lines), and a resolved badge for
+ * closed incidents. Tapping a card opens the Incident Detail route.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -30,8 +29,6 @@ import { color, fontSize, font, formatNumber, radius, shadow, space } from '../c
 import { Text, Chip, Button } from '../core/theme/components';
 import {
   Search,
-  BookmarkFilled,
-  BookmarkOutline,
   CalendarRange,
   CATEGORY_ICON,
   Check,
@@ -49,7 +46,6 @@ import { relativeTime } from '../core/format/time';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
 import { useLangStore } from '../domain/stores/lang';
-import { useBookmarksStore } from '../domain/stores/bookmarks';
 import { FEED_MORE_RANGES, FEED_RANGES, filterIncidents } from '../domain/feed/filters';
 import type { FeedRangeKey } from '../domain/feed/filters';
 import { DateRangeCalendar } from '../presentation/components/DateRangeCalendar';
@@ -348,8 +344,6 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const bookmarks = useBookmarksStore();
-
   const refresh = useCallback(() => setIncidents(db.incidents.getAll()), []);
 
   // Brief skeleton flash on first mount so the list reads as actively loading
@@ -453,7 +447,6 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
     ({ item }: { item: Incident }): React.ReactElement => {
       const CatIcon = CATEGORY_ICON[item.category];
       const sevColor = color.severity[item.severity];
-      const isBookmarked = bookmarks.isBookmarked(item.id);
       const loc = LOCALITIES.find(l => l.id === item.localityId);
       return (
         <TouchableOpacity
@@ -490,20 +483,6 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
                   ) : null}
                 </View>
               </View>
-
-              <TouchableOpacity
-                onPress={() => {
-                  haptics.toggle();
-                  bookmarks.toggle(item.id);
-                }}
-                testID={`feed-bookmark-${item.id}`}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                {isBookmarked ? (
-                  <BookmarkFilled size={20} color={color.severity.medium} />
-                ) : (
-                  <BookmarkOutline size={20} color={color.textMuted} />
-                )}
-              </TouchableOpacity>
             </View>
 
             {item.description ? (
@@ -515,7 +494,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
         </TouchableOpacity>
       );
     },
-    [s, lang, bookmarks, navigation],
+    [s, lang, navigation],
   );
 
   return (

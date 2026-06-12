@@ -6,10 +6,9 @@
  * text glyphs to real vectors. All icons are monochrome strokes that honor
  * the `color` prop and scale crisply at any size.
  */
-import React from 'react';
+import type React from 'react';
 import type { LucideProps } from 'lucide-react-native';
 import {
-  Bookmark as LucideBookmark,
   CircleQuestionMark,
   HandCoins,
   HandFist,
@@ -27,7 +26,6 @@ export {
   ArrowLeft,
   ArrowRight,
   Bell,
-  Bookmark,
   CalendarRange,
   Check,
   ChevronDown,
@@ -60,15 +58,6 @@ export {
 } from 'lucide-react-native';
 
 export const HelpCircle = CircleQuestionMark;
-
-// Filled vs outline bookmark so the active state is unmistakable.
-export const BookmarkFilled = ({
-  color = '#000',
-  ...rest
-}: LucideProps): React.ReactElement => (
-  <LucideBookmark color={color} fill={color} {...rest} />
-);
-export const BookmarkOutline = LucideBookmark;
 
 // Category icons (feed, report + crisis category grids).
 // Chosen to read instantly under stress: a shooting target for gunfire, a

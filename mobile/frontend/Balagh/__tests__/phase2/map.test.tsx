@@ -120,7 +120,6 @@ jest.mock('../../src/core/storage', () => ({
     LOCALITY_ID: 'localityId',
     ONBOARDING_DONE: 'onboardingDone',
     PRIVATE_KEY: 'identity_priv',
-    BOOKMARKS: 'bookmarks',
     NOTIFICATION_NEARBY: 'notif_nearby',
     NOTIFICATION_STATUS: 'notif_status',
     NOTIFICATION_FOLLOWUP: 'notif_followup',

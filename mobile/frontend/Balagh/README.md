@@ -1,4 +1,38 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Balagh — Mobile App
+
+This is a [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+
+## Project Structure
+
+```
+src/
+├── core/         # config, types, theme, mapbox token, i18n strings
+├── data/
+│   ├── maps/
+│   │   └── mapDataSources.ts   # catalog of candidate map datasets (NEW)
+│   └── mock/
+│       └── db.ts               # static localities + mock incidents
+├── domain/       # zustand stores, services
+├── presentation/ # reusable components (incl. ArabicLabels)
+└── screens/      # Map, Feed, Inbox, ...
+```
+
+## Maps Data
+
+`src/data/maps/mapDataSources.ts` is a typed catalog of candidate datasets for
+enriching the Mapbox map with up-to-date Israeli street data. The key distinction
+is **geometry vs. names**:
+
+| Dataset | Geometry? | Use |
+| --- | --- | --- |
+| [`israel-streets-synom`](https://data.gov.il/he/datasets/population_authority/israel-streets-synom) (data.gov.il) | ❌ names only | Street-name search/autocomplete & Hebrew name enrichment. Cannot draw roads. |
+| [`osm-israel-palestine`](https://download.geofabrik.de/asia/israel-and-palestine.html) (OpenStreetMap) | ✅ road lines | **Add to Mapbox for updated roads + names.** Multilingual (`name`/`name:he`/`name:ar`/`name:en`). |
+
+To put **updated road geometry** on the map, use the OSM extract
+(`RECOMMENDED_ROAD_GEOMETRY_SOURCE`): extract roads → GeoJSON → upload via
+[Mapbox Tiling Service](https://docs.mapbox.com/mapbox-tiling-service/) to a custom
+tileset → add it as a vector source/layer in `src/screens/Map.tsx`, reusing the
+`ArabicLabels` name fallback chain (`name_ar → name → name_en`).
 
 # Getting Started
 
@@ -95,7 +129,3 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
-# balagh
-# balagh
-# balagh
-# balagh

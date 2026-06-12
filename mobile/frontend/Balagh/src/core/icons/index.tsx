@@ -52,8 +52,6 @@ export {
   Shield,
   ShieldCheck,
   Siren,
-  ThumbsDown,
-  ThumbsUp,
   Trash2,
   X,
 } from 'lucide-react-native';

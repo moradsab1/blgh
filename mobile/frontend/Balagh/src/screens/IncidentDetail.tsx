@@ -101,7 +101,13 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
         </View>
 
         <View style={styles.categoryRow}>
-          <CatIcon size={22} color={color.severity[incident.severity]} />
+          <View
+            style={[
+              styles.iconBadge,
+              { backgroundColor: color.severity[incident.severity] + '14' },
+            ]}>
+            <CatIcon size={22} color={color.severity[incident.severity]} />
+          </View>
           <Text variant="heading">{s.category[incident.category]}</Text>
         </View>
 
@@ -193,8 +199,15 @@ const styles = StyleSheet.create({
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space(1),
+    gap: space(1.5),
     marginTop: space(1.5),
+  },
+  iconBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   localityRow: {
     flexDirection: 'row',

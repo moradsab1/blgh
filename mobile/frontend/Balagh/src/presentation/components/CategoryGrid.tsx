@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Text } from '../../core/theme/components';
-import { color, space, radius } from '../../core/theme/tokens';
+import { color, radius, shadow, space } from '../../core/theme/tokens';
 import { CATEGORY_ICON } from '../../core/icons';
 import type { Category } from '../../core/types';
 import { useLangStore } from '../../domain/stores/lang';
@@ -36,13 +36,15 @@ export function CategoryGrid({ onSelect }: Props): React.ReactElement {
             key={cat}
             style={({ pressed }) => [
               styles.card,
-              { borderColor: tint, opacity: pressed ? 0.7 : 1 },
+              pressed && { borderColor: tint, transform: [{ scale: 0.97 }] },
             ]}
             onPress={() => onSelect(cat)}
             accessibilityRole="button"
             accessibilityLabel={s.category[cat]}>
-            <Icon size={36} color={tint} />
-            <Text variant="label" style={[styles.cardLabel, { color: tint }]}>
+            <View style={[styles.iconBadge, { backgroundColor: tint + '14' }]}>
+              <Icon size={28} color={tint} />
+            </View>
+            <Text variant="label" style={styles.cardLabel}>
               {s.category[cat]}
             </Text>
           </Pressable>
@@ -62,13 +64,25 @@ const styles = StyleSheet.create({
     width: '47%',
     backgroundColor: color.card,
     borderWidth: 1.5,
+    borderColor: color.border,
     borderRadius: radius.lg,
     paddingVertical: space(2.5),
     paddingHorizontal: space(2),
     alignItems: 'center',
-    gap: space(1),
-    minHeight: 110,
+    gap: space(1.5),
+    minHeight: 124,
+    justifyContent: 'center',
+    ...shadow.card,
+  },
+  iconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  cardLabel: { textAlign: 'center' },
+  cardLabel: {
+    textAlign: 'center',
+    color: color.textPrimary,
+  },
 });

@@ -11,7 +11,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { create } from 'zustand';
-import { color, font, fontSize, hit, radius, space } from './tokens';
+import { color, font, fontSize, hit, radius, shadow, space } from './tokens';
 import type { Severity } from '../types';
 
 // ── Script store — reactive so all mounted Text components re-render on language change ──
@@ -120,6 +120,8 @@ export const Button = ({
 
   const paddingV = size === 'sm' ? space(1) : size === 'lg' ? space(2) : space(1.5);
   const minH = size === 'sm' ? hit.min * 0.75 : hit.min;
+  // Filled CTAs get a soft lift; ghost/disabled stay flat.
+  const lifted = !disabled && (variant === 'primary' || variant === 'danger');
 
   return (
     <TouchableOpacity
@@ -129,6 +131,7 @@ export const Button = ({
         styles.button,
         { backgroundColor: bg, paddingVertical: paddingV, minHeight: minH },
         variant === 'secondary' && styles.buttonSecondary,
+        lifted && shadow.card,
         fullWidth && styles.fullWidth,
         style as ViewStyle,
       ]}
@@ -147,19 +150,17 @@ interface ChipProps extends TouchableOpacityProps {
   active?: boolean;
 }
 
+// Modern soft chips: borderless inset pill when idle, solid accent when active.
 export const Chip = ({ label, active, style, ...props }: ChipProps): React.ReactElement => (
   <TouchableOpacity
     activeOpacity={0.7}
     style={[
       styles.chip,
-      {
-        backgroundColor: active ? color.accent : color.card,
-        borderColor: active ? color.accent : color.border,
-      },
+      { backgroundColor: active ? color.accent : color.cardElevated },
       style as ViewStyle,
     ]}
     {...props}>
-    <Text variant="caption" style={{ color: active ? color.textOnAccent : color.textSecondary }}>
+    <Text variant="label" style={{ color: active ? color.textOnAccent : color.textSecondary }}>
       {label}
     </Text>
   </TouchableOpacity>
@@ -216,11 +217,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   chip: {
-    borderWidth: 1,
     borderRadius: radius.pill,
-    paddingHorizontal: space(1.5),
+    paddingHorizontal: space(1.75),
     paddingVertical: space(0.75),
-    minHeight: 32,
+    minHeight: 34,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -59,7 +59,7 @@ Architectural invariants enforced in code, native config, and tests.
 - **No police or state data sharing.** Zero government integration. Stated explicitly during onboarding and in crisis flows.
 - **No media capture.** Never accesses camera, microphone, or photo library. Reports are text + category + location only.
 - **No personal statistics.** No streaks, badges, or counters — to prevent competitive reporting and behavioral profiling.
-- **Local-first data.** Bookmarks, settings, and read history live on the device. Uninstalling erases everything.
+- **Local-first data.** Settings and read history live on the device. Uninstalling erases everything.
 - **Zero sound.** The app emits no sounds at all — for users who may be hiding.
 
 Exactly **one** runtime permission (Location, "while using"). The app **never** requests camera, microphone, photo library, contacts, calendar, motion, advertising ID, or background location. In bare RN this is enforced directly in `Info.plist` / `AndroidManifest.xml` (§7).
@@ -177,7 +177,7 @@ Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses. While
 - **Time-range chips (horizontally scrollable row):** **آخر 24 ساعة** (default) | **آخر أسبوع** | **آخر شهر** — history beyond the map's 24 h window — followed by a **"المزيد" (more) button** (sliders glyph) that opens a **more-filters bottom sheet**: the extended presets **آخر 3 أشهر** and **آخر سنة** (apply instantly) plus a **custom date range** picked on a compact in-app month calendar (`DateRangeCalendar`, plain RN primitives — tap start day then end day, future days disabled, range highlighted) confirmed with **تطبيق**. While an extended/custom selection is active, the more button tints accent and shows the active preset label or the chosen *from–to* dates.
 - **City + incident-type selectors (multi-select, horizontally scrollable row):** one **"اختر البلدة"** pill (map-pin glyph + selection summary + chevron-down) and one **"نوع البلاغ"** pill (shapes glyph) — never inline chips for all options. Each opens a shared **multi-select bottom sheet**: drag handle, title, checkbox rows that toggle and stay open, a *كل البلدات / كل الأنواع* row that clears the selection, and a **تطبيق** button to close. The city sheet keeps a search field matching across ar/he/en names; the type sheet lists the six categories with their icons. Button labels summarize multi-selections (*الناصرة +2*) and show a clear ✕ when active — so a user can e.g. see *gunfire + robbery over the last month in Nazareth + Haifa*.
 Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range — quick `day/week/month`, extended `quarter/year`, or `custom` with inclusive from/to bounds — × `localityIds[]` × `categories[]`; empty arrays mean no restriction).
-**Feed cards (modern):** a severity-colored **accent strip** on the card edge; a severity-tinted rounded **icon badge**; category label as the title; a meta row with locality name (map-pin glyph) + relative time (30 s refresh) + a muted **"منتهي" (resolved) badge** for closed incidents; description (≤3 lines); bookmark (persisted, red when set). No vote pills (§5.11). Tap body → Incident Detail Sheet.
+**Feed cards (modern):** a severity-colored **accent strip** on the card edge; a severity-tinted rounded **icon badge**; category label as the title; a meta row with locality name (map-pin glyph) + relative time (30 s refresh) + a muted **"منتهي" (resolved) badge** for closed incidents; description (≤3 lines). No vote pills (§5.11) and no bookmark — cards carry no per-incident actions. Tap body → Incident Detail Sheet.
 
 ### 5.11 Verification Votes — REMOVED
 The Confirm/Deny verification-vote feature was **removed from the product** (2026-06-12). Incidents carry no vote counts, no `myVote` state, no vote endpoints, and no vote UI anywhere. The "active" status rule (§5.6) consequently no longer requires verified incidents.
@@ -633,9 +633,9 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 
 ### Phase 3 — Feed & incident detail
 - Incidents Feed drawer: a draggable bottom sheet snapping 25 / 60 / 90 % with a backdrop. Build it with plain RN `Animated` + `PanResponder` (no `@gorhom/bottom-sheet`/reanimated) to keep the stack minimal; if a richer sheet is justified later, add the library deliberately (§16).
-- Sticky header (drag handle, title + results-count pill — no search bar) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + the **"المزيد" more-filters sheet** (آخر 3 أشهر / آخر سنة / custom date range on the in-app `DateRangeCalendar`) + **multi-select "اختر البلدة" and "نوع البلاغ" buttons** opening the shared checkbox picker sheet (searchable for cities; the *all* row clears; labels summarize as *الناصرة +2*; clear ✕ when active). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents, bookmark (red when set, persisted to AsyncStorage). Tap a card → Incident Detail.
+- Sticky header (drag handle, title + results-count pill — no search bar) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + the **"المزيد" more-filters sheet** (آخر 3 أشهر / آخر سنة / custom date range on the in-app `DateRangeCalendar`) + **multi-select "اختر البلدة" and "نوع البلاغ" buttons** opening the shared checkbox picker sheet (searchable for cities; the *all* row clears; labels summarize as *الناصرة +2*; clear ✕ when active). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents — no bookmark (removed from the product). Tap a card → Incident Detail.
 - Incident Detail sheet (60 → 95 %): the prepared situation description, a 140 pt non-interactive Mapbox snippet drawing the ~150 m privacy circle. The feed and the map read the same mock `db` so they stay in sync. *(Comments and votes were removed from the product.)*
-- **Tests:** 30 s timestamp refresh; bookmark persistence; feed↔map data consistency; 24 h open-window behavior (`getOpen`); history range/locality filtering (`filterIncidents`).
+- **Tests:** 30 s timestamp refresh; feed↔map data consistency; 24 h open-window behavior (`getOpen`); history range/locality/category filtering (`filterIncidents`).
 
 ### Phase 4 — Reporting & crisis
 - Report flow: category grid (2×3, severity-tinted icons; GUNFIRE/STABBING = critical, ASSAULT/ROBBERY = high, SUSPICIOUS/OTHER = medium) → **situation picker** (four prepared descriptions per category, radio-style cards, submit disabled until one is chosen — **no typing, no media**) → success (green checkmark draw 480 ms, mono `#BLG-XXXXXX`, long-press copy via the built-in **`Share`** API + "تم النسخ" toast, no share-to-social/rating).
@@ -854,12 +854,12 @@ month, Nazareth + Haifa" works.
 Filtering = domain/feed/filters.ts
 (range × localityIds[] × categories[]). Feed cards (modern): severity accent strip, severity-tinted
 icon badge, category title, locality + relative timestamp refreshing every 30s,
-description (≤3 lines), a muted "منتهي" resolved badge for closed incidents, bookmark
-(red when set, persisted to AsyncStorage). Incident Detail (60→95% sheet or full screen):
+description (≤3 lines), a muted "منتهي" resolved badge for closed incidents — NO
+bookmark (the feature was removed). Incident Detail (60→95% sheet or full screen):
 full description + a 140pt non-interactive snippet drawing the ~150m privacy circle — no
 comments and NO votes (both features were removed from the product). (Mock eventEmitter
 can drive live updates.)
-Tests: timestamp refresh; bookmark persistence (AsyncStorage); getOpen 24h window;
+Tests: timestamp refresh; getOpen 24h window;
 filterIncidents range/locality/query.
 ```
 

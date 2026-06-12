@@ -16,15 +16,18 @@ import {
   Key,
   Shield,
   Trash2,
-  Bell,
   Info,
   HelpCircle,
   Mail,
+  MessageCircle,
+  Radio,
+  Siren,
   ChevronRight,
   ChevronLeft,
   Copy,
 } from '../../core/icons';
-import { color, space, radius } from '../../core/theme/tokens';
+import type { IconProps } from '../../core/icons';
+import { color, font, space, radius, shadow } from '../../core/theme/tokens';
 import { Text } from '../../core/theme/components';
 import { haptics } from '../../core/haptics';
 import store, { StorageKeys } from '../../core/storage';
@@ -33,10 +36,13 @@ import { notificationService } from '../../domain/services/notifications';
 import { strings } from '../../core/strings';
 import { APP_VERSION } from '../../core/version';
 import { useIsRTL, useLangStore } from '../../domain/stores/lang';
+import { LOCALITIES } from '../../data/mock/db';
 import type { SettingsProps } from '../../navigation/types';
 import { useOnboardingStore } from '../../domain/stores/onboarding';
 
 const CONTACT_EMAIL = 'contact@balagh.app';
+
+const LANGUAGE_NAMES = { ar: 'العربية', he: 'עברית', en: 'English' } as const;
 
 const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
   const { lang } = useLangStore();
@@ -62,6 +68,15 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
   const fullPublicKey = useMemo(() => {
     try { return getPublicKeyHex(); } catch { return '—'; }
   }, []);
+
+  // Current selections surfaced as row values so the page answers
+  // "what am I set to?" without navigating anywhere.
+  const localityValue = useMemo(() => {
+    const id = store.getString(StorageKeys.LOCALITY_ID);
+    const loc = LOCALITIES.find(l => l.id === id);
+    if (!loc) return undefined;
+    return lang === 'he' ? loc.nameHe : lang === 'en' ? loc.nameEn : loc.nameAr;
+  }, [lang]);
 
   const handleToggle = (
     key: typeof StorageKeys[keyof typeof StorageKeys],
@@ -129,6 +144,7 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
+          style={styles.backBtn}
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           {isRTL ? (
@@ -142,100 +158,110 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <SectionHeader label={s.settings.account.title} />
-
-        <SettingsRow
-          icon={<MapPin size={20} color={color.textSecondary} />}
-          label={s.settings.account.locality}
-          onPress={() => navigation.navigate('Locality', { fromSettings: true })}
-          chevron={<ChevronIcon size={18} color={color.textMuted} />}
-          isFirst
-        />
-        <SettingsRow
-          icon={<Globe size={20} color={color.textSecondary} />}
-          label={s.settings.account.language}
-          onPress={() => navigation.navigate('Language', { fromSettings: true })}
-          chevron={<ChevronIcon size={18} color={color.textMuted} />}
-        />
-        <TouchableOpacity
-          style={[styles.row, styles.rowLast]}
-          onPress={() => setIdentifierRevealed(r => !r)}
-          onLongPress={handleIdentifierLongPress}
-          activeOpacity={0.7}>
-          <Key size={20} color={color.textSecondary} />
-          <View style={styles.rowBody}>
-            <Text>{s.settings.account.identifier}</Text>
-            <Text secondary variant="caption" style={styles.identifierValue}>
-              {identifierRevealed ? fullPublicKey : shortIdentifier}
-            </Text>
-          </View>
-          <Copy size={16} color={color.textMuted} />
-        </TouchableOpacity>
+        <Group>
+          <SettingsRow
+            Icon={MapPin}
+            tint={color.reportAccent}
+            label={s.settings.account.locality}
+            value={localityValue}
+            onPress={() => navigation.navigate('Locality', { fromSettings: true })}
+            chevron={<ChevronIcon size={18} color={color.textMuted} />}
+          />
+          <SettingsRow
+            Icon={Globe}
+            tint={color.textSecondary}
+            label={s.settings.account.language}
+            value={LANGUAGE_NAMES[lang]}
+            onPress={() => navigation.navigate('Language', { fromSettings: true })}
+            chevron={<ChevronIcon size={18} color={color.textMuted} />}
+          />
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setIdentifierRevealed(r => !r)}
+            onLongPress={handleIdentifierLongPress}
+            activeOpacity={0.7}>
+            <IconBadge Icon={Key} tint={color.severity.medium} />
+            <View style={styles.rowBody}>
+              <Text>{s.settings.account.identifier}</Text>
+              <Text secondary variant="caption" style={styles.identifierValue}>
+                {identifierRevealed ? fullPublicKey : shortIdentifier}
+              </Text>
+            </View>
+            <Copy size={16} color={color.textMuted} />
+          </TouchableOpacity>
+        </Group>
 
         <SectionHeader label={s.settings.privacy.title} />
-
-        <SettingsRow
-          icon={<Shield size={20} color={color.textSecondary} />}
-          label={s.settings.privacy.constitution}
-          onPress={() => navigation.navigate('PrivacyConstitution')}
-          chevron={<ChevronIcon size={18} color={color.textMuted} />}
-          isFirst
-        />
-        <SettingsRow
-          icon={<Trash2 size={20} color={color.error} />}
-          label={s.settings.privacy.deleteData}
-          labelStyle={{ color: color.error }}
-          onPress={handleDeleteData}
-          isLast
-        />
+        <Group>
+          <SettingsRow
+            Icon={Shield}
+            tint={color.status.calm}
+            label={s.settings.privacy.constitution}
+            onPress={() => navigation.navigate('PrivacyConstitution')}
+            chevron={<ChevronIcon size={18} color={color.textMuted} />}
+          />
+          <SettingsRow
+            Icon={Trash2}
+            tint={color.error}
+            label={s.settings.privacy.deleteData}
+            destructive
+            onPress={handleDeleteData}
+          />
+        </Group>
 
         <SectionHeader label={s.settings.notifications.title} />
-
-        <ToggleRow
-          icon={<Bell size={20} color={color.textSecondary} />}
-          label={s.settings.notifications.nearby}
-          value={notifNearby}
-          onValueChange={v => handleToggle(StorageKeys.NOTIFICATION_NEARBY, v, setNotifNearby)}
-          isFirst
-        />
-        <ToggleRow
-          icon={<Bell size={20} color={color.textSecondary} />}
-          label={s.settings.notifications.statusChanges}
-          value={notifStatus}
-          onValueChange={v => handleToggle(StorageKeys.NOTIFICATION_STATUS, v, setNotifStatus)}
-        />
-        <ToggleRow
-          icon={<Bell size={20} color={color.textSecondary} />}
-          label={s.settings.notifications.followUp}
-          value={notifFollowup}
-          onValueChange={v => handleToggle(StorageKeys.NOTIFICATION_FOLLOWUP, v, setNotifFollowup)}
-          isLast
-        />
+        <Group>
+          <ToggleRow
+            Icon={Siren}
+            tint={color.accent}
+            label={s.settings.notifications.nearby}
+            value={notifNearby}
+            onValueChange={v => handleToggle(StorageKeys.NOTIFICATION_NEARBY, v, setNotifNearby)}
+          />
+          <ToggleRow
+            Icon={Radio}
+            tint={color.status.watch}
+            label={s.settings.notifications.statusChanges}
+            value={notifStatus}
+            onValueChange={v => handleToggle(StorageKeys.NOTIFICATION_STATUS, v, setNotifStatus)}
+          />
+          <ToggleRow
+            Icon={MessageCircle}
+            tint={color.status.calm}
+            label={s.settings.notifications.followUp}
+            value={notifFollowup}
+            onValueChange={v => handleToggle(StorageKeys.NOTIFICATION_FOLLOWUP, v, setNotifFollowup)}
+          />
+        </Group>
 
         <SectionHeader label={s.settings.about.title} />
-        <SettingsRow
-          icon={<Info size={20} color={color.textSecondary} />}
-          label={s.settings.about.version}
-          value={APP_VERSION}
-          onPress={() => navigation.navigate('About')}
-          chevron={<ChevronIcon size={18} color={color.textMuted} />}
-          isFirst
-          isLast
-        />
+        <Group>
+          <SettingsRow
+            Icon={Info}
+            tint={color.textSecondary}
+            label={s.settings.about.version}
+            value={APP_VERSION}
+            onPress={() => navigation.navigate('About')}
+            chevron={<ChevronIcon size={18} color={color.textMuted} />}
+          />
+        </Group>
 
         <SectionHeader label={s.settings.support.title} />
-        <SettingsRow
-          icon={<HelpCircle size={20} color={color.textSecondary} />}
-          label={s.settings.support.howItWorks}
-          onPress={() => navigation.navigate('PrivacyConstitution')}
-          chevron={<ChevronIcon size={18} color={color.textMuted} />}
-          isFirst
-        />
-        <SettingsRow
-          icon={<Mail size={20} color={color.textSecondary} />}
-          label={s.settings.support.contact}
-          onPress={handleContact}
-          isLast
-        />
+        <Group>
+          <SettingsRow
+            Icon={HelpCircle}
+            tint={color.textSecondary}
+            label={s.settings.support.howItWorks}
+            onPress={() => navigation.navigate('PrivacyConstitution')}
+            chevron={<ChevronIcon size={18} color={color.textMuted} />}
+          />
+          <SettingsRow
+            Icon={Mail}
+            tint={color.textSecondary}
+            label={s.settings.support.contact}
+            onPress={handleContact}
+          />
+        </Group>
       </ScrollView>
     </SafeAreaView>
   );
@@ -249,54 +275,78 @@ const SectionHeader = ({ label }: { label: string }): React.ReactElement => (
   </Text>
 );
 
+// Inset-grouped card (iOS Settings style): one elevated white card per
+// section; dividers are inserted between children automatically.
+const Group = ({ children }: { children: React.ReactNode }): React.ReactElement => {
+  const items = React.Children.toArray(children);
+  return (
+    <View style={styles.group}>
+      {items.map((child, i) => (
+        <View key={i} style={i < items.length - 1 ? styles.divider : null}>
+          {child}
+        </View>
+      ))}
+    </View>
+  );
+};
+
+// Tinted icon badge — the same visual language as feed cards and the
+// category grid, so settings reads as part of the same family.
+const IconBadge = ({
+  Icon,
+  tint,
+}: {
+  Icon: React.ComponentType<IconProps>;
+  tint: string;
+}): React.ReactElement => (
+  <View style={[styles.iconBadge, { backgroundColor: tint + '14' }]}>
+    <Icon size={18} color={tint} />
+  </View>
+);
+
 interface SettingsRowProps {
-  icon: React.ReactNode;
+  Icon: React.ComponentType<IconProps>;
+  tint: string;
   label: string;
-  labelStyle?: import('react-native').StyleProp<import('react-native').TextStyle>;
   value?: string;
+  destructive?: boolean;
   onPress: () => void;
   chevron?: React.ReactNode;
-  isFirst?: boolean;
-  isLast?: boolean;
 }
 
 const SettingsRow = ({
-  icon, label, labelStyle, value, onPress, chevron, isFirst, isLast,
+  Icon, tint, label, value, destructive, onPress, chevron,
 }: SettingsRowProps): React.ReactElement => (
-  <TouchableOpacity
-    style={[styles.row, isFirst && styles.rowFirst, isLast && styles.rowLast]}
-    onPress={onPress}
-    activeOpacity={0.7}>
-    {icon}
+  <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
+    <IconBadge Icon={Icon} tint={tint} />
     <View style={styles.rowBody}>
-      <Text style={labelStyle}>{label}</Text>
-      {value && <Text secondary variant="caption">{value}</Text>}
+      <Text style={destructive ? styles.destructiveLabel : undefined}>{label}</Text>
+      {value ? <Text secondary variant="caption">{value}</Text> : null}
     </View>
     {chevron}
   </TouchableOpacity>
 );
 
 interface ToggleRowProps {
-  icon: React.ReactNode;
+  Icon: React.ComponentType<IconProps>;
+  tint: string;
   label: string;
   value: boolean;
   onValueChange: (v: boolean) => void;
-  isFirst?: boolean;
-  isLast?: boolean;
 }
 
 const ToggleRow = ({
-  icon, label, value, onValueChange, isFirst, isLast,
+  Icon, tint, label, value, onValueChange,
 }: ToggleRowProps): React.ReactElement => (
-  <View style={[styles.row, isFirst && styles.rowFirst, isLast && styles.rowLast]}>
-    {icon}
+  <View style={styles.row}>
+    <IconBadge Icon={Icon} tint={tint} />
     <View style={styles.rowBody}>
       <Text>{label}</Text>
     </View>
     <Switch
       value={value}
       onValueChange={onValueChange}
-      trackColor={{ false: color.border, true: color.accent }}
+      trackColor={{ false: color.border, true: color.status.calm }}
       thumbColor={color.textOnAccent}
     />
   </View>
@@ -312,11 +362,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space(2),
-    paddingHorizontal: space(3),
-    paddingVertical: space(2),
-    borderBottomWidth: 1,
+    gap: space(1),
+    paddingHorizontal: space(2),
+    paddingVertical: space(1.5),
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: color.border,
+  },
+  backBtn: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scroll: {
     flex: 1,
@@ -330,35 +386,43 @@ const styles = StyleSheet.create({
     paddingBottom: space(1),
     letterSpacing: 0.8,
   },
-  // Inset-grouped rows (iOS Settings style): white cards floating on the
-  // light background, first/last rows rounded.
+  group: {
+    marginHorizontal: space(2),
+    backgroundColor: color.card,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+    overflow: 'hidden',
+    ...shadow.card,
+  },
+  divider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: color.border,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: color.card,
-    marginHorizontal: space(2),
     paddingHorizontal: space(2),
     paddingVertical: space(1.5),
     minHeight: 56,
-    gap: space(2),
-    borderBottomWidth: 0.5,
-    borderBottomColor: color.border,
-  },
-  rowFirst: {
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-  },
-  rowLast: {
-    borderBottomWidth: 0,
-    borderBottomLeftRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
+    gap: space(1.75),
   },
   rowBody: {
     flex: 1,
     gap: 2,
   },
+  iconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  destructiveLabel: {
+    color: color.error,
+  },
   identifierValue: {
-    fontFamily: 'JetBrainsMono-Regular',
+    fontFamily: font.mono,
     letterSpacing: 0.5,
   },
 });

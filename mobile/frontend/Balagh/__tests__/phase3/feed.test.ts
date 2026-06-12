@@ -1,5 +1,11 @@
 import { db } from '../../src/data/mock/db';
-import { filterIncidents, FEED_RANGE_HOURS } from '../../src/domain/feed/filters';
+import {
+  countByCategory,
+  countByLocality,
+  countByRange,
+  filterIncidents,
+  FEED_RANGE_HOURS,
+} from '../../src/domain/feed/filters';
 import type { Incident } from '../../src/core/types';
 
 const HOUR_MS = 3_600_000;
@@ -159,6 +165,61 @@ describe('feed history filters', () => {
       now,
     });
     expect(out.map(i => i.id).sort()).toEqual(['f-3days', 'f-3weeks']);
+  });
+
+  it('facet counts per locality honor the active time range', () => {
+    // Last month: f-today (umm-al-fahm) + f-3days/f-3weeks (nazareth)
+    const counts = countByLocality(dataset, { range: 'month', now });
+    expect(counts['umm-al-fahm']).toBe(1);
+    expect(counts.nazareth).toBe(2);
+
+    // Narrower range drops the older Nazareth incidents
+    const weekCounts = countByLocality(dataset, { range: 'week', now });
+    expect(weekCounts.nazareth).toBe(1);
+  });
+
+  it('facet counts per locality ignore the locality selection itself', () => {
+    // Even with Nazareth selected, other cities still show their own counts
+    const counts = countByLocality(dataset, {
+      range: 'month',
+      localityIds: ['nazareth'],
+      now,
+    });
+    expect(counts['umm-al-fahm']).toBe(1);
+    expect(counts.nazareth).toBe(2);
+  });
+
+  it('facet counts per category honor range and locality filters', () => {
+    const mixed = [
+      ...dataset,
+      makeIncident('f-gunfire-naz', {
+        category: 'GUNFIRE',
+        localityId: 'nazareth',
+        createdAt: at(5),
+      }),
+    ];
+    const counts = countByCategory(mixed, {
+      range: 'day',
+      localityIds: ['nazareth'],
+      // The category selection itself must be ignored
+      categories: ['ROBBERY'],
+      now,
+    });
+    expect(counts.GUNFIRE).toBe(1);
+    expect(counts.SUSPICIOUS ?? 0).toBe(0); // f-today is in umm-al-fahm
+  });
+
+  it('facet counts per range honor locality and category filters', () => {
+    const counts = countByRange(dataset, {
+      range: 'day', // ignored — every preset range gets its own count
+      localityIds: ['nazareth'],
+      now,
+    });
+    expect(counts.day).toBe(0);
+    expect(counts.week).toBe(1);
+    expect(counts.month).toBe(2);
+    expect(counts.quarter).toBe(3);
+    expect(counts.year).toBe(3);
   });
 
   it('custom range with open bounds falls back to no cut-off on that side', () => {

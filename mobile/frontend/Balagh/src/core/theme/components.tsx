@@ -11,7 +11,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { create } from 'zustand';
-import { color, font, fontSize, hit, radius, shadow, space } from './tokens';
+import { color, font, fontSize, formatNumber, hit, radius, shadow, space } from './tokens';
 import type { Severity } from '../types';
 
 // ── Script store — reactive so all mounted Text components re-render on language change ──
@@ -148,10 +148,12 @@ export const Button = ({
 interface ChipProps extends TouchableOpacityProps {
   label: string;
   active?: boolean;
+  /** Optional facet count rendered as a small badge inside the chip. */
+  count?: number;
 }
 
 // Modern soft chips: borderless inset pill when idle, solid accent when active.
-export const Chip = ({ label, active, style, ...props }: ChipProps): React.ReactElement => (
+export const Chip = ({ label, active, count, style, ...props }: ChipProps): React.ReactElement => (
   <TouchableOpacity
     activeOpacity={0.7}
     style={[
@@ -163,6 +165,15 @@ export const Chip = ({ label, active, style, ...props }: ChipProps): React.React
     <Text variant="label" style={{ color: active ? color.textOnAccent : color.textSecondary }}>
       {label}
     </Text>
+    {typeof count === 'number' ? (
+      <View style={[styles.chipCount, active ? styles.chipCountActive : styles.chipCountIdle]}>
+        <Text
+          variant="caption"
+          style={{ color: active ? color.textOnAccent : color.textSecondary }}>
+          {formatNumber(count)}
+        </Text>
+      </View>
+    ) : null}
   </TouchableOpacity>
 );
 
@@ -217,12 +228,29 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   chip: {
+    flexDirection: 'row',
+    gap: space(0.75),
     borderRadius: radius.pill,
     paddingHorizontal: space(1.75),
     paddingVertical: space(0.75),
     minHeight: 34,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chipCount: {
+    borderRadius: radius.pill,
+    minWidth: 22,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Translucent white wash on the solid accent chip; plain card on idle gray.
+  chipCountActive: {
+    backgroundColor: '#FFFFFF33',
+  },
+  chipCountIdle: {
+    backgroundColor: color.card,
   },
   severityPill: {
     flexDirection: 'row',

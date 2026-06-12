@@ -46,8 +46,15 @@ import { relativeTime } from '../core/format/time';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
 import { useLangStore } from '../domain/stores/lang';
-import { FEED_MORE_RANGES, FEED_RANGES, filterIncidents } from '../domain/feed/filters';
-import type { FeedRangeKey } from '../domain/feed/filters';
+import {
+  countByCategory,
+  countByLocality,
+  countByRange,
+  FEED_MORE_RANGES,
+  FEED_RANGES,
+  filterIncidents,
+} from '../domain/feed/filters';
+import type { FeedFilter, FeedRangeKey } from '../domain/feed/filters';
 import { DateRangeCalendar } from '../presentation/components/DateRangeCalendar';
 import type { DateRange } from '../presentation/components/DateRangeCalendar';
 import { db, LOCALITIES } from '../data/mock/db';
@@ -69,6 +76,8 @@ interface PickerItem {
   sub?: string;
   /** Extra text the search matches against (e.g. names in other scripts). */
   keywords?: string;
+  /** Facet count under the current other filters (e.g. last-month incidents). */
+  count?: number;
   Icon: React.ComponentType<IconProps>;
 }
 
@@ -196,6 +205,11 @@ const MultiPickerModal = ({
                     <Text variant="caption" muted>{item.sub}</Text>
                   ) : null}
                 </View>
+                {typeof item.count === 'number' ? (
+                  <View style={pickerStyles.countPill}>
+                    <Text variant="caption" secondary>{formatNumber(item.count)}</Text>
+                  </View>
+                ) : null}
                 <View style={[pickerStyles.checkbox, active && pickerStyles.checkboxActive]}>
                   {active && <Check size={13} color={color.textOnAccent} />}
                 </View>
@@ -231,6 +245,10 @@ interface MoreFiltersProps {
   range: FeedRangeKey;
   customRange: DateRange;
   lang: AppLanguage;
+  /** Facet counts for the preset ranges under the other active filters. */
+  rangeCounts: Record<Exclude<FeedRangeKey, 'custom'>, number>;
+  /** Count for a pending custom range under the other active filters. */
+  getCustomCount: (range: DateRange) => number;
   onApply: (range: FeedRangeKey, customRange: DateRange) => void;
   onClose: () => void;
 }
@@ -240,6 +258,8 @@ const MoreFiltersModal = ({
   range,
   customRange,
   lang,
+  rangeCounts,
+  getCustomCount,
   onApply,
   onClose,
 }: MoreFiltersProps): React.ReactElement => {
@@ -292,6 +312,9 @@ const MoreFiltersModal = ({
                   {s.feed.ranges[key]}
                 </Text>
               </View>
+              <View style={pickerStyles.countPill}>
+                <Text variant="caption" secondary>{formatNumber(rangeCounts[key])}</Text>
+              </View>
               {active && <Check size={18} color={color.accent} />}
             </TouchableOpacity>
           );
@@ -315,7 +338,11 @@ const MoreFiltersModal = ({
         <DateRangeCalendar lang={lang} range={pending} onChange={setPending} />
 
         <Button
-          label={s.feed.apply}
+          label={
+            pending.from !== null && pending.to !== null
+              ? `${s.feed.apply} (${formatNumber(getCustomCount(pending))})`
+              : s.feed.apply
+          }
           variant="primary"
           fullWidth
           disabled={pending.from === null || pending.to === null}
@@ -378,16 +405,45 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
     return () => clearInterval(id);
   }, []);
 
+  const activeFilter = useMemo<FeedFilter>(
+    () => ({
+      range,
+      localityIds,
+      categories,
+      customFrom: customRange.from,
+      customTo: customRange.to,
+    }),
+    [range, localityIds, categories, customRange],
+  );
+
   const visible = useMemo(
-    () =>
+    () => filterIncidents(incidents, activeFilter),
+    [incidents, activeFilter],
+  );
+
+  // Facet counts — every filter option shows how many incidents it matches
+  // under the user's other active filters (its own dimension is ignored).
+  const localityCounts = useMemo(
+    () => countByLocality(incidents, activeFilter),
+    [incidents, activeFilter],
+  );
+  const categoryCounts = useMemo(
+    () => countByCategory(incidents, activeFilter),
+    [incidents, activeFilter],
+  );
+  const rangeCounts = useMemo(
+    () => countByRange(incidents, activeFilter),
+    [incidents, activeFilter],
+  );
+  const getCustomCount = useCallback(
+    (pending: DateRange): number =>
       filterIncidents(incidents, {
-        range,
-        localityIds,
-        categories,
-        customFrom: customRange.from,
-        customTo: customRange.to,
-      }),
-    [incidents, range, localityIds, categories, customRange],
+        ...activeFilter,
+        range: 'custom',
+        customFrom: pending.from,
+        customTo: pending.to,
+      }).length,
+    [incidents, activeFilter],
   );
 
   // Multi-select button labels: "first selection +N" when several are chosen.
@@ -415,9 +471,10 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
         label: localityName(loc, lang),
         sub: lang !== 'ar' ? loc.nameAr : undefined,
         keywords: `${loc.nameAr} ${loc.nameHe} ${loc.nameEn}`,
+        count: localityCounts[loc.id] ?? 0,
         Icon: MapPin,
       })),
-    [lang],
+    [lang, localityCounts],
   );
 
   const typeItems = useMemo<PickerItem[]>(
@@ -425,9 +482,10 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
       (Object.keys(CATEGORY_ICON) as Category[]).map(cat => ({
         id: cat,
         label: s.category[cat],
+        count: categoryCounts[cat] ?? 0,
         Icon: CATEGORY_ICON[cat],
       })),
-    [s],
+    [s, categoryCounts],
   );
 
   const toggleIn = <T extends string>(list: T[], id: T): T[] =>
@@ -521,6 +579,7 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
             <Chip
               key={key}
               label={s.feed.ranges[key]}
+              count={rangeCounts[key]}
               active={range === key}
               onPress={() => {
                 haptics.toggle();
@@ -694,6 +753,8 @@ const FeedScreen = ({ navigation }: FeedProps): React.ReactElement => {
         range={range}
         customRange={customRange}
         lang={lang}
+        rangeCounts={rangeCounts}
+        getCustomCount={getCustomCount}
         onApply={(nextRange, nextCustom) => {
           setRange(nextRange);
           setCustomRange(nextCustom);
@@ -932,6 +993,15 @@ const pickerStyles = StyleSheet.create({
   },
   rowLabelActive: {
     color: color.accent,
+  },
+  countPill: {
+    backgroundColor: color.cardElevated,
+    borderRadius: radius.pill,
+    minWidth: 26,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkbox: {
     width: 20,

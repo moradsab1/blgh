@@ -47,6 +47,47 @@ export interface FeedFilter {
   now?: number;
 }
 
+// ── Facet counts ──────────────────────────────────────────────────────────────
+// Each filter option shows how many incidents it would match under the user's
+// OTHER active filters (e.g. with "last month" active, every city row shows
+// that city's last-month count). The option's own dimension is ignored so all
+// of its choices stay comparable.
+
+/** Per-locality counts honoring the range + category filters. */
+export function countByLocality(
+  incidents: Incident[],
+  filter: FeedFilter,
+): Record<string, number> {
+  const matched = filterIncidents(incidents, { ...filter, localityIds: [] });
+  const out: Record<string, number> = {};
+  for (const i of matched) out[i.localityId] = (out[i.localityId] ?? 0) + 1;
+  return out;
+}
+
+/** Per-category counts honoring the range + locality filters. */
+export function countByCategory(
+  incidents: Incident[],
+  filter: FeedFilter,
+): Partial<Record<Category, number>> {
+  const matched = filterIncidents(incidents, { ...filter, categories: [] });
+  const out: Partial<Record<Category, number>> = {};
+  for (const i of matched) out[i.category] = (out[i.category] ?? 0) + 1;
+  return out;
+}
+
+/** Count per preset time range honoring the locality + category filters. */
+export function countByRange(
+  incidents: Incident[],
+  filter: FeedFilter,
+): Record<Exclude<FeedRangeKey, 'custom'>, number> {
+  const keys = Object.keys(FEED_RANGE_HOURS) as Exclude<FeedRangeKey, 'custom'>[];
+  const out = {} as Record<Exclude<FeedRangeKey, 'custom'>, number>;
+  for (const key of keys) {
+    out[key] = filterIncidents(incidents, { ...filter, range: key }).length;
+  }
+  return out;
+}
+
 export function filterIncidents(incidents: Incident[], filter: FeedFilter): Incident[] {
   const now = filter.now ?? Date.now();
 

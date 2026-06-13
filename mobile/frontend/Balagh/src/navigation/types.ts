@@ -19,6 +19,7 @@ export type RootStackParamList = {
   Inbox: undefined;
   Settings: undefined;
   PrivacyConstitution: undefined;
+  HowItWorks: undefined;
   About: undefined;
 };
 

@@ -252,7 +252,7 @@ const SettingsScreen = ({ navigation }: SettingsProps): React.ReactElement => {
             Icon={HelpCircle}
             tint={color.textSecondary}
             label={s.settings.support.howItWorks}
-            onPress={() => navigation.navigate('PrivacyConstitution')}
+            onPress={() => navigation.navigate('HowItWorks')}
             chevron={<ChevronIcon size={18} color={color.textMuted} />}
           />
           <SettingsRow

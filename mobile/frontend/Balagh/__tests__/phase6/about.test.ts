@@ -1,15 +1,16 @@
+/// <reference types="node" />
+import * as fs from 'fs';
+import * as path from 'path';
 import { strings } from '../../src/core/strings';
-import { OSS_LIBRARIES, GITHUB_URL } from '../../src/core/oss';
 
 const ar = strings.ar;
 const he = strings.he;
 const en = strings.en;
 
-describe('About — string completeness', () => {
-  const KEYS: (keyof typeof ar.about)[] = [
-    'title', 'tagline', 'versionLabel', 'licenseTitle', 'license',
-    'licenseNote', 'sourceTitle', 'sourceLabel', 'acknowledgements', 'ossNote',
-  ];
+const ABOUT_SCREEN = path.join(__dirname, '../../src/screens/settings/About.tsx');
+
+describe('About — string completeness (general info only)', () => {
+  const KEYS: (keyof typeof ar.about)[] = ['title', 'tagline', 'mission', 'versionLabel'];
 
   it('all About strings exist in every locale', () => {
     for (const s of [ar, he, en]) {
@@ -19,36 +20,41 @@ describe('About — string completeness', () => {
     }
   });
 
-  it('license is Apache 2.0 in every locale', () => {
+  it('About mentions no GitHub link or library list in any locale', () => {
     for (const s of [ar, he, en]) {
-      expect(s.about.license).toBe('Apache License 2.0');
+      const all = JSON.stringify(s.about).toLowerCase();
+      expect(all).not.toContain('github');
+      expect(all).not.toContain('apache');
     }
   });
 });
 
-describe('About — open-source acknowledgements', () => {
-  it('lists at least the eight runtime dependencies', () => {
-    expect(OSS_LIBRARIES.length).toBeGreaterThanOrEqual(8);
+describe('About screen — no source link / OSS list', () => {
+  it('the screen references no GitHub URL or OSS catalog', () => {
+    const src = fs.readFileSync(ABOUT_SCREEN, 'utf8');
+    expect(src).not.toMatch(/github/i);
+    expect(src).not.toMatch(/OSS_LIBRARIES/);
+    expect(src).not.toMatch(/Linking/);
   });
+});
 
-  it('is sorted alphabetically by name', () => {
-    const names = OSS_LIBRARIES.map(l => l.name);
-    const sorted = [...names].sort((a, b) => a.localeCompare(b));
-    expect(names).toEqual(sorted);
-  });
-
-  it('contains no duplicate library names', () => {
-    const names = OSS_LIBRARIES.map(l => l.name);
-    expect(new Set(names).size).toBe(names.length);
-  });
-
-  it('every entry carries a license', () => {
-    for (const lib of OSS_LIBRARIES) {
-      expect(lib.license).toBeTruthy();
+describe('How it works — its own screen, not the Privacy Constitution', () => {
+  it('has four localized steps in every locale', () => {
+    for (const s of [ar, he, en]) {
+      expect(s.howItWorks.title).toBeTruthy();
+      expect(s.howItWorks.steps).toHaveLength(4);
+      for (const step of s.howItWorks.steps) {
+        expect(step.title).toBeTruthy();
+        expect(step.body).toBeTruthy();
+      }
     }
   });
 
-  it('exposes a single GitHub source link', () => {
-    expect(GITHUB_URL).toMatch(/^https:\/\/github\.com\//);
+  it('Settings routes support → HowItWorks (no duplicate constitution page)', () => {
+    const settings = fs.readFileSync(
+      path.join(__dirname, '../../src/screens/settings/Settings.tsx'),
+      'utf8',
+    );
+    expect(settings).toMatch(/howItWorks[\s\S]{0,200}navigate\('HowItWorks'\)/);
   });
 });

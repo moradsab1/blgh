@@ -7,19 +7,24 @@ const repo = new MockNotificationRepo();
 
 const LABELS = { today: 'Today', yesterday: 'Yesterday', lastWeek: 'This Week' };
 
+// Fixed mid-day reference time so day-bucket assertions are deterministic —
+// "5 minutes ago" relative to a real clock just past midnight would land in
+// yesterday's bucket and flake.
+const NOW = new Date('2026-06-10T12:00:00');
+
 const makeNotif = (id: string, msAgo: number, read = false): AppNotification => ({
   id,
   type: 'nearby',
   title: `Notification ${id}`,
   body: 'test body',
-  createdAt: new Date(Date.now() - msAgo).toISOString(),
+  createdAt: new Date(NOW.getTime() - msAgo).toISOString(),
   read,
 });
 
 describe('inbox grouping', () => {
   it('groups a notification from today into the Today bucket', () => {
     const notifs = [makeNotif('t1', 5 * 60_000)]; // 5 min ago
-    const groups = groupNotifications(notifs, LABELS);
+    const groups = groupNotifications(notifs, LABELS, NOW);
     expect(groups).toHaveLength(1);
     expect(groups[0].key).toBe('today');
     expect(groups[0].data).toHaveLength(1);
@@ -27,19 +32,19 @@ describe('inbox grouping', () => {
 
   it('groups a notification from yesterday into the Yesterday bucket', () => {
     const notifs = [makeNotif('y1', 26 * 3_600_000)]; // 26h ago
-    const groups = groupNotifications(notifs, LABELS);
+    const groups = groupNotifications(notifs, LABELS, NOW);
     expect(groups[0].key).toBe('yesterday');
   });
 
   it('groups a notification from 3 days ago into the Last Week bucket', () => {
     const notifs = [makeNotif('w1', 3 * 86_400_000)]; // 3 days ago
-    const groups = groupNotifications(notifs, LABELS);
+    const groups = groupNotifications(notifs, LABELS, NOW);
     expect(groups[0].key).toBe('lastWeek');
   });
 
   it('groups a notification older than 7 days into its own date bucket', () => {
     const notifs = [makeNotif('o1', 10 * 86_400_000)]; // 10 days ago
-    const groups = groupNotifications(notifs, LABELS);
+    const groups = groupNotifications(notifs, LABELS, NOW);
     expect(groups[0].key).not.toMatch(/^(today|yesterday|lastWeek)$/);
   });
 
@@ -49,7 +54,7 @@ describe('inbox grouping', () => {
       makeNotif('a2', 20 * 60_000),
       makeNotif('a3', 30 * 60_000),
     ];
-    const groups = groupNotifications(notifs, LABELS);
+    const groups = groupNotifications(notifs, LABELS, NOW);
     expect(groups).toHaveLength(1);
     expect(groups[0].data).toHaveLength(3);
   });
@@ -60,7 +65,7 @@ describe('inbox grouping', () => {
       makeNotif('b2', 26 * 3_600_000),      // yesterday
       makeNotif('b3', 3 * 86_400_000),      // last week
     ];
-    const groups = groupNotifications(notifs, LABELS);
+    const groups = groupNotifications(notifs, LABELS, NOW);
     expect(groups).toHaveLength(3);
   });
 
@@ -69,7 +74,7 @@ describe('inbox grouping', () => {
       makeNotif('c1', 5 * 60_000),
       makeNotif('c2', 15 * 60_000),
     ];
-    const groups = groupNotifications(notifs, LABELS);
+    const groups = groupNotifications(notifs, LABELS, NOW);
     expect(groups[0].data[0].id).toBe('c1');
     expect(groups[0].data[1].id).toBe('c2');
   });

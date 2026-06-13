@@ -302,14 +302,17 @@ const ar = {
   about: {
     title: 'حول بلاغ',
     tagline: 'منصة تقارير مجتمعية تحمي الخصوصية',
+    mission: 'بلاغ منصة مجتمعية مستقلة تتيح لسكان البلدات تبادل تنبيهات الأمان لحظياً — بدون حسابات، بدون أرقام هواتف، وبدون أي جهة رسمية. هدفنا واحد: أن يعرف جيرانك ما يحدث حولهم في الوقت المناسب.',
     versionLabel: 'الإصدار',
-    licenseTitle: 'الرخصة',
-    license: 'Apache License 2.0',
-    licenseNote: 'هذا التطبيق برمجية حرّة مفتوحة المصدر.',
-    sourceTitle: 'الكود المصدري',
-    sourceLabel: 'عرض على GitHub',
-    acknowledgements: 'شكر وتقدير',
-    ossNote: 'بُني بلاغ باستخدام المكتبات مفتوحة المصدر التالية:',
+  },
+  howItWorks: {
+    title: 'كيف يعمل بلاغ؟',
+    steps: [
+      { title: 'أبلغ خلال ثوانٍ', body: 'اختر نوع الحادثة ووصفاً جاهزاً — يُرسل البلاغ من موقعك بشكل مجهول تماماً.' },
+      { title: 'يصل إلى من حولك', body: 'يظهر البلاغ على الخريطة كدائرة تغطي نحو 150 متراً لإخفاء الموقع الدقيق، ويبقى لمدة 24 ساعة.' },
+      { title: 'حالة منطقتك أمامك دائماً', body: 'مؤشر هادئ / يقظة / خطر نشط يُحسب تلقائياً من البلاغات القريبة منك.' },
+      { title: 'خصوصيتك أولاً', body: 'بدون حساب وبدون رقم هاتف وبدون مشاركة أي بيانات مع أي جهة — بياناتك تبقى على جهازك.' },
+    ],
   },
   updateGate: {
     title: 'يلزم تحديث التطبيق',
@@ -580,14 +583,17 @@ const he: typeof ar = {
   about: {
     title: "אודות בלאג'",
     tagline: 'פלטפורמת דיווח קהילתי ששומרת על פרטיות',
+    mission: "בלאג' היא פלטפורמה קהילתית עצמאית המאפשרת לתושבים לשתף התרעות בטיחות בזמן אמת — בלי חשבונות, בלי מספרי טלפון ובלי שום גורם רשמי. מטרה אחת: שהשכנים שלך יידעו מה קורה סביבם בזמן.",
     versionLabel: 'גרסה',
-    licenseTitle: 'רישיון',
-    license: 'Apache License 2.0',
-    licenseNote: 'אפליקציה זו היא תוכנה חופשית בקוד פתוח.',
-    sourceTitle: 'קוד המקור',
-    sourceLabel: 'צפה ב-GitHub',
-    acknowledgements: 'תודות',
-    ossNote: "בלאג' נבנה באמצעות ספריות הקוד הפתוח הבאות:",
+  },
+  howItWorks: {
+    title: "איך בלאג' עובד?",
+    steps: [
+      { title: 'דווח תוך שניות', body: 'בחר את סוג האירוע ותיאור מוכן — הדיווח נשלח ממיקומך באופן אנונימי לחלוטין.' },
+      { title: 'מגיע לסביבה שלך', body: 'הדיווח מופיע על המפה כעיגול המכסה כ-150 מטר כדי להסתיר את המיקום המדויק, ונשאר 24 שעות.' },
+      { title: 'מצב האזור תמיד לפניך', body: 'מחוון רגוע / ערנות / סכנה פעילה מחושב אוטומטית מהדיווחים הסמוכים אליך.' },
+      { title: 'הפרטיות שלך קודמת', body: 'בלי חשבון, בלי מספר טלפון ובלי שיתוף נתונים עם אף גורם — המידע נשאר במכשיר שלך.' },
+    ],
   },
   updateGate: {
     title: 'נדרש עדכון לאפליקציה',
@@ -858,14 +864,17 @@ const en: typeof ar = {
   about: {
     title: 'About Balagh',
     tagline: 'A privacy-protecting community reporting platform',
+    mission: 'Balagh is an independent community platform that lets residents share real-time safety alerts — no accounts, no phone numbers, and no official authority involved. One goal: that your neighbors know what is happening around them in time.',
     versionLabel: 'Version',
-    licenseTitle: 'License',
-    license: 'Apache License 2.0',
-    licenseNote: 'This app is free and open-source software.',
-    sourceTitle: 'Source Code',
-    sourceLabel: 'View on GitHub',
-    acknowledgements: 'Acknowledgements',
-    ossNote: 'Balagh is built with the following open-source libraries:',
+  },
+  howItWorks: {
+    title: 'How does Balagh work?',
+    steps: [
+      { title: 'Report in seconds', body: 'Pick the incident type and a prepared description — your report is sent from your location, fully anonymously.' },
+      { title: 'Reaches people around you', body: 'The report appears on the map as a circle covering about 150 m to hide the exact location, and stays for 24 hours.' },
+      { title: 'Your area status, always visible', body: 'A calm / watch / active indicator is computed automatically from reports near you.' },
+      { title: 'Privacy first', body: 'No account, no phone number, no data shared with anyone — your data stays on your device.' },
+    ],
   },
   updateGate: {
     title: 'App Update Required',

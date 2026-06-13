@@ -21,6 +21,7 @@ import CrisisSuccessScreen from '../screens/crisis/CrisisSuccess';
 import InboxScreen from '../screens/Inbox';
 import FollowUpScreen from '../screens/FollowUp';
 import PrivacyConstitutionScreen from '../screens/settings/PrivacyConstitution';
+import HowItWorksScreen from '../screens/settings/HowItWorks';
 import AboutScreen from '../screens/settings/About';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -70,6 +71,7 @@ export const RootNavigator = (): React.ReactElement => (
     <Stack.Screen name="CrisisSuccess" component={CrisisSuccessScreen} initialParams={{ ref: '' }} />
     <Stack.Screen name="FollowUp" component={FollowUpScreen} initialParams={{ ref: '' }} />
     <Stack.Screen name="PrivacyConstitution" component={PrivacyConstitutionScreen} />
+    <Stack.Screen name="HowItWorks" component={HowItWorksScreen} />
     <Stack.Screen name="About" component={AboutScreen} />
   </Stack.Navigator>
 );

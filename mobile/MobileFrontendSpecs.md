@@ -169,7 +169,7 @@ Sits in the bottom action tray's end slot; appears when panned away from locatio
 ### 5.9 Bottom Action Tray
 Controls float free over the map, each with its own elevation (no dark band). Three balanced flex slots keep the primary action centered:
 - **Feed pill** (start slot): white pill, *"قائمة الحوادث"* + list icon → Incidents Feed drawer.
-- **Report FAB** (centered): **68×68 pt** orange circle with a 3 pt white ring, white plus glyph — dead-center at the bottom for one-handed reach. Breathes subtly when Calm; pulse **stops** on Watch/Active.
+- **Report FAB** (centered): **68×68 pt** orange circle with a 3 pt white ring, white plus glyph — dead-center and **raised ~20 pt above the side controls** so it reads as the bold focal action, not one button among three. Breathes subtly when Calm; pulse **stops** on Watch/Active.
 - **Recenter button** (end slot, conditional — §5.8).
 
 ### 5.10 Incidents Feed Drawer (history browser)

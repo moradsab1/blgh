@@ -229,13 +229,16 @@ Inset-grouped list (iOS Settings style): each section is an elevated white card 
 - **Privacy & Security:** Privacy Constitution · Delete my data (destructive, confirm — wipes everything, returns to onboarding).
 - **Notifications:** Toggles — Nearby incidents · Area status changes · Follow-up invitations. **All on by default.**
 - **About:** About · Version (long-press 5× → hidden debug screen).
-- **Support:** How does Balagh work? · Contact us (copies a `mailto:` link to clipboard — **no mail app opened**).
+- **Support:** How does Balagh work? (→ the §5.19b How It Works screen) · Contact us.
 
 ### 5.18 Privacy Constitution Screen
 From Settings or onboarding Slide 3. **Seven collapsible rule cards**, each with title + explanation + expandable *"كيف نضمن ذلك؟"*. If updated since last viewed, a *"محدّث"* badge shows in the Settings entry.
 
 ### 5.19 About Screen
-App name + version · logo · one-paragraph mission · Apache 2.0 license · OSS acknowledgements (alphabetical) · single GitHub link.
+General info only: logo · app name + tagline · one-paragraph mission · version pill. **No source-repository link, no license section, no OSS acknowledgements** (removed from the product).
+
+### 5.19b How It Works Screen
+Opened from Settings → Support (its own screen — it previously duplicated the Privacy Constitution). Four localized step cards with tinted icon badges and step numbers: report in seconds (prepared descriptions, anonymous) · reaches people around you (~150 m circle, 24 h) · area status (calm/watch/active) · privacy first (no account, data stays on device). Route: `HowItWorks`.
 
 ### 5.20 Permission Prompts
 **Location** — requested after locality selection, before first map load. Pre-prompt screen explains why. Options: **"تابع"** (native prompt) / **"ليس الآن"** (skip — map centers on locality, no user dot). Level: "while using the app". If denied: map still works + banner with *"الإعدادات"* link.
@@ -653,7 +656,7 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 
 ### Phase 6 — Polish & full working app *(final phase: everything wired, no stubs)*
 By the end of this phase the app is **fully working end-to-end** against the mock layer — onboarding, the live Mapbox map with mock pins, the feed, incident detail, reporting, the crisis flow, notifications, and settings all function with no placeholder screens remaining.
-- Privacy Constitution (7 collapsible rules + "كيف نضمن ذلك؟" + "محدّث" badge), About (Apache 2.0, alphabetical OSS list, single GitHub link), full Settings (change locality/language, notification toggles default-on, contact = share `mailto` via the built-in `Share` API, hidden debug via 5× long-press on version).
+- Privacy Constitution (7 collapsible rules + "كيف نضمن ذلك؟" + "محدّث" badge), About (general info only — logo, tagline, mission, version), the How It Works screen (§5.19b), full Settings (change locality/language, notification toggles default-on, contact = share `mailto` via the built-in `Share` API, hidden debug via 5× long-press on version).
 - App-icon long-press shortcut "بلاغ فوري آمن" → fires `balagh://crisis` (native shortcut wiring for Android + iOS Quick Action).
 - All error/edge states: generic ("تعذر التحميل") / network / map-load failure with retry, submit-fail banner, feed-empty ("منطقتك هادئة الآن") / search-empty, skeleton loaders (static under reduce-motion), offline indicator, non-dismissable **426 update gate**.
 - Safety hardening: Android `FLAG_SECURE` + iOS app-switcher blur on crisis/report screens; offline-region management UI in Settings.
@@ -909,8 +912,8 @@ Goal: the app is fully working end-to-end on the mock layer — onboarding, the 
 with mock pins, the feed, incident detail, reporting, the crisis flow,
 notifications, and settings all function with NO placeholder/StubScreen routes left.
 Build the Privacy Constitution screen (7 collapsible rule cards, each with a "كيف نضمن ذلك؟"
-expandable; "محدّث" badge when changed), the About screen (Apache 2.0, alphabetical OSS
-acknowledgements, single GitHub link), and the full Settings list (change locality, change
+expandable; "محدّث" badge when changed), the About screen (general info only:
+logo, tagline, mission, version), and the full Settings list (change locality, change
 language, notification toggles default-on, contact = share a mailto via the built-in Share API
 without opening a mail app, hidden debug via 5× long-press on version). Wire the app-icon
 long-press shortcut "بلاغ فوري آمن" to fire balagh://crisis (Android dynamic shortcut + iOS

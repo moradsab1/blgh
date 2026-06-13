@@ -6,8 +6,8 @@
  *  - Pulse ring on the highest-priority active incident
  *  - Safety status pill (top-left)
  *  - Floating toolbar (top-right): Inbox + Settings
- *  - Recenter FAB (bottom-right)
- *  - Bottom action tray: Feed pill + Report FAB
+ *  - Bottom action tray: Feed pill (start) + centered Report FAB +
+ *    Recenter button (end, when panned away)
  *  - IncidentDetailSheet (slide-up from bottom)
  *  - LocationPermissionOverlay (Modal, first-launch only)
  *  - Live updates via wsEventEmitter
@@ -966,39 +966,28 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         </View>
       )}
 
-      {/* ── Recenter FAB (bottom-right) ─────────────────────────────── */}
-      {isRecenterVisible && (
-        <TouchableOpacity
-          style={[
-            styles.recenterFab,
-            // Lifted clear of the action tray height (~80) on short devices.
-            { bottom: insets.bottom + 96 + space(2) },
-          ]}
-          onPress={handleRecenter}
-          activeOpacity={0.8}
-          testID="recenter-fab">
-          <Locate size={22} color={color.textPrimary} />
-        </TouchableOpacity>
-      )}
-
       {/* ── Bottom Action Tray ──────────────────────────────────────── */}
+      {/* Three balanced slots: Feed pill (start) · centered Report FAB ·
+          Recenter (end, shown when panned away) — the primary "add incident"
+          action sits dead-center for one-handed reach. */}
       <View
         style={[
           styles.actionTray,
           { paddingBottom: insets.bottom + space(1) },
         ]}>
-        {/* Feed pill */}
-        <TouchableOpacity
-          style={styles.feedPill}
-          onPress={() => navigation.navigate('Feed')}
-          activeOpacity={0.8}
-          testID="feed-pill">
-          <List size={16} color={color.textPrimary} />
-          <Text style={styles.feedPillText}>{s.map.feed}</Text>
-        </TouchableOpacity>
+        <View style={styles.trayStart}>
+          <TouchableOpacity
+            style={styles.feedPill}
+            onPress={() => navigation.navigate('Feed')}
+            activeOpacity={0.8}
+            testID="feed-pill">
+            <List size={16} color={color.textPrimary} />
+            <Text style={styles.feedPillText}>{s.map.feed}</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Report FAB — long-press routes to the Crisis fast-path. */}
-        <Animated.View style={{ transform: [{ scale: breatheAnim }] }}>
+        <Animated.View style={[styles.trayCenter, { transform: [{ scale: breatheAnim }] }]}>
           <TouchableOpacity
             style={styles.reportFab}
             onPress={() => navigation.navigate('ReportCategory')}
@@ -1010,9 +999,21 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
             accessibilityHint={s.map.longPressForCrisis}
             activeOpacity={0.8}
             testID="report-fab">
-            <Plus size={30} color={color.textOnAccent} />
+            <Plus size={32} color={color.textOnAccent} />
           </TouchableOpacity>
         </Animated.View>
+
+        <View style={styles.trayEnd}>
+          {isRecenterVisible && (
+            <TouchableOpacity
+              style={styles.recenterFab}
+              onPress={handleRecenter}
+              activeOpacity={0.8}
+              testID="recenter-fab">
+              <Locate size={22} color={color.textPrimary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Incident Detail now opens as its own route (§5.12) on pin tap. */}
@@ -1132,33 +1133,29 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  // Recenter FAB
-  recenterFab: {
-    position: 'absolute',
-    right: space(2),
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: color.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.border,
-    ...shadow.float,
-  },
-
   // Bottom action tray — chrome floats free over the map; each control
-  // carries its own elevation instead of sitting on a dark band.
+  // carries its own elevation instead of sitting on a dark band. Three
+  // balanced flex slots keep the Report FAB perfectly centered.
   actionTray: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: space(2),
     paddingTop: space(1.5),
+  },
+  trayStart: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  trayCenter: {
+    alignItems: 'center',
+  },
+  trayEnd: {
+    flex: 1,
+    alignItems: 'flex-end',
   },
   feedPill: {
     flexDirection: 'row',
@@ -1180,13 +1177,28 @@ const styles = StyleSheet.create({
     color: color.textPrimary,
   },
   reportFab: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: color.reportAccent,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: space(1),
+    // White ring lifts the centered CTA off any map color underneath.
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    ...shadow.float,
+  },
+  recenterFab: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: color.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: space(1),
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
     ...shadow.float,
   },
 

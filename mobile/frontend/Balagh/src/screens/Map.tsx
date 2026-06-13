@@ -1142,7 +1142,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    alignItems: 'center',
+    // Bottom-align the side controls; the center FAB lifts itself above them.
+    alignItems: 'flex-end',
     paddingHorizontal: space(2),
     paddingTop: space(1.5),
   },
@@ -1152,6 +1153,9 @@ const styles = StyleSheet.create({
   },
   trayCenter: {
     alignItems: 'center',
+    // Raise the primary action clear of the Feed/Recenter row so it reads
+    // as the bold focal control, not just another button in the tray.
+    marginBottom: space(2.5),
   },
   trayEnd: {
     flex: 1,

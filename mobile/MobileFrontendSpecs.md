@@ -131,8 +131,8 @@ Single home screen. Everything else slides over it as sheets/modals. *(This is t
 │  [Status Pill]      [🔔]  [⚙️]       │  ← Floating top, safe-area
 │            ( Map Canvas )            │
 │              with pins               │
-│                            [🧭]      │  ← Recenter FAB (conditional)
-│  [📰 Feed]              [🚨 Report]  │  ← Bottom action tray
+│                                      │
+│  [📰 Feed]    [🚨 Report]      [🧭]  │  ← Bottom action tray (FAB centered)
 └──────────────────────────────────────┘
 ```
 
@@ -164,12 +164,13 @@ Watch/Active show a slow pulsing dot. Tap → popover explaining criteria. → W
 A white pill with two icon buttons (monochrome glyphs tinted to the theme): **Inbox (envelope)** with red unread badge; **Settings (gear)** no badge.
 
 ### 5.8 Recenter Button
-Bottom-right, appears when panned away from location. Tap animates back to user position; button disappears.
+Sits in the bottom action tray's end slot; appears when panned away from location. Tap animates back to user position; button disappears.
 
 ### 5.9 Bottom Action Tray
-Controls float free over the map, each with its own elevation (no dark band).
-- **Feed pill** (bottom-left): white pill, *"قائمة الحوادث"* + list icon → Safety Feed drawer.
-- **Report FAB** (bottom-right): **64×64 pt** orange circle, white plus glyph. Breathes subtly when Calm; pulse **stops** on Watch/Active.
+Controls float free over the map, each with its own elevation (no dark band). Three balanced flex slots keep the primary action centered:
+- **Feed pill** (start slot): white pill, *"قائمة الحوادث"* + list icon → Incidents Feed drawer.
+- **Report FAB** (centered): **68×68 pt** orange circle with a 3 pt white ring, white plus glyph — dead-center at the bottom for one-handed reach. Breathes subtly when Calm; pulse **stops** on Watch/Active.
+- **Recenter button** (end slot, conditional — §5.8).
 
 ### 5.10 Incidents Feed Drawer (history browser)
 Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses. While the map shows only the open 24 h window, the feed is where users **browse incident history**.

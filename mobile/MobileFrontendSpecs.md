@@ -156,6 +156,17 @@ Floating top-left:
 
 Watch/Active show a slow pulsing dot. Tap → popover explaining criteria. → Watch fires a **warning haptic**; → Active fires the **heavy haptic**.
 
+### 5.6b Victims Counter (Arab Community)
+A compact card in the **top-left cluster beside the Safety Status pill** showing the **current year's victim count** as a large bold red number with the year label, loaded from the victims repository (`GET /victims/stats`, §10.3) with **loading + error** states. Tapping the card opens a lightweight **popover** floating over the map — a transparent overlay with a scrim backdrop, fade + scale animation, dismissed by an outside tap or the **×** (not a full-screen modal):
+- **Title** *"إحصائيات ضحايا المجتمع العربي"*.
+- **Current year** count (bold red).
+- **Last 3 years** summary (compact grid).
+- **Total (all years)** in a highlighted accent-bordered container.
+- **Year-range filter:** From/To year chips + **"تطبيق"** → *"ضحايا في الفترة المحددة"* count (`GET /victims?fromYear&toYear`).
+- **Memorial website** button (🌐 + *"موقع تخليد الضحايا"* + description *"موقع لتخليد الضحايا في المجتمع العربي"*) opening an external site in the browser — placeholder `MEMORIAL_URL` in `core/config.ts`, configurable via env.
+
+*(Placement note: the safety status + victims cards cluster at the top-leading edge; the inbox/settings toolbar stays at the top-trailing edge — §5.7.)*
+
 ### 5.7 Floating Toolbar (Top-Right)
 A white pill with two icon buttons (monochrome glyphs tinted to the theme): **Inbox (envelope)** with red unread badge; **Settings (gear)** no badge.
 
@@ -496,6 +507,15 @@ interface AppNotification {
   id: string; type: 'nearby' | 'verification' | 'status' | 'follow_up';
   title: string; body: string; createdAt: string; read: boolean; incidentRef?: string;
 }
+interface FeedPost {                     // §5.10b Feeds screen
+  id: string; kind: 'announcement' | 'news';
+  source: string; title: string; body: string; createdAt: string;
+}
+interface VictimStats {                  // §5.6b victims counter
+  currentYear: number; currentYearCount: number;
+  byYear: { year: number; count: number }[];   // descending, includes current year
+  total: number;
+}
 ```
 
 ### 10.3 Endpoints
@@ -510,6 +530,9 @@ interface AppNotification {
 | `GET` | `/notifications` | Inbox | `AppNotification[]` |
 | `POST` | `/notifications/read` | Mark read | `204` |
 | `POST` | `/follow-up/:ref` | Extra details *(signed)* | `204` |
+| `GET` | `/feeds` | Community announcements + news — Feeds screen (§5.10b) | `FeedPost[]` |
+| `GET` | `/victims/stats` | Aggregate victim counts: current year, per-year, all-years total (§5.6b) | `VictimStats` |
+| `GET` | `/victims?fromYear&toYear` | Victim count within an inclusive year range | `{ count }` |
 
 *(The `POST /incidents/:id/vote` endpoint was removed with the verification-vote feature — §5.11.)*
 
@@ -527,7 +550,7 @@ type WsEvent =
 ### 10.5 Mock implementation (as built)
 The in-memory mock is the only data source today:
 - `data/mock/db.ts` — the in-memory store: seeded incidents/notifications + `LOCALITIES` (18 cities). Exposes `db.incidents` and `db.notifications` with getters/mutators. `db.incidents.getOpen()` simulates the backend's 24 h open-incident window for the map (unresolved + < 24 h old, with a ~60 s linger after resolve so the fade-out can play); `getAll()` remains the full history backing the feed filters. Seeds include **historical incidents** (3–25 days old, several in Nazareth) so the week/month history filters have data. **Seeded/emitted descriptions are never free text** — both `db.ts` and `eventEmitter.ts` reference the prepared situation options (`strings.ar.report.situations`) directly, and a seed-integrity test asserts every description is one of the prepared options for its category.
-- `data/mock/Mock*Repo.ts` — `MockIncidentRepo`, `MockLocalityRepo`, `MockNotificationRepo`, `MockStatusRepo` implementing the `data/repositories/interfaces.ts` contracts over `db`.
+- `data/mock/Mock*Repo.ts` — `MockIncidentRepo`, `MockLocalityRepo`, `MockNotificationRepo`, `MockStatusRepo`, `MockVictimsRepo` implementing the `data/repositories/interfaces.ts` contracts over `db`. `db.feedPosts` backs the Feeds screen (§5.10b) and `db.victims` backs the victims counter (§5.6b).
 - `data/mock/eventEmitter.ts` — `startMockEmitter()` pushes `incident.created` / `incident.resolved` / `status.changed` / `notification.new`; the map, feed and inbox consume them live.
 - `core/config.ts`: `export const USE_MOCK_API = true;`
 

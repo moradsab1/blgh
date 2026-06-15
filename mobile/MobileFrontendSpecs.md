@@ -183,10 +183,10 @@ Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range — 
 **Feed cards (modern):** a severity-colored **accent strip** on the card edge; a severity-tinted rounded **icon badge**; category label as the title; a meta row with locality name (map-pin glyph) + relative time (30 s refresh) + a muted **"منتهي" (resolved) badge** for closed incidents; description (≤3 lines). No vote pills (§5.11) and no bookmark — cards carry no per-incident actions. Tap body → Incident Detail Sheet.
 
 ### 5.10b Feeds Screen
-A full screen (route `Feeds`) opened from the map tray's **feeds button** (§5.9), distinct from the incidents list. It surfaces community content the map can't:
+A draggable **bottom sheet** (25 / 60 / 90 %, route `Feeds`) over the map — the same surface idiom as the incidents Feed (§5.10) — opened from the map tray's **feeds button** (§5.9), distinct from the incidents list. It surfaces community content the map can't:
 - **Announcements / events** organized by the Balagh team (e.g. safety workshops, a mediation line, safety guides).
 - **News** about violence in the Arab community (community coverage, initiatives).
-**Header:** back + title *"الأخبار والفعاليات"* + one-line subtitle. **Filter chips:** الكل | فعاليات | أخبار. **Post cards:** a tinted **kind badge** (megaphone for events in crimson, newspaper for news in amber), source + relative time meta row, title, and a 3-line body. Backed by the mock `db.feedPosts` (a `FeedPost` = `{ id, kind: 'announcement' | 'news', source, title, body, createdAt }`); when a backend lands it serves the same shape. Empty state: newspaper glyph + *"لا يوجد محتوى بعد"*.
+**Header (sticky, inside the sheet — drag handle + backdrop-tap dismiss, no back button):** title *"الأخبار والفعاليات"* + one-line subtitle. **Filter chips:** الكل | فعاليات | أخبار. **Post cards:** a tinted **kind badge** (megaphone for events in crimson, newspaper for news in amber), source + relative time meta row, title, and a 3-line body. Backed by the mock `db.feedPosts` (a `FeedPost` = `{ id, kind: 'announcement' | 'news', source, title, body, createdAt }`); when a backend lands it serves the same shape. Empty state: newspaper glyph + *"لا يوجد محتوى بعد"*.
 
 ### 5.11 Verification Votes — REMOVED
 The Confirm/Deny verification-vote feature was **removed from the product** (2026-06-12). Incidents carry no vote counts, no `myVote` state, no vote endpoints, and no vote UI anywhere. The "active" status rule (§5.6) consequently no longer requires verified incidents.

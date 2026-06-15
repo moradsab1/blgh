@@ -188,7 +188,7 @@ A draggable **bottom sheet** (25 / 60 / 90 %, route `Feeds`) over the map — th
 There is no Confirm/Deny verification feature: incidents carry no vote counts, no `myVote` state, no vote endpoint, and no vote UI. The "active" status rule (§5.6) counts nearby incidents, not "verified" ones.
 
 ### 5.12 Incident Detail Sheet
-Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + category; locality + distance; the prepared situation description (§5.13); non-interactive **140 pt** map snippet (light style, Arabic labels) rendering the **~150 m privacy circle** — never an exact pin. No comments and no vote row.
+Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + category; locality + distance; the prepared situation description and any optional location note (§5.13); non-interactive **140 pt** map snippet (light style, Arabic labels) rendering the **~150 m privacy circle** — never an exact pin. No comments and no vote row.
 
 ### 5.13 Report Flow
 
@@ -205,7 +205,11 @@ Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + cat
 
 Severity-tinted icon on top, label below. Tap → Step 2.
 
-**Step 2 — Situation picker (no typing).** Sticky header with back + *"وصف الحالة"*. Subtitle *"اختر الوصف الأقرب لما يحدث"*. Users **never type a description** — the screen lists **four prepared situation descriptions** for the chosen category (localized ar/he/en, defined in `core/strings` under `report.situations`), rendered as radio-style selectable cards. The **"إرسال البلاغ"** CTA is pinned bottom and stays **disabled until a situation is selected**; the selected text is submitted as the incident description. **No free-text field, no photo attachment** — by design. On submit: spinner → GPS fix → queue → modal closes → pulsing "syncing" pin at user location. If retries exhausted: pin turns amber + dismissable banner *"بلاغك لم يُرسل بعد — جارٍ إعادة المحاولة"*.
+**Step 2 — Location + situation picker (no typing).** Sticky header with back + *"وصف الحالة"*.
+
+*Location section (top — GPS is unreliable in the field, so the reporter can correct it):* a **"موقع الحادثة"** card with an interactive **map** centered on the current GPS fix, showing the chosen point as a movable accent pin. **Tap the map to move the pin**; a **"موقعي الحالي"** button re-acquires GPS and recenters; an optional **free-text place field** (*"أو اكتب وصف الموقع"*) captures a description like *"قرب مدرسة الرشيد"*. A status line reflects *locating* / *GPS-failed* (tap to set manually) / *manually adjusted*. The submitted report carries the chosen coordinates and the optional `locationText`.
+
+*Situation section:* subtitle *"اختر الوصف الأقرب لما يحدث"*; users **never type a description** — the screen lists **four prepared situation descriptions** for the chosen category (localized ar/he/en, defined in `core/strings` under `report.situations`), rendered as radio-style selectable cards. The **"إرسال البلاغ"** CTA is pinned bottom and stays **disabled until a situation is selected**; the selected text is submitted as the incident description. **No free-text description field, no photo attachment** — by design. On submit: spinner → submit chosen location → modal closes → pulsing "syncing" pin. If retries exhausted: pin turns amber + dismissable banner *"بلاغك لم يُرسل بعد — جارٍ إعادة المحاولة"*.
 
 **Step 3 — Success.** Full-screen. Centered green animated checkmark (draws **480 ms** + success haptic). *"تم إرسال بلاغك"*. Monospace reference **#BLG-XXXXXX** — long-press copies + *"تم النسخ"* toast. Thank-you: *"شكراً لمساعدتك على حماية حيّك."* **"إغلاق"** returns to map. **No share, no rating, no social.**
 
@@ -484,6 +488,7 @@ interface Incident {
   id: string; ref: string;            // ref e.g. "BLG-7Q2K9X"
   category: Category; severity: Severity;
   description?: string;                // one of the prepared situation descriptions (§5.13)
+  locationText?: string;               // optional free-text place typed by the reporter (§5.13)
   lat: number; lng: number; localityId: string;
   createdAt: string; resolvedAt?: string;
 }
@@ -645,7 +650,7 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 - **Tests:** 30 s timestamp refresh; feed↔map data consistency; 24 h open-window behavior (`getOpen`); history range/locality/category filtering (`filterIncidents`).
 
 ### Phase 4 — Reporting & crisis *(done)*
-- Report flow: category grid (2×3, severity-tinted icons; GUNFIRE/STABBING = critical, ASSAULT/ROBBERY = high, SUSPICIOUS/OTHER = medium) → **situation picker** (four prepared descriptions per category, radio-style cards, submit disabled until one is chosen — **no typing, no media**) → success (green checkmark draw 480 ms, mono `#BLG-XXXXXX`, long-press copy via the built-in **`Share`** API + "تم النسخ" toast, no share-to-social/rating).
+- Report flow: category grid (2×3, severity-tinted icons; GUNFIRE/STABBING = critical, ASSAULT/ROBBERY = high, SUSPICIOUS/OTHER = medium) → **location + situation picker** (an editable map — current GPS fix as a movable pin, tap to correct, optional free-text place — then four prepared descriptions per category, radio-style cards; submit disabled until one is chosen — **no free-text description, no media**) → success (green checkmark draw 480 ms, mono `#BLG-XXXXXX`, long-press copy via the built-in **`Share`** API + "تم النسخ" toast, no share-to-social/rating).
 - Submit: spinner → acquire GPS fix → write to the mock `db` (a new pin appears on the map via `eventEmitter`); with a real backend later this enqueues to an AsyncStorage write-queue with a pulsing "syncing" pin, and on retry-exhaustion an amber pin + dismissable banner + retry.
 - Crisis one-shot (≤3 taps): deep link `balagh://crisis` (route reserved in `linking.ts`) → reassure → category → geo-confirm (140 pt map) → success. The app-icon long-press shortcut that fires this deep link is wired in Phase 6 native steps.
 - **Tests:** report happy path adds an incident the map renders; crisis flow ≤3 taps; deep link resolves; **assert camera/mic/photo permissions are absent from the native manifest**.

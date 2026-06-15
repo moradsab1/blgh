@@ -16,6 +16,7 @@ import { color, fontSize, font, space, radius, shadow } from '../core/theme/toke
 import { ChevronLeft, Check, Locate, MapPin, X } from '../core/icons';
 import ArabicLabels from '../presentation/components/ArabicLabels';
 import { useLangStore } from '../domain/stores/lang';
+import { useMapStore } from '../domain/stores/map';
 import { strings } from '../core/strings';
 import { haptics } from '../core/haptics';
 import store, { StorageKeys } from '../core/storage';
@@ -47,7 +48,6 @@ const EDIT_ZOOM = 15;    // close enough to drop the pin precisely
 const repo = new MockIncidentRepo();
 
 type Coords = { lat: number; lng: number };
-type GpsStatus = 'locating' | 'ok' | 'failed';
 
 // Fallback to the chosen locality's centre when GPS is unavailable.
 function localityFallback(): Coords {
@@ -86,30 +86,33 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
   const [submitting, setSubmitting] = useState(false);
 
   // ── Editable incident location ──────────────────────────────────────────────
-  // GPS is unreliable in the field. The preview shows the current fix at
-  // city zoom; tapping it opens a bigger editor card to drop the pin precisely
-  // or type a place description.
-  const [coords, setCoords] = useState<Coords>(() => localityFallback());
+  // The incident defaults to the user's current location — the same fix the
+  // home map already holds in the map store — so it shows immediately even if a
+  // fresh getCurrentPosition is slow or unavailable. GPS can be wrong, so the
+  // reporter can adjust the pin; there is no "failed to locate" state.
+  const { userLat, userLng, locationGranted, setUserLocation } = useMapStore();
+  const [coords, setCoords] = useState<Coords>(() =>
+    userLat != null && userLng != null ? { lat: userLat, lng: userLng } : localityFallback());
   const [cameraCenter, setCameraCenter] = useState<Coords>(coords);
-  const [gps, setGps] = useState<GpsStatus>('locating');
   const [adjusted, setAdjusted] = useState(false);
   const [locationText, setLocationText] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorCameraRef = useRef<any>(null);
 
+  // Best-effort GPS refresh; on failure we silently keep the best-known
+  // location (the store fix or the locality centre) — never a failure message.
   const acquireLocation = useCallback(() => {
-    setGps('locating');
     getGeoPosition()
       .then(pos => {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setCoords(next);
         setCameraCenter(next);
         setAdjusted(false);
-        setGps('ok');
+        setUserLocation(next.lat, next.lng);
       })
-      .catch(() => setGps('failed'));
-  }, []);
+      .catch(() => { /* keep best-known location — no failure UI */ });
+  }, [setUserLocation]);
 
   useEffect(() => { acquireLocation(); }, [acquireLocation]);
 
@@ -188,7 +191,7 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
               zoomLevel={PREVIEW_ZOOM}
               animationDuration={400}
             />
-            {gps === 'ok' && <MapboxGL.LocationPuck />}
+            {locationGranted && <MapboxGL.LocationPuck />}
             <MapboxGL.ShapeSource id="reportPreviewSource" shape={markerShape(coords)}>
               <MapboxGL.CircleLayer id="reportPreviewPin" style={PIN_STYLE} />
             </MapboxGL.ShapeSource>
@@ -202,21 +205,11 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
             accessibilityLabel={s.report.location.tapToChange}
             testID="report-location-preview"
           />
-
-          {gps === 'locating' && (
-            <View style={styles.previewBadge} pointerEvents="none">
-              <ActivityIndicator size="small" color={color.accent} />
-              <Text variant="caption" secondary>{s.report.location.locating}</Text>
-            </View>
-          )}
         </View>
 
         {/* Note under the map. */}
-        <Text
-          variant="caption"
-          secondary={gps !== 'failed'}
-          style={[styles.note, gps === 'failed' && styles.noteError]}>
-          {gps === 'failed' ? s.report.location.gpsFailed : s.report.location.tapToChange}
+        <Text variant="caption" secondary style={styles.note}>
+          {s.report.location.tapToChange}
         </Text>
 
         {locationText.trim() ? (
@@ -295,7 +288,7 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
                   zoomLevel={EDIT_ZOOM}
                   animationDuration={400}
                 />
-                {gps === 'ok' && <MapboxGL.LocationPuck />}
+                {locationGranted && <MapboxGL.LocationPuck />}
                 <MapboxGL.ShapeSource id="reportEditorSource" shape={markerShape(coords)}>
                   <MapboxGL.CircleLayer id="reportEditorPin" style={PIN_STYLE} />
                 </MapboxGL.ShapeSource>
@@ -371,22 +364,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.border,
   },
-  previewBadge: {
-    position: 'absolute',
-    alignSelf: 'center',
-    top: '50%',
-    marginTop: -16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space(1),
-    backgroundColor: color.card,
-    borderRadius: radius.pill,
-    paddingHorizontal: space(1.5),
-    paddingVertical: space(0.75),
-    ...shadow.card,
-  },
   note: { lineHeight: 18 },
-  noteError: { color: color.accent },
   placeRow: {
     flexDirection: 'row',
     alignItems: 'center',

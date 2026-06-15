@@ -112,10 +112,7 @@ const ar = {
     },
     location: {
       title: 'موقع الحادثة',
-      hint: 'هذا موقعك الحالي. إن لم يكن دقيقاً، اضغط على الخريطة لتحديد الموقع.',
       myLocation: 'موقعي الحالي',
-      locating: 'جارٍ تحديد موقعك...',
-      gpsFailed: 'تعذّر تحديد موقعك بدقّة. اضغط على الخريطة لتحديد الموقع يدوياً.',
       adjusted: 'تم تعديل الموقع يدوياً',
       textLabel: 'أو اكتب وصف الموقع (اختياري)',
       textPlaceholder: 'مثال: قرب مدرسة الرشيد، الشارع الرئيسي',
@@ -426,10 +423,7 @@ const he: typeof ar = {
     },
     location: {
       title: 'מיקום האירוע',
-      hint: 'זהו מיקומך הנוכחי. אם אינו מדויק, הקש על המפה לבחירת המיקום.',
       myLocation: 'המיקום שלי',
-      locating: 'מאתר את מיקומך...',
-      gpsFailed: 'לא ניתן לאתר את מיקומך במדויק. הקש על המפה לבחירת המיקום ידנית.',
       adjusted: 'המיקום עודכן ידנית',
       textLabel: 'או כתוב תיאור מיקום (אופציונלי)',
       textPlaceholder: 'לדוגמה: ליד בית הספר, הרחוב הראשי',
@@ -729,10 +723,7 @@ const en: typeof ar = {
     },
     location: {
       title: 'Incident location',
-      hint: 'This is your current location. If it is not accurate, tap the map to set it.',
       myLocation: 'My location',
-      locating: 'Locating you...',
-      gpsFailed: 'Could not locate you accurately. Tap the map to set the location manually.',
       adjusted: 'Location adjusted manually',
       textLabel: 'Or type a location description (optional)',
       textPlaceholder: 'e.g. near the school, main street',

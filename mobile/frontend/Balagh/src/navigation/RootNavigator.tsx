@@ -51,6 +51,7 @@ export const RootNavigator = (): React.ReactElement => (
         contentStyle: { backgroundColor: 'transparent' },
       }}>
       <Stack.Screen name="Feed" component={FeedScreen} />
+      <Stack.Screen name="Feeds" component={FeedsScreen} />
       <Stack.Screen
         name="IncidentDetail"
         component={IncidentDetailScreen}
@@ -62,7 +63,6 @@ export const RootNavigator = (): React.ReactElement => (
       component={SettingsScreen}
       options={{ animation: 'slide_from_right' }}
     />
-    <Stack.Screen name="Feeds" component={FeedsScreen} />
     <Stack.Screen name="Inbox" component={InboxScreen} />
     <Stack.Screen name="ReportCategory" component={ReportCategoryScreen} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} initialParams={{ category: '' }} />

@@ -1,7 +1,8 @@
 /**
  * Feeds — §5.10b
  *
- * A full-screen list of community content distinct from the incidents list:
+ * A draggable bottom sheet (25 / 60 / 90 %) over the map — same surface idiom
+ * as the incidents Feed. Surfaces community content the map can't:
  *  - **Announcements / events** organized by the Balagh team.
  *  - **News** about violence in the Arab community.
  *
@@ -11,22 +12,16 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  StatusBar,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { Text, Chip } from '../core/theme/components';
 import { color, font, fontSize, radius, shadow, space } from '../core/theme/tokens';
-import { ChevronLeft, ChevronRight, Megaphone, Newspaper } from '../core/icons';
+import { Megaphone, Newspaper } from '../core/icons';
 import type { IconProps } from '../core/icons';
+import { BottomSheet } from '../presentation/components/BottomSheet';
 import { relativeTime } from '../core/format/time';
 import { haptics } from '../core/haptics';
 import { strings } from '../core/strings';
-import { useIsRTL, useLangStore } from '../domain/stores/lang';
+import { useLangStore } from '../domain/stores/lang';
 import { db } from '../data/mock/db';
 import type { FeedPost, FeedPostKind } from '../core/types';
 import type { FeedsProps } from '../navigation/types';
@@ -42,7 +37,6 @@ const KIND_VISUAL: Record<FeedPostKind, { Icon: React.ComponentType<IconProps>; 
 const FeedsScreen = ({ navigation }: FeedsProps): React.ReactElement => {
   const { lang } = useLangStore();
   const s = strings[lang];
-  const isRTL = useIsRTL();
 
   const [filter, setFilter] = useState<FilterKey>('all');
   const [posts] = useState<FeedPost[]>(() => db.feedPosts.getAll());
@@ -84,39 +78,32 @@ const FeedsScreen = ({ navigation }: FeedsProps): React.ReactElement => {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={color.bg} />
+    <BottomSheet
+      snapPoints={[0.25, 0.6, 0.9]}
+      initialSnapIndex={1}
+      onClose={() => navigation.goBack()}
+      testID="feeds-sheet">
+      {/* Sticky header */}
       <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn}>
-          {isRTL ? (
-            <ChevronRight size={22} color={color.textPrimary} />
-          ) : (
-            <ChevronLeft size={22} color={color.textPrimary} />
-          )}
-        </Pressable>
-        <View style={styles.headerTitleWrap}>
-          <Text variant="heading" style={styles.headerTitle}>{s.feeds.title}</Text>
-          <Text variant="caption" muted style={styles.headerSubtitle} numberOfLines={1}>
-            {s.feeds.subtitle}
-          </Text>
+        <View style={styles.titleWrap}>
+          <Text variant="heading">{s.feeds.title}</Text>
+          <Text variant="caption" muted numberOfLines={1}>{s.feeds.subtitle}</Text>
         </View>
-        <View style={styles.headerRight} />
-      </View>
-
-      <View style={styles.chipsRow}>
-        {FILTERS.map(key => (
-          <Chip
-            key={key}
-            label={s.feeds.filters[key]}
-            active={filter === key}
-            onPress={() => {
-              haptics.toggle();
-              setFilter(key);
-            }}
-            testID={`feeds-filter-${key}`}
-            style={styles.chip}
-          />
-        ))}
+        <View style={styles.chipsRow}>
+          {FILTERS.map(key => (
+            <Chip
+              key={key}
+              label={s.feeds.filters[key]}
+              active={filter === key}
+              onPress={() => {
+                haptics.toggle();
+                setFilter(key);
+              }}
+              testID={`feeds-filter-${key}`}
+              style={styles.chip}
+            />
+          ))}
+        </View>
       </View>
 
       <FlatList
@@ -124,6 +111,7 @@ const FeedsScreen = ({ navigation }: FeedsProps): React.ReactElement => {
         keyExtractor={p => p.id}
         renderItem={renderCard}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.empty} testID="feeds-empty">
@@ -133,34 +121,26 @@ const FeedsScreen = ({ navigation }: FeedsProps): React.ReactElement => {
           </View>
         }
       />
-    </SafeAreaView>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: color.bg },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: space(2),
-    paddingVertical: space(1.5),
+    paddingBottom: space(1.5),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: color.border,
+    gap: space(1),
   },
-  backBtn: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
-  headerTitleWrap: { flex: 1, alignItems: 'center', gap: 2 },
-  headerTitle: { textAlign: 'center' },
-  headerSubtitle: { textAlign: 'center', paddingHorizontal: space(1) },
-  headerRight: { minWidth: 44 },
+  titleWrap: { gap: 2 },
   chipsRow: {
     flexDirection: 'row',
     gap: space(0.75),
-    paddingHorizontal: space(2),
-    paddingVertical: space(1.5),
   },
   chip: { marginEnd: space(0.5) },
   list: {
-    paddingHorizontal: space(2),
+    padding: space(2),
     paddingBottom: space(6),
     gap: space(1.25),
   },

@@ -1,13 +1,13 @@
 /**
  * Arab-community victims counter — §5.6b
  *
- * A compact card in the map's top row (beside the safety status pill) showing
- * the current year's victim count as a bold red number. Tapping it opens a
- * lightweight popover (transparent Modal, not a full-screen modal) floating
- * over the map with: the current-year count, the last 3 years, a highlighted
- * all-years total, a year-range filter, and a link to the memorial website.
- *
- * All values load from the repository (mock today) with loading + error states.
+ * A compact pill in the map's top-center showing the current year's victim
+ * count (e.g. "ضحايا 2026 · 142") in the same rounded style as the status
+ * pill. Tapping it opens a lightweight popover floating over the map with the
+ * current-year count, the last 3 years, a highlighted all-years total, a
+ * calendar date-range picker that totals victims in the chosen period, and a
+ * link to the memorial website. All values load from the repository with
+ * loading + error states.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -32,16 +32,23 @@ import {
   shadow,
   space,
 } from '../../core/theme/tokens';
-import { Globe, X } from '../../core/icons';
+import { CalendarRange, ChevronDown, Globe, X } from '../../core/icons';
 import { haptics } from '../../core/haptics';
 import { useReduceMotion } from '../../core/a11y/useReduceMotion';
 import { strings } from '../../core/strings';
 import { useLangStore } from '../../domain/stores/lang';
 import { MEMORIAL_URL } from '../../core/config';
 import { MockVictimsRepo } from '../../data/mock/MockVictimsRepo';
+import { DateRangeCalendar } from './DateRangeCalendar';
+import type { DateRange } from './DateRangeCalendar';
 import type { VictimStats } from '../../core/types';
 
 const repo = new MockVictimsRepo();
+
+const fmtDate = (ms: number): string => {
+  const d = new Date(ms);
+  return formatNumber(`${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`);
+};
 
 export const VictimsCounter = (): React.ReactElement => {
   const { lang } = useLangStore();
@@ -53,9 +60,9 @@ export const VictimsCounter = (): React.ReactElement => {
   const [error, setError] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // Year-range filter state
-  const [fromYear, setFromYear] = useState<number | null>(null);
-  const [toYear, setToYear] = useState<number | null>(null);
+  // Calendar date-range filter
+  const [dateRange, setDateRange] = useState<DateRange>({ from: null, to: null });
+  const [rangeOpen, setRangeOpen] = useState(false);
   const [rangeCount, setRangeCount] = useState<number | null>(null);
   const [rangeLoading, setRangeLoading] = useState(false);
 
@@ -66,20 +73,26 @@ export const VictimsCounter = (): React.ReactElement => {
     setError(false);
     repo
       .getStats()
-      .then(st => {
-        setStats(st);
-        const years = st.byYear.map(y => y.year);
-        setFromYear(years[years.length - 1] ?? st.currentYear);
-        setToYear(years[0] ?? st.currentYear);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError(true);
-        setLoading(false);
-      });
+      .then(st => { setStats(st); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Total victims across the years the chosen date range spans (yearly data).
+  useEffect(() => {
+    if (dateRange.from == null || dateRange.to == null) {
+      setRangeCount(null);
+      return;
+    }
+    const fromYear = new Date(dateRange.from).getFullYear();
+    const toYear = new Date(dateRange.to).getFullYear();
+    setRangeLoading(true);
+    repo
+      .getRangeCount(fromYear, toYear)
+      .then(n => { setRangeCount(n); setRangeLoading(false); })
+      .catch(() => { setRangeCount(null); setRangeLoading(false); });
+  }, [dateRange]);
 
   const openPopover = useCallback(() => {
     haptics.toggle();
@@ -99,17 +112,7 @@ export const VictimsCounter = (): React.ReactElement => {
     }).start(() => setOpen(false));
   }, [anim, reduceMotion]);
 
-  const years = useMemo(() => stats?.byYear.map(y => y.year) ?? [], [stats]);
   const lastThree = useMemo(() => stats?.byYear.slice(1, 4) ?? [], [stats]);
-
-  const applyRange = useCallback(() => {
-    if (fromYear == null || toYear == null) return;
-    setRangeLoading(true);
-    repo
-      .getRangeCount(fromYear, toYear)
-      .then(n => { setRangeCount(n); setRangeLoading(false); })
-      .catch(() => { setRangeCount(null); setRangeLoading(false); });
-  }, [fromYear, toYear]);
 
   const openMemorial = useCallback(() => {
     haptics.press();
@@ -124,7 +127,7 @@ export const VictimsCounter = (): React.ReactElement => {
         accessibilityRole="button"
         accessibilityLabel={s.victims.title}
         testID="victims-card">
-        <Text variant="caption" muted style={styles.cardLabel} numberOfLines={1}>
+        <Text variant="caption" muted numberOfLines={1}>
           {s.victims.victimsLabel} {stats ? formatNumber(stats.currentYear) : ''}
         </Text>
         {loading ? (
@@ -191,38 +194,26 @@ export const VictimsCounter = (): React.ReactElement => {
                 <Text style={styles.totalValue}>{formatNumber(stats.total)}</Text>
               </View>
 
-              {/* Year-range filter */}
+              {/* Custom period — one calendar button → date-range picker */}
               <Text variant="label" style={styles.rangeTitle}>{s.victims.rangeTitle}</Text>
-              <Text variant="caption" muted>{s.victims.fromYear}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-                {years.map(y => (
-                  <Chip
-                    key={`from-${y}`}
-                    label={formatNumber(y)}
-                    active={fromYear === y}
-                    onPress={() => setFromYear(y)}
-                    style={styles.chip}
-                    testID={`victims-from-${y}`}
-                  />
-                ))}
-              </ScrollView>
-              <Text variant="caption" muted style={styles.toLabel}>{s.victims.toYear}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-                {years.map(y => (
-                  <Chip
-                    key={`to-${y}`}
-                    label={formatNumber(y)}
-                    active={toYear === y}
-                    onPress={() => setToYear(y)}
-                    style={styles.chip}
-                    testID={`victims-to-${y}`}
-                  />
-                ))}
-              </ScrollView>
-
-              <Pressable style={styles.applyBtn} onPress={applyRange} testID="victims-apply">
-                <Text variant="label" style={styles.applyText}>{s.victims.apply}</Text>
+              <Pressable
+                style={styles.calendarBtn}
+                onPress={() => { haptics.toggle(); setRangeOpen(o => !o); }}
+                testID="victims-range-toggle">
+                <CalendarRange size={16} color={color.accent} />
+                <Text variant="label" style={styles.calendarBtnText} numberOfLines={1}>
+                  {dateRange.from != null && dateRange.to != null
+                    ? `${fmtDate(dateRange.from)} – ${fmtDate(dateRange.to)}`
+                    : s.victims.pickPeriod}
+                </Text>
+                <ChevronDown size={16} color={color.textSecondary} />
               </Pressable>
+
+              {rangeOpen ? (
+                <View style={styles.calendarWrap}>
+                  <DateRangeCalendar lang={lang} range={dateRange} onChange={setDateRange} />
+                </View>
+              ) : null}
 
               {rangeLoading ? (
                 <ActivityIndicator color={color.accent} style={styles.rangeResult} />
@@ -250,28 +241,27 @@ export const VictimsCounter = (): React.ReactElement => {
 };
 
 const styles = StyleSheet.create({
+  // Pill card — rounded like the safety status pill, with a compact number.
   card: {
-    backgroundColor: color.card,
-    borderRadius: radius.md,
-    paddingHorizontal: space(1.5),
-    paddingVertical: space(0.75),
-    minWidth: 64,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: color.card,
+    borderRadius: radius.pill,
+    paddingHorizontal: space(1.75),
+    minHeight: 42,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.border,
     ...shadow.float,
   },
-  cardLabel: { textAlign: 'center' },
   cardNumber: {
     fontFamily: font.arabicBold,
-    fontSize: fontSize.xl,
-    lineHeight: fontSize.xl + 4,
+    fontSize: fontSize.base,
     color: color.accent,
   },
   cardNumberMuted: {
     fontFamily: font.arabicBold,
-    fontSize: fontSize.xl,
+    fontSize: fontSize.base,
     color: color.textMuted,
   },
 
@@ -286,7 +276,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '90%',
     maxWidth: 360,
-    maxHeight: '72%',
+    maxHeight: '74%',
     backgroundColor: color.card,
     borderRadius: radius.xl,
     padding: space(2),
@@ -349,19 +339,23 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xl,
     color: color.accent,
   },
-  rangeTitle: { marginTop: space(2.5), marginBottom: space(0.5) },
-  chipRow: { gap: space(0.75), paddingVertical: space(0.5), paddingEnd: space(1) },
-  chip: { marginEnd: space(0.5) },
-  toLabel: { marginTop: space(1) },
-  applyBtn: {
-    marginTop: space(1.5),
-    backgroundColor: color.accent,
-    borderRadius: radius.md,
-    minHeight: 44,
+  rangeTitle: { marginTop: space(2.5), marginBottom: space(1) },
+  calendarBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: space(1),
+    backgroundColor: color.cardElevated,
+    borderRadius: radius.md,
+    paddingHorizontal: space(1.5),
+    minHeight: 44,
   },
-  applyText: { color: color.textOnAccent },
+  calendarBtnText: { flex: 1, color: color.textPrimary },
+  calendarWrap: {
+    marginTop: space(1.5),
+    backgroundColor: color.cardElevated,
+    borderRadius: radius.md,
+    padding: space(1.5),
+  },
   rangeResult: { marginTop: space(1.5) },
   rangeResultRow: {
     flexDirection: 'row',

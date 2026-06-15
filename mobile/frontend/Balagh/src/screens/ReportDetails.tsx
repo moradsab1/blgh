@@ -43,8 +43,8 @@ const getGeoPosition = (): Promise<{ coords: { latitude: number; longitude: numb
   });
 
 const SNIPPET_STYLE = 'mapbox://styles/mapbox/streets-v12';
-const PREVIEW_ZOOM = 12; // city-level so the reporter sees where they are
-const EDIT_ZOOM = 15;    // close enough to drop the pin precisely
+const PREVIEW_ZOOM = 10.5; // zoomed out to the city so the reporter sees where they are
+const EDIT_ZOOM = 15;      // close enough to drop the pin precisely
 const repo = new MockIncidentRepo();
 
 type Coords = { lat: number; lng: number };

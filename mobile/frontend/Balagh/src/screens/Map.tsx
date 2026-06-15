@@ -895,25 +895,31 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         </MapboxGL.ShapeSource>
       </MapboxGL.MapView>
 
-      {/* ── Top-left cluster: Safety Status pill + Victims counter ──── */}
-      <View style={[styles.topLeftRow, { top: insets.top + space(1) }]}>
-        <View style={styles.statusPill} testID="status-pill">
-          <View
-            style={[
-              styles.statusDot,
-              {
-                backgroundColor: statusColor,
-                opacity:
-                  safetyState !== 'calm' && !reduceMotion
-                    ? pulseOpaque ? 1 : 0.3
-                    : 1,
-              },
-            ]}
-          />
-          <Text style={[styles.statusLabel, { color: statusColor }]}>
-            {statusLabel}
-          </Text>
-        </View>
+      {/* ── Safety Status Pill (top-left) ──────────────────────────── */}
+      <View
+        style={[styles.statusPill, { top: insets.top + space(1) }]}
+        testID="status-pill">
+        <View
+          style={[
+            styles.statusDot,
+            {
+              backgroundColor: statusColor,
+              opacity:
+                safetyState !== 'calm' && !reduceMotion
+                  ? pulseOpaque ? 1 : 0.3
+                  : 1,
+            },
+          ]}
+        />
+        <Text style={[styles.statusLabel, { color: statusColor }]}>
+          {statusLabel}
+        </Text>
+      </View>
+
+      {/* ── Victims counter (top-center) ───────────────────────────── */}
+      <View
+        style={[styles.victimsSlot, { top: insets.top + space(1) }]}
+        pointerEvents="box-none">
         <VictimsCounter />
       </View>
 
@@ -1056,16 +1062,17 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
 
-  // Top-left cluster — safety status pill + victims counter, side by side.
-  topLeftRow: {
+  // Victims counter — horizontally centered at the top of the map.
+  victimsSlot: {
     position: 'absolute',
-    left: space(2),
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: space(1),
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   // Status pill
   statusPill: {
+    position: 'absolute',
+    left: space(2),
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,

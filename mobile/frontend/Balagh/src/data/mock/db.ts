@@ -1,4 +1,4 @@
-import type { Incident, AppNotification, Locality } from '../../core/types';
+import type { Incident, AppNotification, FeedPost, Locality } from '../../core/types';
 import { OPEN_INCIDENT_WINDOW_HOURS } from '../../core/config';
 import { strings } from '../../core/strings';
 
@@ -238,6 +238,59 @@ let _notifications: AppNotification[] = [
 ];
 
 
+// Feeds content — organization announcements/events + curated news about
+// violence in the Arab community. Content is Arabic seed text, like incidents.
+let _feedPosts: FeedPost[] = [
+  {
+    id: 'fp1',
+    kind: 'announcement',
+    source: 'فريق بلاغ',
+    title: 'ورشة مجتمعية حول السلامة الرقمية والأمان الشخصي',
+    body: 'ينظّم فريق بلاغ ورشة مجانية في المركز الجماهيري لأم الفحم يوم السبت القادم، تتناول حماية الخصوصية والتبليغ الآمن. الدعوة عامة لجميع سكان البلدة.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+  },
+  {
+    id: 'fp2',
+    kind: 'news',
+    source: 'تغطية مجتمعية',
+    title: 'تصاعد حوادث العنف في البلدات العربية يدفع لجاناً أهلية للتحرك',
+    body: 'شهدت عدة بلدات ارتفاعاً في حوادث إطلاق النار خلال الأسابيع الماضية، ما دفع لجاناً شعبية إلى إطلاق مبادرات وساطة وحراسات ليلية تطوعية لحماية الأحياء.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 14).toISOString(),
+  },
+  {
+    id: 'fp3',
+    kind: 'announcement',
+    source: 'فريق بلاغ',
+    title: 'مبادرة وساطة لحل النزاعات قبل تفاقمها',
+    body: 'بالتعاون مع لجان الأحياء، نطلق خط وساطة مجتمعي يتيح الإبلاغ المبكر عن التوترات بين العائلات قبل أن تتحول إلى عنف. كل البلاغات سرّية تماماً.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+  },
+  {
+    id: 'fp4',
+    kind: 'news',
+    source: 'تغطية مجتمعية',
+    title: 'حملة مطالبة بمعالجة جذور العنف والجريمة المنظمة',
+    body: 'نظّم ناشطون وقفات في عدة بلدات للمطالبة بخطة شاملة لمكافحة الجريمة المنظمة ومصادر السلاح، مع التشديد على دور المجتمع في الحماية الذاتية.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
+  },
+  {
+    id: 'fp5',
+    kind: 'announcement',
+    source: 'فريق بلاغ',
+    title: 'دليل سريع: ماذا تفعل عند سماع إطلاق نار؟',
+    body: 'نشرنا دليلاً مختصراً بالخطوات الآمنة عند وقوع حادثة قريبة: الابتعاد عن النوافذ، البقاء منخفضاً، والإبلاغ فور الأمان. اطّلع عليه وشاركه مع عائلتك.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
+  },
+  {
+    id: 'fp6',
+    kind: 'news',
+    source: 'تغطية مجتمعية',
+    title: 'مبادرات شبابية لإحياء المساحات العامة وتقليل التوتر',
+    body: 'أطلق متطوعون شباب مشاريع لإنارة الشوارع وتنظيم فعاليات مسائية في الساحات العامة، بهدف استعادة الإحساس بالأمان في الأحياء الأكثر تأثراً.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString(),
+  },
+];
+
 export const db = {
   incidents: {
     getAll: () => [..._incidents],
@@ -273,5 +326,9 @@ export const db = {
       _notifications = _notifications.map(n => ({ ...n, read: true }));
     },
     add: (n: AppNotification) => { _notifications = [n, ..._notifications]; },
+  },
+  feedPosts: {
+    getAll: () => [..._feedPosts],
+    add: (p: FeedPost) => { _feedPosts = [p, ..._feedPosts]; },
   },
 };

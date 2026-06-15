@@ -10,6 +10,7 @@ import LocalityScreen from '../screens/onboarding/Locality';
 import SettingsScreen from '../screens/settings/Settings';
 import MapScreen from '../screens/Map';
 import FeedScreen from '../screens/Feed';
+import FeedsScreen from '../screens/Feeds';
 import IncidentDetailScreen from '../screens/IncidentDetail';
 import ReportCategoryScreen from '../screens/ReportCategory';
 import ReportDetailsScreen from '../screens/ReportDetails';
@@ -61,6 +62,7 @@ export const RootNavigator = (): React.ReactElement => (
       component={SettingsScreen}
       options={{ animation: 'slide_from_right' }}
     />
+    <Stack.Screen name="Feeds" component={FeedsScreen} />
     <Stack.Screen name="Inbox" component={InboxScreen} />
     <Stack.Screen name="ReportCategory" component={ReportCategoryScreen} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} initialParams={{ category: '' }} />

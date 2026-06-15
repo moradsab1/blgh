@@ -156,6 +156,15 @@ const ar = {
     empty: 'منطقتك هادئة الآن',
     emptySub: 'لا توجد بلاغات مطابقة في النطاق الزمني المحدد',
   },
+  feeds: {
+    title: 'الأخبار والفعاليات',
+    subtitle: 'فعاليات من فريق بلاغ وأخبار حول العنف في المجتمع العربي',
+    filters: { all: 'الكل', announcements: 'فعاليات', news: 'أخبار' },
+    announcement: 'فعالية',
+    news: 'خبر',
+    empty: 'لا يوجد محتوى بعد',
+    emptySub: 'ستظهر هنا فعاليات الفريق والأخبار المتعلقة بسلامة مجتمعك',
+  },
   detail: {
     distanceAway: 'على بُعد',
     km: 'كم',
@@ -448,6 +457,15 @@ const he: typeof ar = {
     empty: 'האזור שלך רגוע כעת',
     emptySub: 'אין דיווחים תואמים בטווח הזמן שנבחר',
   },
+  feeds: {
+    title: 'חדשות ואירועים',
+    subtitle: "אירועים מצוות בלאע' וחדשות על אלימות בחברה הערבית",
+    filters: { all: 'הכל', announcements: 'אירועים', news: 'חדשות' },
+    announcement: 'אירוע',
+    news: 'חדשות',
+    empty: 'אין תוכן עדיין',
+    emptySub: 'כאן יופיעו אירועי הצוות וחדשות הנוגעות לבטיחות הקהילה שלך',
+  },
   detail: {
     distanceAway: 'במרחק',
     km: 'ק"מ',
@@ -728,6 +746,15 @@ const en: typeof ar = {
     resolved: 'Resolved',
     empty: 'Your area is calm now',
     emptySub: 'No matching reports in the selected time range',
+  },
+  feeds: {
+    title: 'News & Events',
+    subtitle: 'Events from the Balagh team and news about violence in the Arab community',
+    filters: { all: 'All', announcements: 'Events', news: 'News' },
+    announcement: 'Event',
+    news: 'News',
+    empty: 'No content yet',
+    emptySub: "Team events and news about your community's safety will appear here",
   },
   detail: {
     distanceAway: 'Away',

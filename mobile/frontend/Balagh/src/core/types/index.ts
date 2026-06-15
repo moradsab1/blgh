@@ -35,6 +35,19 @@ export interface AppNotification {
   incidentRef?: string;
 }
 
+// Feeds screen content — organization announcements/events and curated news
+// about violence in the Arab community. Not tied to a map location.
+export type FeedPostKind = 'announcement' | 'news';
+
+export interface FeedPost {
+  id: string;
+  kind: FeedPostKind;
+  source: string;
+  title: string;
+  body: string;
+  createdAt: string;
+}
+
 export interface StatusResponse {
   state: SafetyState;
   reason: string;

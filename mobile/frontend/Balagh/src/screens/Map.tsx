@@ -39,7 +39,7 @@ import MapboxGL from '@rnmapbox/maps';
 import type { MapProps } from '../navigation/types';
 import { color, fontSize, font, motion, radius, shadow, space } from '../core/theme/tokens';
 import { Text } from '../core/theme/components';
-import { List, Locate, Mail, Plus, Settings, Shield } from '../core/icons';
+import { History, Locate, Mail, Newspaper, Plus, Settings, Shield } from '../core/icons';
 import ArabicLabels from '../presentation/components/ArabicLabels';
 import { privacyCircleRadius } from '../presentation/map/privacyCircle';
 import { useReduceMotion } from '../core/a11y/useReduceMotion';
@@ -970,19 +970,32 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
       {/* Three balanced slots: Feed pill (start) · centered Report FAB ·
           Recenter (end, shown when panned away) — the primary "add incident"
           action sits dead-center for one-handed reach. */}
+      {/* ── Recenter FAB (floats above the tray, trailing edge) ─────── */}
+      {isRecenterVisible && (
+        <TouchableOpacity
+          style={[styles.recenterFab, { bottom: insets.bottom + 84 + space(2) }]}
+          onPress={handleRecenter}
+          activeOpacity={0.8}
+          testID="recenter-fab">
+          <Locate size={22} color={color.textPrimary} />
+        </TouchableOpacity>
+      )}
+
       <View
         style={[
           styles.actionTray,
           { paddingBottom: insets.bottom + space(1) },
         ]}>
+        {/* Incidents history — opens the incidents list (icon-only). */}
         <View style={styles.trayStart}>
           <TouchableOpacity
-            style={styles.feedPill}
+            style={styles.trayIconBtn}
             onPress={() => navigation.navigate('Feed')}
+            accessibilityRole="button"
+            accessibilityLabel={s.map.feed}
             activeOpacity={0.8}
             testID="feed-pill">
-            <List size={16} color={color.textPrimary} />
-            <Text style={styles.feedPillText}>{s.map.feed}</Text>
+            <History size={24} color={color.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -1003,16 +1016,17 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
           </TouchableOpacity>
         </Animated.View>
 
+        {/* Feeds — team events + community news (icon-only). */}
         <View style={styles.trayEnd}>
-          {isRecenterVisible && (
-            <TouchableOpacity
-              style={styles.recenterFab}
-              onPress={handleRecenter}
-              activeOpacity={0.8}
-              testID="recenter-fab">
-              <Locate size={22} color={color.textPrimary} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.trayIconBtn}
+            onPress={() => navigation.navigate('Feeds')}
+            accessibilityRole="button"
+            accessibilityLabel={s.feeds.title}
+            activeOpacity={0.8}
+            testID="feeds-btn">
+            <Newspaper size={24} color={color.textPrimary} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -1161,24 +1175,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'flex-end',
   },
-  feedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  // Circular icon buttons flanking the center FAB — history (incidents list)
+  // and feeds (team events + community news). Icon-only, no labels.
+  trayIconBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: color.card,
-    borderRadius: radius.pill,
-    paddingHorizontal: space(2),
-    paddingVertical: space(1),
-    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: space(1),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.border,
     ...shadow.float,
-  },
-  feedPillText: {
-    fontSize: fontSize.sm,
-    fontFamily: font.arabicMedium,
-    color: color.textPrimary,
   },
   reportFab: {
     width: 68,
@@ -1194,13 +1203,16 @@ const styles = StyleSheet.create({
     ...shadow.float,
   },
   recenterFab: {
+    // Floats above the action tray on the trailing edge; `bottom` is set
+    // inline from the safe-area inset so it clears the tray on any device.
+    position: 'absolute',
+    right: space(2),
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: color.card,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: space(1),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.border,
     ...shadow.float,

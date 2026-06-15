@@ -36,6 +36,25 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Pre-install NDK (pinned)
+        # Install the pinned NDK explicitly with sdkmanager instead of relying
+        # on the Android Gradle plugin's on-demand download, which intermittently
+        # fetches a corrupted archive ("Archive is not a ZIP archive") and fails
+        # the build at configuration time. Retry to absorb transient corruption.
+        run: |
+          for attempt in 1 2 3; do
+            echo "NDK install attempt $attempt…"
+            if yes | sdkmanager "ndk;27.1.12297006"; then
+              echo "NDK 27.1.12297006 installed."
+              exit 0
+            fi
+            echo "Attempt $attempt failed; clearing partial download and retrying."
+            rm -rf "$ANDROID_SDK_ROOT/ndk/27.1.12297006" || true
+            sleep 5
+          done
+          echo "::error::Failed to install NDK 27.1.12297006 after 3 attempts."
+          exit 1
+
       - name: Install npm dependencies
         working-directory: mobile/frontend/Balagh
         run: npm ci --legacy-peer-deps

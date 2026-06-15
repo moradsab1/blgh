@@ -39,7 +39,7 @@ const getGeoPosition = (): Promise<{ coords: { latitude: number; longitude: numb
     const nav = global?.navigator as Record<string, unknown> | undefined;
     const geo = nav?.geolocation as GeoLike | undefined;
     if (!geo) { reject(new Error('no-geo')); return; }
-    geo.getCurrentPosition(resolve, reject, { timeout: 5000, maximumAge: 30000 });
+    geo.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
   });
 
 const SNIPPET_STYLE = 'mapbox://styles/mapbox/streets-v12';
@@ -69,11 +69,15 @@ function markerShape(c: Coords) {
   };
 }
 
+// Incident pin: severity-accent, slightly translucent so the blue current-
+// location puck stays readable underneath when they coincide.
 const PIN_STYLE = {
   circleRadius: 10,
   circleColor: color.accent,
+  circleOpacity: 0.7,
   circleStrokeWidth: 3,
   circleStrokeColor: '#FFFFFF',
+  circleStrokeOpacity: 0.9,
 };
 
 export default function ReportDetailsScreen({ navigation, route }: Props): React.ReactElement {
@@ -114,7 +118,14 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
       .catch(() => { /* keep best-known location — no failure UI */ });
   }, [setUserLocation]);
 
-  useEffect(() => { acquireLocation(); }, [acquireLocation]);
+  useEffect(() => {
+    // Only fetch a fresh fix when we have no known location yet. When the map
+    // store already holds the current location, the red incident pin starts
+    // exactly on the blue location puck (same source) — fetching again could
+    // return a slightly different point and nudge the pin off the puck.
+    if (userLat == null || userLng == null) acquireLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openEditor = useCallback(() => {
     haptics.toggle();

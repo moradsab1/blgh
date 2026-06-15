@@ -41,6 +41,7 @@ import { color, fontSize, font, motion, radius, shadow, space } from '../core/th
 import { Text } from '../core/theme/components';
 import { History, Locate, Mail, Newspaper, Plus, Settings, Shield } from '../core/icons';
 import ArabicLabels from '../presentation/components/ArabicLabels';
+import { VictimsCounter } from '../presentation/components/VictimsCounter';
 import { privacyCircleRadius } from '../presentation/map/privacyCircle';
 import { useReduceMotion } from '../core/a11y/useReduceMotion';
 import { haptics } from '../core/haptics';
@@ -894,28 +895,26 @@ const MapScreen = ({ navigation }: MapProps): React.ReactElement => {
         </MapboxGL.ShapeSource>
       </MapboxGL.MapView>
 
-      {/* ── Safety Status Pill (top-left, below safe-area) ─────────── */}
-      <View
-        style={[
-          styles.statusPill,
-          { top: insets.top + space(1) },
-        ]}
-        testID="status-pill">
-        <View
-          style={[
-            styles.statusDot,
-            {
-              backgroundColor: statusColor,
-              opacity:
-                safetyState !== 'calm' && !reduceMotion
-                  ? pulseOpaque ? 1 : 0.3
-                  : 1,
-            },
-          ]}
-        />
-        <Text style={[styles.statusLabel, { color: statusColor }]}>
-          {statusLabel}
-        </Text>
+      {/* ── Top-left cluster: Safety Status pill + Victims counter ──── */}
+      <View style={[styles.topLeftRow, { top: insets.top + space(1) }]}>
+        <View style={styles.statusPill} testID="status-pill">
+          <View
+            style={[
+              styles.statusDot,
+              {
+                backgroundColor: statusColor,
+                opacity:
+                  safetyState !== 'calm' && !reduceMotion
+                    ? pulseOpaque ? 1 : 0.3
+                    : 1,
+              },
+            ]}
+          />
+          <Text style={[styles.statusLabel, { color: statusColor }]}>
+            {statusLabel}
+          </Text>
+        </View>
+        <VictimsCounter />
       </View>
 
       {/* ── Floating Toolbar (top-right) ────────────────────────────── */}
@@ -1057,10 +1056,16 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
 
-  // Status pill
-  statusPill: {
+  // Top-left cluster — safety status pill + victims counter, side by side.
+  topLeftRow: {
     position: 'absolute',
     left: space(2),
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: space(1),
+  },
+  // Status pill
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,

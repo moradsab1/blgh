@@ -55,6 +55,19 @@ export interface StatusResponse {
   reason: string;
 }
 
+// Arab-community victims counter (§5.6b). Counts are per calendar year.
+export interface VictimYearCount {
+  year: number;
+  count: number;
+}
+
+export interface VictimStats {
+  currentYear: number;
+  currentYearCount: number;
+  byYear: VictimYearCount[]; // descending by year, includes the current year
+  total: number;             // all years on record
+}
+
 export type WsEvent =
   | { t: 'incident.created'; incident: Incident }
   | { t: 'incident.resolved'; id: string }

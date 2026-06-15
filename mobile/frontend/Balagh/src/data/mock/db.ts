@@ -1,4 +1,4 @@
-import type { Incident, AppNotification, FeedPost, Locality } from '../../core/types';
+import type { Incident, AppNotification, FeedPost, Locality, VictimYearCount } from '../../core/types';
 import { OPEN_INCIDENT_WINDOW_HOURS } from '../../core/config';
 import { strings } from '../../core/strings';
 
@@ -291,6 +291,18 @@ let _feedPosts: FeedPost[] = [
   },
 ];
 
+// Arab-community victims per year (§5.6b) — placeholder counts until a real
+// backend serves them. Descending by year; the first entry is the current year.
+let _victims: VictimYearCount[] = [
+  { year: 2026, count: 142 },
+  { year: 2025, count: 230 },
+  { year: 2024, count: 245 },
+  { year: 2023, count: 198 },
+  { year: 2022, count: 116 },
+  { year: 2021, count: 99 },
+  { year: 2020, count: 87 },
+];
+
 export const db = {
   incidents: {
     getAll: () => [..._incidents],
@@ -330,5 +342,8 @@ export const db = {
   feedPosts: {
     getAll: () => [..._feedPosts],
     add: (p: FeedPost) => { _feedPosts = [p, ..._feedPosts]; },
+  },
+  victims: {
+    getAll: () => [..._victims].sort((a, b) => b.year - a.year),
   },
 };

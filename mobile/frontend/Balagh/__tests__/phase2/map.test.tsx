@@ -77,6 +77,9 @@ jest.mock('../../src/data/mock/db', () => ({
       markAllRead: jest.fn(),
       add: jest.fn(),
     },
+    victims: {
+      getAll: jest.fn(() => [{ year: 2026, count: 0 }]),
+    },
   },
 }));
 

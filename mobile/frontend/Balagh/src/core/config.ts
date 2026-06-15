@@ -30,3 +30,8 @@ export const OPEN_INCIDENT_WINDOW_HOURS = 24;
 // Each open incident is drawn as a translucent circle covering roughly
 // this ground radius so the precise location stays hidden.
 export const INCIDENT_PRIVACY_RADIUS_M = 150;
+
+// Memorial website for the Arab-community victims counter (§5.6b). Placeholder
+// until the real site exists; keep it configurable here / via env so it can be
+// swapped without touching UI code.
+export const MEMORIAL_URL = 'https://example.org/memorial';

@@ -3,6 +3,7 @@ import type {
   AppNotification,
   Locality,
   StatusResponse,
+  VictimStats,
 } from '../../core/types';
 
 export interface IIncidentRepository {
@@ -32,4 +33,11 @@ export interface ILocalityRepository {
 
 export interface IStatusRepository {
   getStatus(lat: number, lng: number): Promise<StatusResponse>;
+}
+
+export interface IVictimsRepository {
+  /** Aggregate Arab-community victim statistics (current year, per-year, total). */
+  getStats(): Promise<VictimStats>;
+  /** Victim count within an inclusive [fromYear, toYear] range. */
+  getRangeCount(fromYear: number, toYear: number): Promise<number>;
 }

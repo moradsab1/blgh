@@ -167,10 +167,11 @@ A white pill with two icon buttons (monochrome glyphs tinted to the theme): **In
 Sits in the bottom action tray's end slot; appears when panned away from location. Tap animates back to user position; button disappears.
 
 ### 5.9 Bottom Action Tray
-Controls float free over the map, each with its own elevation (no dark band). Three balanced flex slots keep the primary action centered:
-- **Feed pill** (start slot): white pill, *"قائمة الحوادث"* + list icon → Incidents Feed drawer.
+Controls float free over the map, each with its own elevation (no dark band). Three balanced flex slots keep the primary action centered, flanked by two icon-only circular buttons (56 pt, white, hairline border, float shadow):
+- **History button** (start slot): circular **history icon**, no label → Incidents Feed history browser (§5.10).
 - **Report FAB** (centered): **68×68 pt** orange circle with a 3 pt white ring, white plus glyph — dead-center and **raised ~20 pt above the side controls** so it reads as the bold focal action, not one button among three. Breathes subtly when Calm; pulse **stops** on Watch/Active.
-- **Recenter button** (end slot, conditional — §5.8).
+- **Feeds button** (end slot): circular **newspaper icon**, no label → Feeds screen (§5.10b).
+- **Recenter button** (conditional — §5.8): floats above the tray on the trailing edge.
 
 ### 5.10 Incidents Feed Drawer (history browser)
 Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses. While the map shows only the open 24 h window, the feed is where users **browse incident history**.
@@ -180,6 +181,12 @@ Slides up; snaps to **25% / 60% (default) / 90%**; backdrop-tap dismisses. While
 - **City + incident-type selectors (multi-select, horizontally scrollable row):** one **"اختر البلدة"** pill (map-pin glyph + selection summary + chevron-down) and one **"نوع البلاغ"** pill (shapes glyph) — never inline chips for all options. Each opens a shared **multi-select bottom sheet**: drag handle, title, checkbox rows that toggle and stay open, a *كل البلدات / كل الأنواع* row that clears the selection, and a **تطبيق** button to close. The city sheet keeps a search field matching across ar/he/en names; the type sheet lists the six categories with their icons. Button labels summarize multi-selections (*الناصرة +2*) and show a clear ✕ when active — so a user can e.g. see *gunfire + robbery over the last month in Nazareth + Haifa*.
 Filtering logic lives in `domain/feed/filters.ts` (`filterIncidents`: range — quick `day/week/month`, extended `quarter/year`, or `custom` with inclusive from/to bounds — × `localityIds[]` × `categories[]`; empty arrays mean no restriction).
 **Feed cards (modern):** a severity-colored **accent strip** on the card edge; a severity-tinted rounded **icon badge**; category label as the title; a meta row with locality name (map-pin glyph) + relative time (30 s refresh) + a muted **"منتهي" (resolved) badge** for closed incidents; description (≤3 lines). No vote pills (§5.11) and no bookmark — cards carry no per-incident actions. Tap body → Incident Detail Sheet.
+
+### 5.10b Feeds Screen
+A full screen (route `Feeds`) opened from the map tray's **feeds button** (§5.9), distinct from the incidents list. It surfaces community content the map can't:
+- **Announcements / events** organized by the Balagh team (e.g. safety workshops, a mediation line, safety guides).
+- **News** about violence in the Arab community (community coverage, initiatives).
+**Header:** back + title *"الأخبار والفعاليات"* + one-line subtitle. **Filter chips:** الكل | فعاليات | أخبار. **Post cards:** a tinted **kind badge** (megaphone for events in crimson, newspaper for news in amber), source + relative time meta row, title, and a 3-line body. Backed by the mock `db.feedPosts` (a `FeedPost` = `{ id, kind: 'announcement' | 'news', source, title, body, createdAt }`); when a backend lands it serves the same shape. Empty state: newspaper glyph + *"لا يوجد محتوى بعد"*.
 
 ### 5.11 Verification Votes — REMOVED
 The Confirm/Deny verification-vote feature was **removed from the product** (2026-06-12). Incidents carry no vote counts, no `myVote` state, no vote endpoints, and no vote UI anywhere. The "active" status rule (§5.6) consequently no longer requires verified incidents.
@@ -632,7 +639,7 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 - **Map canvas:** full-bleed streets style (`mapbox://styles/mapbox/streets-v12`) with street/place labels localized to Arabic via `<ArabicLabels />` (a `name_ar` → `name` → `name_en` coalesce over the style's label layers — never blank), logo/attribution/scale-bar hidden, **north-up fixed** (rotation + pitch gestures disabled), user-location `LocationPuck` shown only after permission.
 - **Mock incident pins (the deliverable):** render the **currently open** mock incidents (`db.incidents.getOpen()` — the 24 h window, §5.5) on the map. Each open incident → a **~150 m privacy circle** in its severity color (never an exact point — `privacyCircleRadius()`); the highest-priority active incident's circle edge pulses. Use a `ShapeSource` with `cluster: true` + a `CircleLayer`/`SymbolLayer` so low zoom shows cluster bubbles tinted to the highest-severity member with a count, and high zoom shows individual privacy circles. New circles scale-in over 320 ms; resolved incidents fade to 30% then drop after 30 s. Tap → centers the map + opens the Incident Detail sheet (a stub sheet here; fully built in Phase 3). The mock `eventEmitter` (`startMockEmitter`) feeds live `incident.created` / `incident.resolved` so circles appear/disappear in real time.
 - **Location permission:** pre-prompt screen (why) → native **"while using"** request. On deny: center on the chosen locality, show the user no dot, and surface a settings banner. Background location is **never** requested.
-- **Surrounding UI:** the Safety Status pill (calm/watch/active, with the §5.6 radius/time rules computed in a `domain/status` helper from nearby incidents), the recenter FAB (appears when panned away), and the bottom action tray (Feed pill + breathing Report FAB that stops pulsing on Watch/Active).
+- **Surrounding UI:** the Safety Status pill (calm/watch/active, with the §5.6 radius/time rules computed in a `domain/status` helper from nearby incidents), the recenter FAB (appears when panned away), and the bottom action tray (a history icon button → incidents list, a feeds icon button → Feeds screen, and the centered breathing Report FAB that stops pulsing on Watch/Active).
 - **Offline region:** download a Mapbox offline pack around the chosen locality so the map renders without connectivity; cap the pack size.
 - **Tests:** status-rule unit tests (3 km/60 min → watch; 1 km/15 min/≥3 → active); privacy-circle meter→pixel math; cluster→individual circle transition; permission grant/deny branches; reduce-motion disables the pulse. Mock `@rnmapbox/maps` in jest.
 
@@ -835,8 +842,8 @@ sheet. Wire startMockEmitter so incident.created/resolved animate circles live. 
 pre-prompt screen (why) → native "while using" request; on deny center on the chosen locality,
 no dot, settings banner — NEVER request background location. Add the Safety Status pill
 (calm/watch/active via a domain/status helper: 3km/60min→watch, 1km/15min/≥3→active), the
-recenter FAB (when panned away), and the bottom action tray (Feed pill + breathing Report FAB
-that stops pulsing on Watch/Active). Download a Mapbox offline pack around the locality
+recenter FAB (when panned away), and the bottom action tray (history + feeds icon buttons
+flanking the centered breathing Report FAB that stops pulsing on Watch/Active). Download a Mapbox offline pack around the locality
 (capped size).
 Tests: status-rule units (watch/active thresholds); privacy-circle meter→pixel math;
 cluster→individual transition; permission grant/deny branches; reduce-motion disables the

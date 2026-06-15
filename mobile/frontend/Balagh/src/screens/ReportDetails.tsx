@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   ActivityIndicator,
+  Modal,
   StyleSheet,
   SafeAreaView,
   StatusBar,
@@ -11,8 +12,8 @@ import {
 } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
 import { Text, Button } from '../core/theme/components';
-import { color, fontSize, font, space, radius } from '../core/theme/tokens';
-import { ChevronLeft, Check, Locate, MapPin } from '../core/icons';
+import { color, fontSize, font, space, radius, shadow } from '../core/theme/tokens';
+import { ChevronLeft, Check, Locate, MapPin, X } from '../core/icons';
 import ArabicLabels from '../presentation/components/ArabicLabels';
 import { useLangStore } from '../domain/stores/lang';
 import { strings } from '../core/strings';
@@ -41,39 +42,61 @@ const getGeoPosition = (): Promise<{ coords: { latitude: number; longitude: numb
   });
 
 const SNIPPET_STYLE = 'mapbox://styles/mapbox/streets-v12';
+const PREVIEW_ZOOM = 12; // city-level so the reporter sees where they are
+const EDIT_ZOOM = 15;    // close enough to drop the pin precisely
 const repo = new MockIncidentRepo();
 
+type Coords = { lat: number; lng: number };
 type GpsStatus = 'locating' | 'ok' | 'failed';
 
-// Fallback to the chosen locality's centre when GPS is unavailable, so the
-// reporter always starts from a sensible point and can adjust from there.
-function localityFallback(): { lat: number; lng: number } {
+// Fallback to the chosen locality's centre when GPS is unavailable.
+function localityFallback(): Coords {
   const id = store.getString(StorageKeys.LOCALITY_ID);
   const loc = LOCALITIES.find(l => l.id === id) ?? LOCALITIES[0];
   return { lat: loc.lat, lng: loc.lng };
 }
+
+function markerShape(c: Coords) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: [
+      {
+        type: 'Feature' as const,
+        properties: {},
+        geometry: { type: 'Point' as const, coordinates: [c.lng, c.lat] },
+      },
+    ],
+  };
+}
+
+const PIN_STYLE = {
+  circleRadius: 10,
+  circleColor: color.accent,
+  circleStrokeWidth: 3,
+  circleStrokeColor: '#FFFFFF',
+};
 
 export default function ReportDetailsScreen({ navigation, route }: Props): React.ReactElement {
   const { category } = route.params;
   const { lang } = useLangStore();
   const s = strings[lang];
 
-  // Users never type a description — they pick one of the prepared
-  // situation descriptions for the chosen category.
   const situations = s.report.situations[category as Category] ?? [];
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // ── Editable incident location ──────────────────────────────────────────────
-  // GPS is unreliable in the field, so we show the current fix up front and let
-  // the reporter correct it: tap the map to move the pin, or type a place note.
-  const [coords, setCoords] = useState(() => localityFallback());
-  const [cameraCenter, setCameraCenter] = useState(coords);
+  // GPS is unreliable in the field. The preview shows the current fix at
+  // city zoom; tapping it opens a bigger editor card to drop the pin precisely
+  // or type a place description.
+  const [coords, setCoords] = useState<Coords>(() => localityFallback());
+  const [cameraCenter, setCameraCenter] = useState<Coords>(coords);
   const [gps, setGps] = useState<GpsStatus>('locating');
   const [adjusted, setAdjusted] = useState(false);
   const [locationText, setLocationText] = useState('');
+  const [editorOpen, setEditorOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cameraRef = useRef<any>(null);
+  const editorCameraRef = useRef<any>(null);
 
   const acquireLocation = useCallback(() => {
     setGps('locating');
@@ -90,6 +113,18 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
 
   useEffect(() => { acquireLocation(); }, [acquireLocation]);
 
+  const openEditor = useCallback(() => {
+    haptics.toggle();
+    setCameraCenter(coords); // editor opens centered on the current pin
+    setEditorOpen(true);
+  }, [coords]);
+
+  const closeEditor = useCallback(() => {
+    setCameraCenter(coords); // preview re-centers on the chosen pin
+    setEditorOpen(false);
+  }, [coords]);
+
+  // Tap on the editor map moves the pin; the camera stays put.
   const handleMapPress = useCallback((feature: { geometry?: { coordinates?: number[] } }) => {
     const c = feature?.geometry?.coordinates;
     if (Array.isArray(c) && c.length === 2) {
@@ -98,17 +133,6 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
       setAdjusted(true);
     }
   }, []);
-
-  const markerGeoJSON = {
-    type: 'FeatureCollection' as const,
-    features: [
-      {
-        type: 'Feature' as const,
-        properties: {},
-        geometry: { type: 'Point' as const, coordinates: [coords.lng, coords.lat] },
-      },
-    ],
-  };
 
   const handleSubmit = async () => {
     if (submitting || selectedIndex === null) return;
@@ -139,82 +163,68 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {/* ── Location section ────────────────────────────────────────── */}
+        {/* ── Location preview (tap to open the editor) ───────────────── */}
         <View style={styles.sectionTitleRow}>
           <MapPin size={16} color={color.accent} />
           <Text variant="label">{s.report.location.title}</Text>
         </View>
 
-        <View style={styles.mapCard}>
-          <View style={styles.mapWrap} testID="report-location-map">
-            <MapboxGL.MapView
-              style={StyleSheet.absoluteFill}
-              styleURL={SNIPPET_STYLE}
-              logoEnabled={false}
-              attributionEnabled={false}
-              scaleBarEnabled={false}
-              rotateEnabled={false}
-              pitchEnabled={false}
-              scrollEnabled={false}
-              onPress={handleMapPress}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              {...({ compassEnabled: false } as any)}>
-              <ArabicLabels />
-              <MapboxGL.Camera
-                ref={cameraRef}
-                centerCoordinate={[cameraCenter.lng, cameraCenter.lat]}
-                zoomLevel={15}
-                animationDuration={400}
-              />
-              <MapboxGL.ShapeSource
-                id="reportLocationSource"
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                shape={markerGeoJSON as any}>
-                <MapboxGL.CircleLayer
-                  id="reportLocationPin"
-                  style={{
-                    circleRadius: 9,
-                    circleColor: color.accent,
-                    circleStrokeWidth: 3,
-                    circleStrokeColor: '#FFFFFF',
-                  }}
-                />
-              </MapboxGL.ShapeSource>
-            </MapboxGL.MapView>
+        <View style={styles.previewWrap}>
+          <MapboxGL.MapView
+            style={StyleSheet.absoluteFill}
+            styleURL={SNIPPET_STYLE}
+            logoEnabled={false}
+            attributionEnabled={false}
+            scaleBarEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            {...({ compassEnabled: false } as any)}>
+            <ArabicLabels />
+            <MapboxGL.Camera
+              centerCoordinate={[cameraCenter.lng, cameraCenter.lat]}
+              zoomLevel={PREVIEW_ZOOM}
+              animationDuration={400}
+            />
+            {gps === 'ok' && <MapboxGL.LocationPuck />}
+            <MapboxGL.ShapeSource id="reportPreviewSource" shape={markerShape(coords)}>
+              <MapboxGL.CircleLayer id="reportPreviewPin" style={PIN_STYLE} />
+            </MapboxGL.ShapeSource>
+          </MapboxGL.MapView>
 
-            {/* Recenter to GPS */}
-            <Pressable
-              style={styles.myLocationBtn}
-              onPress={acquireLocation}
-              accessibilityRole="button"
-              accessibilityLabel={s.report.location.myLocation}
-              testID="report-my-location">
-              <Locate size={18} color={color.textPrimary} />
-            </Pressable>
-          </View>
+          {/* Transparent overlay makes the whole preview open the editor. */}
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={openEditor}
+            accessibilityRole="button"
+            accessibilityLabel={s.report.location.tapToChange}
+            testID="report-location-preview"
+          />
 
-          <Text
-            variant="caption"
-            secondary={gps !== 'failed'}
-            style={[styles.locationHint, gps === 'failed' && styles.locationHintError]}>
-            {gps === 'locating'
-              ? s.report.location.locating
-              : gps === 'failed'
-              ? s.report.location.gpsFailed
-              : adjusted
-              ? s.report.location.adjusted
-              : s.report.location.hint}
-          </Text>
+          {gps === 'locating' && (
+            <View style={styles.previewBadge} pointerEvents="none">
+              <ActivityIndicator size="small" color={color.accent} />
+              <Text variant="caption" secondary>{s.report.location.locating}</Text>
+            </View>
+          )}
         </View>
 
-        <TextInput
-          style={styles.locationInput}
-          value={locationText}
-          onChangeText={setLocationText}
-          placeholder={s.report.location.textPlaceholder}
-          placeholderTextColor={color.textMuted}
-          testID="report-location-input"
-        />
+        {/* Note under the map. */}
+        <Text
+          variant="caption"
+          secondary={gps !== 'failed'}
+          style={[styles.note, gps === 'failed' && styles.noteError]}>
+          {gps === 'failed' ? s.report.location.gpsFailed : s.report.location.tapToChange}
+        </Text>
+
+        {locationText.trim() ? (
+          <View style={styles.placeRow}>
+            <MapPin size={13} color={color.textSecondary} />
+            <Text variant="caption" secondary style={styles.placeText}>{locationText.trim()}</Text>
+          </View>
+        ) : null}
 
         {/* ── Situation picker ────────────────────────────────────────── */}
         <Text secondary style={styles.subtitle}>{s.report.situationSubtitle}</Text>
@@ -252,6 +262,79 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
           onPress={handleSubmit}
         />
       </View>
+
+      {/* ── Location editor (bigger card) ───────────────────────────── */}
+      {editorOpen && (
+        <Modal visible transparent animationType="slide" onRequestClose={closeEditor}>
+          <Pressable style={styles.editorBackdrop} onPress={closeEditor} testID="report-location-backdrop" />
+          <View style={styles.editorSheet}>
+            <View style={styles.editorHandle} />
+            <View style={styles.editorTitleRow}>
+              <Text variant="heading">{s.report.location.title}</Text>
+              <Pressable onPress={closeEditor} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <X size={20} color={color.textSecondary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.editorMapWrap} testID="report-location-map">
+              <MapboxGL.MapView
+                style={StyleSheet.absoluteFill}
+                styleURL={SNIPPET_STYLE}
+                logoEnabled={false}
+                attributionEnabled={false}
+                scaleBarEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
+                onPress={handleMapPress}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                {...({ compassEnabled: false } as any)}>
+                <ArabicLabels />
+                <MapboxGL.Camera
+                  ref={editorCameraRef}
+                  centerCoordinate={[cameraCenter.lng, cameraCenter.lat]}
+                  zoomLevel={EDIT_ZOOM}
+                  animationDuration={400}
+                />
+                {gps === 'ok' && <MapboxGL.LocationPuck />}
+                <MapboxGL.ShapeSource id="reportEditorSource" shape={markerShape(coords)}>
+                  <MapboxGL.CircleLayer id="reportEditorPin" style={PIN_STYLE} />
+                </MapboxGL.ShapeSource>
+              </MapboxGL.MapView>
+
+              <Pressable
+                style={styles.myLocationBtn}
+                onPress={acquireLocation}
+                accessibilityRole="button"
+                accessibilityLabel={s.report.location.myLocation}
+                testID="report-my-location">
+                <Locate size={18} color={color.textPrimary} />
+              </Pressable>
+            </View>
+
+            <Text variant="caption" secondary style={styles.editorHint}>
+              {adjusted ? s.report.location.adjusted : s.report.location.editHint}
+            </Text>
+
+            <TextInput
+              style={styles.locationInput}
+              value={locationText}
+              onChangeText={setLocationText}
+              placeholder={s.report.location.textPlaceholder}
+              placeholderTextColor={color.textMuted}
+              testID="report-location-input"
+            />
+
+            <Button
+              label={s.report.location.done}
+              variant="primary"
+              fullWidth
+              onPress={closeEditor}
+              style={styles.editorDone}
+              testID="report-location-done"
+            />
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -273,55 +356,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: space(2),
     paddingTop: space(2),
     paddingBottom: space(3),
-    gap: space(1.5),
+    gap: space(1),
   },
   sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space(1),
   },
-  mapCard: {
-    gap: space(1),
-  },
-  mapWrap: {
-    height: 190,
+  previewWrap: {
+    height: 150,
     borderRadius: radius.md,
     overflow: 'hidden',
     backgroundColor: color.cardElevated,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.border,
   },
-  myLocationBtn: {
+  previewBadge: {
     position: 'absolute',
-    bottom: space(1),
-    right: space(1),
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: color.card,
+    alignSelf: 'center',
+    top: '50%',
+    marginTop: -16,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: color.border,
-  },
-  locationHint: {
-    lineHeight: 18,
-  },
-  locationHintError: {
-    color: color.accent,
-  },
-  locationInput: {
+    gap: space(1),
     backgroundColor: color.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: color.border,
+    borderRadius: radius.pill,
     paddingHorizontal: space(1.5),
-    minHeight: 48,
-    color: color.textPrimary,
-    fontFamily: font.arabic,
-    fontSize: fontSize.base,
+    paddingVertical: space(0.75),
+    ...shadow.card,
   },
-  subtitle: { marginTop: space(1) },
+  note: { lineHeight: 18 },
+  noteError: { color: color.accent },
+  placeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  placeText: { flex: 1, lineHeight: 18 },
+  subtitle: { marginTop: space(1.5) },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -365,4 +437,73 @@ const styles = StyleSheet.create({
     gap: space(1.5),
   },
   spinner: { alignSelf: 'center' },
+
+  // ── Editor modal ──
+  editorBackdrop: {
+    flex: 1,
+    backgroundColor: color.scrim,
+  },
+  editorSheet: {
+    backgroundColor: color.card,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    paddingHorizontal: space(2),
+    paddingBottom: space(3),
+    paddingTop: space(1),
+    ...shadow.float,
+  },
+  editorHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: color.border,
+    marginBottom: space(1.5),
+  },
+  editorTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: space(1.5),
+  },
+  editorMapWrap: {
+    height: 320,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: color.cardElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+  },
+  myLocationBtn: {
+    position: 'absolute',
+    bottom: space(1.5),
+    right: space(1.5),
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: color.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: color.border,
+    ...shadow.float,
+  },
+  editorHint: {
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: space(1),
+  },
+  locationInput: {
+    backgroundColor: color.cardElevated,
+    borderRadius: radius.md,
+    paddingHorizontal: space(1.5),
+    minHeight: 48,
+    marginTop: space(1.5),
+    color: color.textPrimary,
+    fontFamily: font.arabic,
+    fontSize: fontSize.base,
+  },
+  editorDone: {
+    marginTop: space(1.5),
+  },
 });

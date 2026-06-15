@@ -1,9 +1,7 @@
 # Balagh (بلاغ) — Complete Product, UI, Architecture & Build Spec (Bare React Native)
 
 > **Target:** **Bare React Native CLI** (no Expo) · iOS + Android · Mock API (contract defined here) · Phased build · TypeScript strict · **New Architecture (mandatory)**
-> **Simplified to a minimal dependency set (2026-05-29).** The architecture was deliberately stripped from a heavy native stack to a minimal one to fix cold-start crashes (see §16). Only a minimal runtime dependency set remains; persistence is AsyncStorage, icons are **lucide-react-native** SVG vectors, i18n is a plain strings object.
-> **Product revision (2026-06-12).** Five product changes are baked into this spec: **(1)** report descriptions are no longer free text — the reporter picks one of four **prepared situation descriptions** per category (§5.13); **(2)** the **Confirm/Deny verification-vote feature is removed** end to end (§5.11, §10); **(3)** incidents are never rendered as an exact point — every pin is a **~150 m privacy circle** (§5.5, §5.12); **(4)** the map shows only **currently open incidents (24 h window)**, enforced by the backend, while the feed browses history (§5.5, §5.10, §10.3); **(5)** the incidents feed was redesigned with **time-range + locality history filters** and modern severity-striped cards (§5.10). Category icons were also modernized (§4).
-> **Stack validated against live docs:** 28 May 2026. Every native module below is confirmed New-Architecture-compatible. See the compatibility matrix in §6.4.
+> **Minimal, JS-first dependency set.** The stack is deliberately small to avoid the cold-start crashes a heavy native stack caused (see §16): persistence is AsyncStorage, icons are **lucide-react-native** SVG vectors, i18n is a plain strings object, sheets/animations are plain RN primitives. The one heavy native module is the map (`@rnmapbox/maps`). Every native module is New-Architecture-compatible — see the matrix in §6.4.
 > **Single source of truth:** product principles → full UI spec → architecture → native config → mock API → phased plan → the AI build prompt.
 
 ---
@@ -44,7 +42,7 @@ A note on privacy: you said privacy isn't a priority for this build, so the iden
 
 ## 2. What Balagh is
 
-Balagh is a safety-critical civilian incident-reporting app for the Arabic-speaking community in Israel, with full Hebrew and English support. Residents of mixed and high-risk localities — Umm al-Fahm, Lod, Ramla, Nazareth, Haifa, Tira, and others — receive geo-targeted safety alerts, submit anonymous signed reports, and verify each other's reports **without any state or police intermediation**.
+Balagh is a safety-critical civilian incident-reporting app for the Arabic-speaking community in Israel, with full Hebrew and English support. Residents of mixed and high-risk localities — Umm al-Fahm, Lod, Ramla, Nazareth, Haifa, Tira, and others — receive geo-targeted safety alerts, submit anonymous reports **without any state or police intermediation**.
 
 It is explicitly built for adverse conditions: stressed users in fight-or-flight mode, unstable mobile connectivity, one-handed operation while moving or hiding, variable lighting (night and bright sun), and older mid-range Android devices.
 
@@ -81,7 +79,7 @@ Exactly **one** runtime permission (Location, "while using"). The app **never** 
 
 **Layout:** 8-point spacing grid. Primary CTAs always sit in the bottom 40% of the screen for thumb-first reachability. All tap targets ≥ 48×48 pt. No gradients, no illustrations beyond onboarding glyphs; soft functional shadows (`shadow.card` / `shadow.float`) lift cards and floating chrome off the light background.
 
-**Component language (2026-06-12 polish):** filter **chips** are soft borderless pills — inset gray (`cardElevated`) when idle, solid accent with white text when active. Filled primary/danger **buttons** carry a soft `shadow.card` lift. Category/severity context is conveyed by **tinted icon badges** (a rounded square filled with the severity color at ~8% opacity holding the category icon) used consistently across feed cards, the category grids, and the incident detail sheet; the report/crisis category grid uses white cards with these badges and a subtle press-scale.
+**Component language.** filter **chips** are soft borderless pills — inset gray (`cardElevated`) when idle, solid accent with white text when active. Filled primary/danger **buttons** carry a soft `shadow.card` lift. Category/severity context is conveyed by **tinted icon badges** (a rounded square filled with the severity color at ~8% opacity holding the category icon) used consistently across feed cards, the category grids, and the incident detail sheet; the report/crisis category grid uses white cards with these badges and a subtle press-scale.
 
 **Motion:** Transitions range 100 ms (instant) → 480 ms (deliberate). All pulsing/motion effects disabled when the OS reduce-motion setting is on.
 
@@ -95,7 +93,7 @@ Exactly **one** runtime permission (Location, "while using"). The app **never** 
 
 > In the current minimal build the haptic API (`core/haptics`) is a set of **no-op stubs** — the semantic surface (`haptics.success()` etc.) exists so callers stay stable, but no native haptic library is installed. On Android the OS provides implicit touch feedback via ripples. A real haptics implementation can be wired later behind the same API.
 
-**Icons:** **`lucide-react-native`** SVG vector icons (over `react-native-svg`), re-exported through `core/icons` so screens keep importing the same names (`<IconName size color style />`). All icons are monochrome strokes tinted via the `color` prop — no emoji anywhere in the UI. Category icons use modern, instantly-readable glyphs: **Target** (gunfire) / **Sword** (stabbing) / **HandFist** (assault) / **HandCoins** (robbery) / **ScanEye** (suspicious) / **Siren** (other emergency). Directional icons (chevrons, arrows) are chosen per `I18nManager.isRTL` at call sites.
+**Icons:** **`lucide-react-native`** SVG vector icons (over `react-native-svg`), re-exported through `core/icons` so screens keep importing the same names (`<IconName size color style />`). All icons are monochrome strokes tinted via the `color` prop — no emoji anywhere in the UI. Category icons use modern, instantly-readable glyphs: **Target** (gunfire) / **Sword** (stabbing) / **HandFist** (assault) / **HandCoins** (robbery) / **ScanEye** (suspicious) / **Siren** (other emergency). Directional icons (chevrons, arrows) follow the active language's direction (`useIsRTL`, §12.5) at call sites.
 
 ---
 
@@ -124,7 +122,7 @@ Swipeable onboarding carousel; dot indicator animates circle → pill on the act
 Sticky header with back button + title *"اختر بلدتك"*. Subtitle explains the locality is only used to show nearby reports — not shared. Full-width search (works across Arabic, Hebrew, English scripts). Results in a scrollable sheet at 90% height, locality name in active language + canonical name smaller. **"تفعيل الحساب الآمن"** CTA pinned bottom, disabled until a locality is chosen.
 
 ### 5.5 Main Map Dashboard *(primary surface)*
-Single home screen. Everything else slides over it as sheets/modals. *(This is the long-term target design; see the implementation note below for what currently ships.)*
+Single home screen. Everything else slides over it as sheets/modals.
 
 ```
 ┌──────────────────────────────────────┐
@@ -132,13 +130,11 @@ Single home screen. Everything else slides over it as sheets/modals. *(This is t
 │            ( Map Canvas )            │
 │              with pins               │
 │                                      │
-│  [📰 Feed]    [🚨 Report]      [🧭]  │  ← Bottom action tray (FAB centered)
+│  [🕘 History]   [🚨 Report]   [📰 Feeds] │  ← Bottom action tray (FAB centered)
 └──────────────────────────────────────┘
 ```
 
-> **Current implementation:** The Map screen (`src/screens/Map.tsx`) is the real Mapbox dashboard — full-bleed streets canvas, clustered privacy circles fed by `db.incidents.getOpen()` (the 24 h open window), pulse on the highest-priority incident, status pill, recenter FAB, action tray, and offline pack download.
-
-**Map canvas (target):** full-bleed streets map (`mapbox://styles/mapbox/streets-v12` — Mapbox's most complete, continuously-updated road network) with street/place labels localized to **Arabic** via an explicit fallback expression (`name_ar` → `name` → `name_en`, applied to the style's label layers by `<ArabicLabels />`) so roads whose names exist only in Hebrew still show a label instead of going blank. Mapbox logo/attribution/scale-bar hidden, user location dot, **north-up fixed**.
+**Map canvas:** full-bleed streets map (`mapbox://styles/mapbox/streets-v12` — Mapbox's most complete, continuously-updated road network) with street/place labels localized to **Arabic** via an explicit fallback expression (`name_ar` → `name` → `name_en`, applied to the style's label layers by `<ArabicLabels />`) so roads whose names exist only in Hebrew still show a label instead of going blank. Mapbox logo/attribution/scale-bar hidden, user location dot, **north-up fixed**.
 
 **Incident pins (privacy circles, 24 h open window):**
 - The map shows **only currently open incidents**: unresolved and reported within the last **24 hours**. The backend enforces this window and serves the frontend only open incidents (mocked today by `db.incidents.getOpen()`). Older or resolved incidents are browsable in the feed's history filters (§5.10), never on the map.
@@ -188,11 +184,11 @@ A draggable **bottom sheet** (25 / 60 / 90 %, route `Feeds`) over the map — th
 - **News** about violence in the Arab community (community coverage, initiatives).
 **Header (sticky, inside the sheet — drag handle + backdrop-tap dismiss, no back button):** title *"الأخبار والفعاليات"* + one-line subtitle. **Filter chips:** الكل | فعاليات | أخبار. **Post cards:** a tinted **kind badge** (megaphone for events in crimson, newspaper for news in amber), source + relative time meta row, title, and a 3-line body. Backed by the mock `db.feedPosts` (a `FeedPost` = `{ id, kind: 'announcement' | 'news', source, title, body, createdAt }`); when a backend lands it serves the same shape. Empty state: newspaper glyph + *"لا يوجد محتوى بعد"*.
 
-### 5.11 Verification Votes — REMOVED
-The Confirm/Deny verification-vote feature was **removed from the product** (2026-06-12). Incidents carry no vote counts, no `myVote` state, no vote endpoints, and no vote UI anywhere. The "active" status rule (§5.6) consequently no longer requires verified incidents.
+### 5.11 No Verification Votes
+There is no Confirm/Deny verification feature: incidents carry no vote counts, no `myVote` state, no vote endpoint, and no vote UI. The "active" status rule (§5.6) counts nearby incidents, not "verified" ones.
 
 ### 5.12 Incident Detail Sheet
-Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + category; locality + distance; the prepared situation description (§5.13); non-interactive **140 pt** map snippet (light style, Arabic labels) rendering the **~150 m privacy circle** — never an exact pin. *(The comments thread/composer and the Confirm/Deny vote row were removed from the product.)*
+Default **60%**, expandable **95%**. Scrollable: severity pill + timestamp + category; locality + distance; the prepared situation description (§5.13); non-interactive **140 pt** map snippet (light style, Arabic labels) rendering the **~150 m privacy circle** — never an exact pin. No comments and no vote row.
 
 ### 5.13 Report Flow
 
@@ -292,7 +288,7 @@ Bare RN has no `expo install` to auto-resolve SDK-matched versions. The replacem
 
 **Why minimal was chosen.** The architecture was deliberately stripped to a small, JS-first dependency set: **lighter** install and bundle, **no native module initialization at cold start** (the class of bug that crashed the app — §16), **no CMake/NDK build step** at install time, and **fewer crash surfaces** to audit. Anything that needed a heavy native module was replaced by a JS-only equivalent or deferred.
 
-These are the **only 10 runtime dependencies** (everything else lives in `devDependencies`):
+These are the core runtime dependencies — small and JS-first; the one heavy native module is the map (§6.6). Everything else lives in `devDependencies`:
 
 | Purpose | Package | Note |
 |---|---|---|
@@ -316,7 +312,6 @@ Replacements for the libraries that were removed (all JS-only, no native init):
 | `@react-native-clipboard/clipboard` + `mailto` open | RN built-in **`Share`** API | Used in Settings (copy reference / contact). No clipboard native module. |
 | `@rn-bridge/react-native-shortcuts` | *(deferred)* | Crisis app-icon shortcut deferred; `balagh://` deep-link config is already in `navigation/linking.ts`. |
 | `@react-native-community/netinfo` | *(deferred)* | Connectivity banner/queue deferred; a `net` zustand store stub exists (§13). |
-| `@rnmapbox/maps` | *(deferred)* | Maps deferred — the Map screen is a basic incident-feed preview for now (§5.5, §6.4). |
 | `react-native-bootsplash` | plain `View` readiness gate | No native splash library; `App.tsx` renders a theme-colored `View` until storage hydrates (§5.1, §9.2). |
 | Fonts (asset linking) | `react-native.config.js` `assets: ['./assets/fonts']` | Still uses `npx react-native-asset` when fonts are added; no runtime dependency. |
 
@@ -331,10 +326,10 @@ Replacements for the libraries that were removed (all JS-only, no native init):
 | react-native-safe-area-context 5.8.0 | ✅ in use | Fabric | Safe-area insets |
 | zustand ^5 | ✅ in use | JS | App/UI state |
 | @react-native-async-storage/async-storage ^2.2 | ✅ in use | TurboModule | Persistence; hydrated once at startup |
-| @rnmapbox/maps (Mapbox SDK v11) | 🟡 Phase 2 | Fabric view | Real map + mock pins; not in the current build (§6.6, §14 Phase 2) |
+| @rnmapbox/maps (Mapbox SDK v11) | ✅ in use | Fabric view | Live map + privacy-circle pins (§5.5, §6.6) |
 | react-native-reanimated / -worklets | ⛔ removed | — | Avoids the heavy CMake native build at install (§16) |
 | react-native-gesture-handler | ⛔ removed | — | Not needed without bottom-sheet/maps |
-| @gorhom/bottom-sheet | ⛔ removed | — | Sheets deferred |
+| @gorhom/bottom-sheet | ⛔ removed | — | Sheets built with plain RN Animated + PanResponder |
 | react-native-svg ^15 + lucide-react-native ^1 | ✅ in use | Fabric | SVG vector icons re-exported via `core/icons` |
 | @tanstack/react-query | ⛔ removed | — | Data via in-memory mock DB + zustand |
 | react-native-mmkv / -nitro-modules | ⛔ removed | — | Persistence via AsyncStorage |
@@ -354,7 +349,7 @@ Replacements for the libraries that were removed (all JS-only, no native init):
 
 No remote/local push is installed in the minimal build. The notification **toggles** (nearby / status / follow-up) persist to AsyncStorage but don't yet drive any delivery. When push is added later, route it behind a small `NotificationService` interface so the transport (FCM, UnifiedPush, or local-only) is a contained choice. Note the privacy tension: FCM routes tokens/metadata through Google; data-only payloads rendered locally minimize what transits Google, and UnifiedPush/local-only avoid it on Android entirely.
 
-### 6.6 Maps (Phase 2)
+### 6.6 Maps
 
 The Map screen ships the real Mapbox surface (§5.5): `@rnmapbox/maps` (Mapbox Maps SDK v11) — the streets style (`streets-v12`, full road-name coverage) with labels localized to Arabic via the `<ArabicLabels />` fallback expression, logo/attribution hidden, north-up fixed (rotation/pitch off), `ShapeSource` clustering tinted to the highest-severity member, individual **~150 m privacy circles** at high zoom rendering the open mock incidents (`db.incidents.getOpen()`), a `LocationPuck` after permission, and offline regions around the chosen locality. Keep the secret download token out of git (Gradle property / `.netrc`); set the public token at runtime via `Mapbox.setAccessToken()`. Verify the New-Arch badge and a clean release-build cold start before merging.
 
@@ -436,13 +431,13 @@ balagh/
 └─ src/
    ├─ App.tsx                   # AppErrorBoundary → SafeAreaProvider → NavigationContainer → RootNavigator; useHydrated() gate
    ├─ navigation/
-   │  ├─ RootNavigator.tsx      # native-stack; typed param list; Phase 2+ routes use a StubScreen
+   │  ├─ RootNavigator.tsx      # native-stack; typed param list; Feed/Feeds/IncidentDetail as transparent-modal sheets
    │  ├─ types.ts               # RootStackParamList
    │  └─ linking.ts             # balagh://crisis → Crisis flow (route reserved)
    ├─ screens/
    │  ├─ Splash.tsx
    │  ├─ onboarding/            # Language.tsx, Welcome.tsx, Locality.tsx
-   │  ├─ Map.tsx                # primary surface — currently a mock incident-feed preview (§5.5)
+   │  ├─ Map.tsx                # primary surface — the live Mapbox dashboard (§5.5)
    │  └─ settings/Settings.tsx
    ├─ core/
    │  ├─ theme/                 # tokens.ts, components.tsx (Text/Button/Chip/SeverityPill)
@@ -464,10 +459,10 @@ balagh/
 > Not present yet (deferred to later phases): `data/api` (HTTP), `data/ws` (WebSocket), `data/notifications`, `data/queries` (react-query), `domain/queue` (offline write-queue), `presentation/` (the few shared widgets live in `core/theme/components.tsx`). The `core/strings` and `core/storage` modules replace what used to be `core/i18n` and the MMKV wrapper; `core/icons` re-exports `lucide-react-native`.
 
 ### 9.2 Data flow (current)
-- **Read incidents:** screens call a `Mock*Repo` (or the `db` directly, as `Map.tsx` does) → in-memory data → rendered in a `FlatList`. No network, no cache layer.
-- **Live updates:** a mock `eventEmitter` (`startMockEmitter`) exists for future use but is **not wired into any screen yet**.
-- **Write (report):** not implemented yet. `signRequest()` returns an empty signature (no backend). When wired, mutations will go through the repository interfaces.
-- **Status pill:** `Map.tsx` derives **calm / watch / active** synchronously from the severity of open incidents (high/critical → active, medium → watch, else calm). The 3 km / 60 min / 1 km / 15 min geo rules in §5.6 arrive with real maps + location.
+- **Read incidents:** screens read the in-memory `db` — the map via `db.incidents.getOpen()` (24 h window), the feed via `db.incidents.getAll()` + `domain/feed/filters` — rendered in Mapbox layers / a `FlatList`. No network, no cache layer.
+- **Live updates:** the mock `eventEmitter` (`startMockEmitter`) drives `incident.created` / `incident.resolved` / `notification.new`; the map, feed and inbox subscribe and update in real time.
+- **Write (report):** the report and crisis flows write to the mock `db` and emit `incident.created`. `signRequest()` returns an empty signature until a backend exists; mutations already go through the repository interfaces.
+- **Status pill:** `domain/status.computeStatus` applies the §5.6 geo rules (≥1 within 3 km / 60 min → watch; ≥3 within 1 km / 15 min → active) over nearby open incidents, recomputed on foreground.
 - **Language/RTL:** `App.tsx`'s `useHydrated()` reads the saved language from storage, sets the `lang` zustand store, and calls `applyRTL()` (native-flag sync only). The live layout direction is a `direction` style on the app root driven by `useIsRTL` — language switches apply instantly with no relaunch (§12.5).
 
 ---
@@ -528,10 +523,10 @@ type WsEvent =
 The in-memory mock is the only data source today:
 - `data/mock/db.ts` — the in-memory store: seeded incidents/notifications + `LOCALITIES` (18 cities). Exposes `db.incidents` and `db.notifications` with getters/mutators. `db.incidents.getOpen()` simulates the backend's 24 h open-incident window for the map (unresolved + < 24 h old, with a ~60 s linger after resolve so the fade-out can play); `getAll()` remains the full history backing the feed filters. Seeds include **historical incidents** (3–25 days old, several in Nazareth) so the week/month history filters have data. **Seeded/emitted descriptions are never free text** — both `db.ts` and `eventEmitter.ts` reference the prepared situation options (`strings.ar.report.situations`) directly, and a seed-integrity test asserts every description is one of the prepared options for its category.
 - `data/mock/Mock*Repo.ts` — `MockIncidentRepo`, `MockLocalityRepo`, `MockNotificationRepo`, `MockStatusRepo` implementing the `data/repositories/interfaces.ts` contracts over `db`.
-- `data/mock/eventEmitter.ts` — `startMockEmitter()` pushes `incident.created` / `status.changed` for future live-update wiring (not yet consumed by a screen).
+- `data/mock/eventEmitter.ts` — `startMockEmitter()` pushes `incident.created` / `incident.resolved` / `status.changed` / `notification.new`; the map, feed and inbox consume them live.
 - `core/config.ts`: `export const USE_MOCK_API = true;`
 
-`Map.tsx` currently reads `db.incidents.getAll()` directly for the preview; `Locality.tsx` uses `LOCALITIES`. Swapping to a real backend later = filling thin HTTP repos behind the same interfaces. No screen edits.
+`Map.tsx` reads `db.incidents.getOpen()` (24 h window); the feed reads `db.incidents.getAll()`; `Locality.tsx` uses `LOCALITIES`. Swapping to a real backend later = filling thin HTTP repos behind the same interfaces. No screen edits.
 
 ---
 
@@ -605,7 +600,7 @@ On Android the OS still gives implicit ripple feedback. Wire a real library late
 - **Syncing pin (deferred):** pulses while `syncing`; amber on `failed` (retries exhausted) + dismissable banner + retry.
 - **Offline banner (deferred):** 3 s offline → amber 28 pt; reconnect → brief green → auto-dismiss. Connectivity detection (previously NetInfo) is deferred; a `net` store stub holds the flag.
 - **Update gate (426) (deferred):** full-screen, non-dismissable, "Open Store".
-- **Offline maps (deferred):** ships with Mapbox in a later phase — download an offline region around the chosen locality so the map renders with no connectivity. Cap pack size; let users clear it in Settings.
+- **Offline maps:** the map downloads a capped offline pack around the chosen locality so it renders with no connectivity. A Settings UI to clear it is still a future addition.
 - **Screen-capture protection (future):** consider Android `FLAG_SECURE` and an iOS app-switcher blur on sensitive screens (report/crisis) so a shoulder-surfer or recents preview can't reveal activity. Make it a toggle, default on for crisis screens.
 - **Status without background location:** background location is forbidden, so the status pill recomputes on foreground (and, with a backend, via `status.changed` events) — never via a background geofence.
 
@@ -615,7 +610,7 @@ On Android the OS still gives implicit ripple feedback. Wire a real library late
 
 Each phase **must compile, run on a device/emulator (New Arch), and pass its tests** before the next. "No placeholders" — every in-scope screen is fully wired to the mock layer. Each phase lists its **native setup** explicitly (no config plugins to lean on).
 
-> **Where we are now:** Phases 0 and 1 are done on the minimal stack (the 10 deps of §6.3). The Map screen currently ships as an incident-feed preview (§5.5); **Phase 2 replaces it with the real Mapbox surface showing mock incident pins.** Each later phase adds exactly the native modules it needs — one at a time, each verified New-Arch-clean and doing no blocking work at startup (the lesson of §16). The **final phase (Phase 6) leaves the app fully working end-to-end** against the mock layer.
+> **Status:** all six phases are implemented end-to-end against the mock layer — onboarding, the live Mapbox map, the incidents feed + filters, the Feeds sheet, incident detail, reporting, the crisis flow, notifications, and settings. The phases below are kept as the build order (the sequence to rebuild from scratch). Each phase that adds a native module verifies it is New-Arch-clean and does no blocking work at startup (§16).
 
 > **The discipline:** every phase that adds a native module must (a) confirm its New-Architecture badge on `reactnative.directory`, (b) keep `index.js` minimal — no blocking work before `AppRegistry`, (c) re-verify cold start on a release build, and (d) keep the permission allowlist at Location / Internet / Notifications.
 
@@ -633,7 +628,7 @@ Each phase **must compile, run on a device/emulator (New Arch), and pass its tes
 - Map screen ships as an **incident-feed preview** (locality name, derived calm/watch/active status dot, `FlatList` of mock incidents, settings gear, Report FAB) — replaced by the real map in Phase 2.
 - **Tests:** first-launch → language → welcome → locality → map route resolves; identity persists across relaunch (AsyncStorage mock); "Delete my data" returns to onboarding; locality search matches all scripts.
 
-### Phase 2 — Real Mapbox map *(this phase: implement the live map with mock pins)*
+### Phase 2 — Real Mapbox map *(done)*
 Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real dashboard described in §5.5–§5.9.
 - **Native setup:** install `@rnmapbox/maps`; set the **secret download token** via a Gradle property (`~/.gradle/gradle.properties`) + the iOS `Podfile`/`.netrc` (keep it out of git); set the **public token** at runtime with `Mapbox.setAccessToken()` early in `App.tsx`. `pod install` for iOS; verify the Fabric component autolinks under New Arch. Confirm a **release-build cold start** is clean.
 - **Map canvas:** full-bleed streets style (`mapbox://styles/mapbox/streets-v12`) with street/place labels localized to Arabic via `<ArabicLabels />` (a `name_ar` → `name` → `name_en` coalesce over the style's label layers — never blank), logo/attribution/scale-bar hidden, **north-up fixed** (rotation + pitch gestures disabled), user-location `LocationPuck` shown only after permission.
@@ -643,26 +638,26 @@ Add `@rnmapbox/maps` (Mapbox Maps SDK v11) and turn the Map screen into the real
 - **Offline region:** download a Mapbox offline pack around the chosen locality so the map renders without connectivity; cap the pack size.
 - **Tests:** status-rule unit tests (3 km/60 min → watch; 1 km/15 min/≥3 → active); privacy-circle meter→pixel math; cluster→individual circle transition; permission grant/deny branches; reduce-motion disables the pulse. Mock `@rnmapbox/maps` in jest.
 
-### Phase 3 — Feed & incident detail
+### Phase 3 — Feed & incident detail *(done)*
 - Incidents Feed drawer: a draggable bottom sheet snapping 25 / 60 / 90 % with a backdrop. Build it with plain RN `Animated` + `PanResponder` (no `@gorhom/bottom-sheet`/reanimated) to keep the stack minimal; if a richer sheet is justified later, add the library deliberately (§16).
 - Sticky header (drag handle, title + results-count pill — no search bar) + the §5.10 **history filters**: time-range chips (آخر 24 ساعة / آخر أسبوع / آخر شهر) + the **"المزيد" more-filters sheet** (آخر 3 أشهر / آخر سنة / custom date range on the in-app `DateRangeCalendar`) + **multi-select "اختر البلدة" and "نوع البلاغ" buttons** opening the shared checkbox picker sheet (searchable for cities; the *all* row clears; labels summarize as *الناصرة +2*; clear ✕ when active; every option shows its facet count). Feed cards (modern): severity accent strip + tinted icon badge, category title, locality + relative time refreshing every 30 s, description (≤3 lines), resolved badge for closed incidents — no bookmark (removed from the product). Tap a card → Incident Detail.
 - Incident Detail sheet (60 → 95 %): the prepared situation description, a 140 pt non-interactive Mapbox snippet drawing the ~150 m privacy circle. The feed and the map read the same mock `db` so they stay in sync. *(Comments and votes were removed from the product.)*
 - **Tests:** 30 s timestamp refresh; feed↔map data consistency; 24 h open-window behavior (`getOpen`); history range/locality/category filtering (`filterIncidents`).
 
-### Phase 4 — Reporting & crisis
+### Phase 4 — Reporting & crisis *(done)*
 - Report flow: category grid (2×3, severity-tinted icons; GUNFIRE/STABBING = critical, ASSAULT/ROBBERY = high, SUSPICIOUS/OTHER = medium) → **situation picker** (four prepared descriptions per category, radio-style cards, submit disabled until one is chosen — **no typing, no media**) → success (green checkmark draw 480 ms, mono `#BLG-XXXXXX`, long-press copy via the built-in **`Share`** API + "تم النسخ" toast, no share-to-social/rating).
 - Submit: spinner → acquire GPS fix → write to the mock `db` (a new pin appears on the map via `eventEmitter`); with a real backend later this enqueues to an AsyncStorage write-queue with a pulsing "syncing" pin, and on retry-exhaustion an amber pin + dismissable banner + retry.
 - Crisis one-shot (≤3 taps): deep link `balagh://crisis` (route reserved in `linking.ts`) → reassure → category → geo-confirm (140 pt map) → success. The app-icon long-press shortcut that fires this deep link is wired in Phase 6 native steps.
 - **Tests:** report happy path adds an incident the map renders; crisis flow ≤3 taps; deep link resolves; **assert camera/mic/photo permissions are absent from the native manifest**.
 
-### Phase 5 — Notifications & follow-up
+### Phase 5 — Notifications & follow-up *(done)*
 - Add a `NotificationService` interface and a default implementation. For remote push, integrate `@react-native-firebase/messaging` (data-only payloads) + `@notifee/react-native` (local render, Android channels, badge) **only** once verified New-Arch-clean — register the background handler in `index.js` *after* `enableScreens()`, and confirm cold start is still clean (their `ContentProvider`s were a startup risk — §16). Keep the transport swappable to UnifiedPush/local-only for a privacy-max build.
 - Request notification permission **only** when a toggle is enabled in Settings (Android 13+ `POST_NOTIFICATIONS`). Toggles persist to AsyncStorage.
 - Notifications Inbox (grouped Today / Yesterday / Last Week / date, unread crimson dots, mark-all-read, empty state "لا توجد تنبيهات") fed by `MockNotificationRepo`. Four types: nearby, verification, status change, follow-up.
 - Follow-up: wellbeing gate first ("هل أنت بأمان تام حالياً؟") → "نعم، أنا بأمان" → skippable detail chips (vehicle, assailant count, escape direction, weapon); "لا، أحتاج مساعدة" → suspend the follow-up and show civilian emergency resources (MDA non-police number + local civil-committee contacts), no further questions.
 - **Tests:** permission only on toggle; follow-up "no" path shows resources and asks nothing further; inbox grouping + read state.
 
-### Phase 6 — Polish & full working app *(final phase: everything wired, no stubs)*
+### Phase 6 — Polish & full working app *(done — full app, no stubs)*
 By the end of this phase the app is **fully working end-to-end** against the mock layer — onboarding, the live Mapbox map with mock pins, the feed, incident detail, reporting, the crisis flow, notifications, and settings all function with no placeholder screens remaining.
 - Privacy Constitution (7 collapsible rules + "كيف نضمن ذلك؟" + "محدّث" badge), About (general info only — logo, tagline, mission, version), the How It Works screen (§5.19b), full Settings (change locality/language, notification toggles default-on, contact = share `mailto` via the built-in `Share` API, hidden debug via 5× long-press on version).
 - App-icon long-press shortcut "بلاغ فوري آمن" → fires `balagh://crisis` (native shortcut wiring for Android + iOS Quick Action).
@@ -956,7 +951,7 @@ These were the actual cold-start crashes that drove the move to the minimal stac
 
 ### 16.2 General gotchas
 
-- **New-Arch is mandatory.** Any library without New-Arch support will crash on RN 0.85.3. Check `reactnative.directory` before adding *anything* — and prefer not adding it at all (§6.3 keeps the runtime deps at 8).
+- **New-Arch is mandatory.** Any library without New-Arch support will crash on RN 0.85.3. Check `reactnative.directory` before adding *anything* — and prefer not adding it at all (§6.3 keeps the runtime stack small and JS-first).
 - **No config plugins.** You hand-edit `Info.plist`, `AndroidManifest.xml`, `Podfile`, and Gradle. Every phase prompt asks the agent to spell these out.
 - **`index.js` is minimal.** `enableScreens()` first, then `AppRegistry.registerComponent`. No RNG polyfill (Hermes has `crypto.getRandomValues`), no Firebase background handler.
 - **Hermes has crypto.** `crypto.getRandomValues` is built into Hermes since RN 0.73 — no `react-native-get-random-values` needed for `core/identity`.
@@ -983,6 +978,6 @@ The spec originally specced a large native stack; it was deliberately stripped t
 - **@tanstack/react-query + axios + WS client** → in-memory mock `db` + `zustand`.
 - **react-native-reanimated + react-native-worklets + @gorhom/bottom-sheet + react-native-gesture-handler** → removed (plain RN primitives; no CMake).
 - **@react-native-firebase/* + @notifee/react-native** → deferred (toggles persist to AsyncStorage; no native push).
-- **@rnmapbox/maps** → deferred; the Map screen is a mock incident-feed preview.
+- **@rnmapbox/maps** → **in use** — the live map; the single heavy native module, added deliberately (§6.6).
 - **react-native-haptic-feedback** → no-op stubs. **@react-native-clipboard/clipboard** → built-in `Share`. **@react-native-community/netinfo** + **react-native-bootsplash** → deferred (a plain `View` is the readiness gate).
-- **Result:** a minimal runtime dependency set (now 10, after deliberately re-adding `react-native-svg` + `lucide-react-native` for professional vector icons), no native init on the main thread at startup, and a clean cold start. See §16.1 for the specific crashes this resolved.
+- **Result:** a small, JS-first runtime stack (plus `react-native-svg` + `lucide-react-native` for vector icons and `@rnmapbox/maps` for the map), with no native init on the main thread at startup and a clean cold start. See §16.1 for the specific crashes this resolved.

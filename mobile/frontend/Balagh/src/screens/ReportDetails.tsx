@@ -104,28 +104,55 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorCameraRef = useRef<any>(null);
 
-  // Best-effort GPS refresh; on failure we silently keep the best-known
-  // location (the store fix or the locality centre) — never a failure message.
-  const acquireLocation = useCallback(() => {
-    getGeoPosition()
-      .then(pos => {
-        const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setCoords(next);
-        setCameraCenter(next);
-        setAdjusted(false);
-        setUserLocation(next.lat, next.lng);
-      })
-      .catch(() => { /* keep best-known location — no failure UI */ });
-  }, [setUserLocation]);
+  // Mirror `adjusted` in a ref so the live-location listener reads the latest
+  // value without re-subscribing.
+  const adjustedRef = useRef(false);
+  useEffect(() => { adjustedRef.current = adjusted; }, [adjusted]);
+
+  // Snap the incident pin onto the EXACT current location — the same source
+  // Mapbox renders the blue puck from — so the red pin sits precisely on the
+  // blue puck, not merely near it. Tracking continues until the reporter moves
+  // the pin manually.
+  const applyLiveLocation = useCallback(
+    (loc: { coords?: { latitude: number; longitude: number } } | null) => {
+      const c = loc?.coords;
+      if (!c || adjustedRef.current) return;
+      const next = { lat: c.latitude, lng: c.longitude };
+      setCoords(next);
+      setCameraCenter(next);
+      setUserLocation(next.lat, next.lng);
+    },
+    [setUserLocation],
+  );
 
   useEffect(() => {
-    // Only fetch a fresh fix when we have no known location yet. When the map
-    // store already holds the current location, the red incident pin starts
-    // exactly on the blue location puck (same source) — fetching again could
-    // return a slightly different point and nudge the pin off the puck.
-    if (userLat == null || userLng == null) acquireLocation();
+    // Prefer Mapbox's location manager (the puck's own source) so the pin
+    // matches the puck exactly; fall back to a one-shot GPS read otherwise.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lm: any = (MapboxGL as any).locationManager;
+    if (lm?.addListener) {
+      try { lm.start?.(); } catch { /* no-op */ }
+      lm.getLastKnownLocation?.().then(applyLiveLocation).catch(() => {});
+      lm.addListener(applyLiveLocation);
+      return () => { try { lm.removeListener?.(applyLiveLocation); } catch { /* no-op */ } };
+    }
+    getGeoPosition().then(applyLiveLocation).catch(() => {});
+    return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // "My location" button: resume live tracking and snap to the current fix now.
+  const recenterToCurrent = useCallback(() => {
+    setAdjusted(false);
+    adjustedRef.current = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lm: any = (MapboxGL as any).locationManager;
+    if (lm?.getLastKnownLocation) {
+      lm.getLastKnownLocation().then(applyLiveLocation).catch(() => {});
+    } else {
+      getGeoPosition().then(applyLiveLocation).catch(() => {});
+    }
+  }, [applyLiveLocation]);
 
   const openEditor = useCallback(() => {
     haptics.toggle();
@@ -307,7 +334,7 @@ export default function ReportDetailsScreen({ navigation, route }: Props): React
 
               <Pressable
                 style={styles.myLocationBtn}
-                onPress={acquireLocation}
+                onPress={recenterToCurrent}
                 accessibilityRole="button"
                 accessibilityLabel={s.report.location.myLocation}
                 testID="report-my-location">

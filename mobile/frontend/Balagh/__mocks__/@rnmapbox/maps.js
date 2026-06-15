@@ -92,6 +92,16 @@ const offlineManager = {
   unsubscribe: jest.fn(),
 };
 
+// ── Location manager (puck's coordinate source) ───────────────────────────────
+
+const locationManager = {
+  start: jest.fn(),
+  stop: jest.fn(),
+  getLastKnownLocation: jest.fn(() => Promise.resolve(null)),
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+};
+
 // ── StyleURL constants ────────────────────────────────────────────────────────
 
 const StyleURL = {
@@ -116,6 +126,7 @@ const MapboxGL = {
 
   StyleURL,
   offlineManager,
+  locationManager,
 
   setAccessToken: jest.fn(),
   requestAndroidLocationPermissions: jest.fn(() => Promise.resolve(true)),
@@ -149,5 +160,6 @@ module.exports.SymbolLayer = SymbolLayer;
 module.exports.LocationPuck = LocationPuck;
 module.exports.StyleURL = StyleURL;
 module.exports.offlineManager = offlineManager;
+module.exports.locationManager = locationManager;
 module.exports.setAccessToken = MapboxGL.setAccessToken;
 module.exports.requestAndroidLocationPermissions = MapboxGL.requestAndroidLocationPermissions;

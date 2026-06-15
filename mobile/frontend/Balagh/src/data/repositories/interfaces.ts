@@ -16,6 +16,7 @@ export interface IIncidentRepository {
     lat: number,
     lng: number,
     description?: string,
+    locationText?: string,
   ): Promise<{ id: string; ref: string }>;
 }
 

@@ -49,6 +49,7 @@ export class MockIncidentRepo implements IIncidentRepository {
     lat: number,
     lng: number,
     description?: string,
+    locationText?: string,
   ): Promise<{ id: string; ref: string }> {
     await sleep(latency());
     const id = String(Date.now());
@@ -60,6 +61,7 @@ export class MockIncidentRepo implements IIncidentRepository {
       category: category as Incident['category'],
       severity: SEVERITY_MAP[category] ?? 'medium',
       description,
+      locationText: locationText?.trim() || undefined,
       lat,
       lng,
       localityId,

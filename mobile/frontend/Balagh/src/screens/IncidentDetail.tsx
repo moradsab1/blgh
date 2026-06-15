@@ -127,6 +127,15 @@ const IncidentDetailScreen = ({ navigation, route }: IncidentDetailProps): React
           <Text style={styles.description}>{incident.description}</Text>
         ) : null}
 
+        {incident.locationText ? (
+          <View style={styles.locationNote} testID="detail-location-note">
+            <MapPin size={14} color={color.textSecondary} />
+            <Text variant="caption" secondary style={styles.locationNoteText}>
+              {incident.locationText}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Non-interactive 140 pt map snippet. */}
         <View style={styles.snippet} pointerEvents="none" testID="detail-map-snippet">
           <MapboxGL.MapView
@@ -224,6 +233,16 @@ const styles = StyleSheet.create({
     marginTop: space(1.5),
     lineHeight: 22,
     color: color.textPrimary,
+  },
+  locationNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: space(1),
+  },
+  locationNoteText: {
+    flex: 1,
+    lineHeight: 18,
   },
   snippet: {
     height: 140,

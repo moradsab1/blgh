@@ -38,6 +38,24 @@ describe('report happy path', () => {
     expect(db.incidents.getById(id)?.description).toBe(desc);
   });
 
+  it('a manually adjusted location is saved as submitted', async () => {
+    // Reporter taps the map → coordinates differ from any GPS default.
+    const { id } = await repo.submitReport('ROBBERY', 31.9012, 34.8765, 'desc');
+    const inc = db.incidents.getById(id);
+    expect(inc?.lat).toBe(31.9012);
+    expect(inc?.lng).toBe(34.8765);
+  });
+
+  it('an optional text location is saved when provided, omitted when blank', async () => {
+    const { id: withText } = await repo.submitReport(
+      'OTHER', 32.5, 35.15, 'desc', 'قرب مدرسة الرشيد',
+    );
+    expect(db.incidents.getById(withText)?.locationText).toBe('قرب مدرسة الرشيد');
+
+    const { id: blank } = await repo.submitReport('OTHER', 32.5, 35.15, 'desc', '   ');
+    expect(db.incidents.getById(blank)?.locationText).toBeUndefined();
+  });
+
   it('severity is derived from category', async () => {
     const { id: gId } = await repo.submitReport('GUNFIRE', 32.5, 35.15);
     const { id: sId } = await repo.submitReport('SUSPICIOUS', 32.5, 35.15);

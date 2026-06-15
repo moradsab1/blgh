@@ -18,6 +18,8 @@ export interface Incident {
   category: Category;
   severity: Severity;
   description?: string;
+  /** Optional free-text place description typed by the reporter (§5.13). */
+  locationText?: string;
   lat: number;
   lng: number;
   localityId: string;

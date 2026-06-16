@@ -127,15 +127,15 @@ export const VictimsCounter = (): React.ReactElement => {
         accessibilityRole="button"
         accessibilityLabel={s.victims.title}
         testID="victims-card">
-        <Text variant="caption" muted numberOfLines={1}>
+        <Text variant="caption" muted numberOfLines={1} style={styles.cardLabel}>
           {s.victims.victimsLabel} {stats ? formatNumber(stats.currentYear) : ''}
         </Text>
         {loading ? (
           <ActivityIndicator size="small" color={color.accent} testID="victims-card-loading" />
         ) : error ? (
-          <Text style={styles.cardNumberMuted}>—</Text>
+          <Text variant="heading" style={styles.cardNumberMuted}>—</Text>
         ) : (
-          <Text style={styles.cardNumber} testID="victims-card-number">
+          <Text variant="heading" style={styles.cardNumber} testID="victims-card-number">
             {formatNumber(stats?.currentYearCount ?? 0)}
           </Text>
         )}
@@ -241,27 +241,33 @@ export const VictimsCounter = (): React.ReactElement => {
 };
 
 const styles = StyleSheet.create({
-  // Pill card — rounded like the safety status pill, with a compact number.
+  // Compact two-line card — label on top, bold count beneath — using the
+  // app's themed heading font (script-aware bold) for a consistent look.
   card: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    gap: 1,
     backgroundColor: color.card,
-    borderRadius: radius.pill,
-    paddingHorizontal: space(1.75),
-    minHeight: 42,
+    borderRadius: radius.lg,
+    paddingHorizontal: space(2),
+    paddingVertical: space(0.75),
+    minWidth: 88,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: color.border,
     ...shadow.float,
   },
+  cardLabel: {
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
   cardNumber: {
-    fontFamily: font.arabicBold,
-    fontSize: fontSize.base,
+    fontSize: fontSize.xl,
+    lineHeight: fontSize.xl + 2,
     color: color.accent,
   },
   cardNumberMuted: {
-    fontFamily: font.arabicBold,
-    fontSize: fontSize.base,
+    fontSize: fontSize.xl,
+    lineHeight: fontSize.xl + 2,
     color: color.textMuted,
   },
 

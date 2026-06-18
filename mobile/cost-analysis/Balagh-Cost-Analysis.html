@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Balagh — Project Cost Analysis</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color: #1c2433; font-size: 11px; line-height: 1.5; margin: 0;
+  }
+  h1 { font-size: 30px; color: #0b3d63; margin: 0 0 4px; }
+  h2 { font-size: 18px; color: #0b3d63; border-bottom: 2px solid #1c84c6;
+       padding-bottom: 4px; margin: 26px 0 10px; }
+  h3 { font-size: 13.5px; color: #14507d; margin: 16px 0 6px; }
+  p { margin: 6px 0; }
+  .muted { color: #5b6675; }
+  .lead { font-size: 12.5px; }
+  .cover {
+    border: 1px solid #d7dee7; border-left: 6px solid #1c84c6;
+    background: #f5f9fc; padding: 22px 24px; border-radius: 6px; margin-bottom: 8px;
+  }
+  .badge { display: inline-block; background: #0b3d63; color: #fff;
+    padding: 2px 9px; border-radius: 10px; font-size: 10px; margin-right: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 10.5px; }
+  th, td { border: 1px solid #cdd7e2; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #0b3d63; color: #fff; font-weight: 600; }
+  tbody tr:nth-child(even) { background: #f3f7fb; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .free { color: #1a8f4c; font-weight: 600; }
+  .cost { color: #c0392b; font-weight: 600; }
+  .total td { font-weight: 700; background: #eaf3fb !important; }
+  .note { background: #fff8e6; border: 1px solid #f0d98a; border-radius: 5px;
+    padding: 8px 12px; margin: 10px 0; font-size: 10.5px; }
+  .rec { background: #eafaf0; border: 1px solid #a9dfbf; border-left: 5px solid #1a8f4c;
+    border-radius: 5px; padding: 10px 14px; margin: 12px 0; }
+  ul { margin: 6px 0 6px 0; padding-left: 18px; }
+  li { margin: 3px 0; }
+  .pagebreak { page-break-before: always; }
+  .two { display: flex; gap: 14px; }
+  .two > div { flex: 1; }
+  .small { font-size: 9.5px; }
+  a { color: #1c84c6; text-decoration: none; }
+  .pill-good { color:#1a8f4c; font-weight:600; }
+  .pill-warn { color:#b9770e; font-weight:600; }
+  .pill-bad  { color:#c0392b; font-weight:600; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Balagh — Project Cost Analysis</h1>
+  <p class="lead muted">Full cost of running the Balagh incident-reporting platform in
+  production: app-store fees, cloud/compute, database, and maps — modeled across
+  100 → 200,000 monthly active users.</p>
+  <p>
+    <span class="badge">Cloud: AWS vs DigitalOcean</span>
+    <span class="badge">Maps: Mapbox vs Google vs Self-hosted</span>
+    <span class="badge">iOS + Android stores</span>
+  </p>
+  <p class="small muted">Prepared 18 June 2026 &middot; All figures USD &middot; List prices,
+  no reserved/committed-use discounts &middot; Pricing live-verified June 2026 (see Sources).</p>
+</div>
+
+<h2>1. Executive summary</h2>
+<p>Balagh is a lightweight, privacy-first, <strong>text-only</strong> safety app: two small
+Node.js (Fastify) services, one PostgreSQL + PostGIS database, a static web dashboard, and a
+React Native mobile app using the <strong>Mapbox</strong> Maps SDK. There is no media, no
+object storage, and no message queue, so the infrastructure footprint is small and the only
+usage-scaled cost driver is the <strong>maps vendor</strong>.</p>
+
+<div class="rec">
+  <strong>Recommendation:</strong> Keep <strong>Mapbox</strong> and deploy on
+  <strong>DigitalOcean</strong> as a single shared stack. It matches the app as already built,
+  is <strong>free up to 25,000 monthly active users</strong>, is more privacy-aligned than
+  Google, and DigitalOcean is markedly cheaper and simpler than AWS at every tier modeled.
+  Revisit <strong>self-hosted tiles</strong> as you approach 25k MAU (where Mapbox starts
+  billing); move to an <strong>AWS high-availability</strong> design only when reliability or
+  compliance demands it.
+</div>
+
+<table>
+  <thead><tr>
+    <th>Users (MAU)</th><th class="num">Total / month*</th><th class="num">Total / year (yr 1)*</th>
+    <th>What dominates the bill</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>100</td><td class="num">~$12</td><td class="num">~$268</td><td>One small server; maps free</td></tr>
+    <tr><td>1,000</td><td class="num">~$27</td><td class="num">~$448</td><td>Server + managed DB; maps free</td></tr>
+    <tr><td>10,000</td><td class="num">~$54</td><td class="num">~$772</td><td>Bigger server + DB; maps still free</td></tr>
+    <tr><td>100,000</td><td class="num">~$450</td><td class="num">~$5,524</td><td>Mapbox MAU fees ($300/mo) overtake cloud</td></tr>
+    <tr class="total"><td>200,000</td><td class="num">~$890</td><td class="num">~$10,804</td><td>Mapbox ($640/mo) is the majority of cost</td></tr>
+  </tbody>
+</table>
+<p class="small muted">*Recommended stack: DigitalOcean (single shared) + Mapbox + app-store
+fees. Year-1 includes Apple $99 + Google $25 one-time. Full breakdown in §7.</p>
+
+<h2 class="pagebreak">2. What Balagh is (and why it's cheap to run)</h2>
+<p>From <code>mobile/MobileFrontendSpecs.md</code> and the repository:</p>
+<ul>
+  <li><strong>Mobile app:</strong> bare React Native 0.85.3, Mapbox Maps SDK v11
+    (<code>@rnmapbox/maps</code>), local AsyncStorage only. No camera/microphone/photos,
+    <strong>no Firebase/FCM</strong> (push deferred). Anonymous device identity, no accounts.</li>
+  <li><strong>Backend:</strong> two Fastify (Node 22) services — a public mobile API and an
+    operator API — sharing one <strong>PostgreSQL 16 + PostGIS 3.4</strong> database.
+    Real-time via in-process WebSocket (no Redis / queue / broker).</li>
+  <li><strong>Web dashboard:</strong> React + Vite static SPA using MapLibre GL with free
+    CARTO basemap tiles — hostable as static files (≈ free).</li>
+  <li><strong>No object storage, no media, text-only payloads</strong> (reports/comments ≤ 280
+    chars). Map tiles are served from the maps vendor's CDN, not our bandwidth — unless we
+    self-host. This keeps egress and compute small.</li>
+</ul>
+<p><strong>Cost consequence:</strong> compute and bandwidth stay modest as users grow; the
+single steeply-scaling line item is the <strong>maps vendor's per-MAU fee</strong>.</p>
+
+<h2>3. App-store costs (iOS + Android)</h2>
+<table>
+  <thead><tr><th>Item</th><th>Apple App Store</th><th>Google Play</th></tr></thead>
+  <tbody>
+    <tr><td>Account / registration</td>
+      <td><span class="cost">$99 / year</span> (Apple Developer Program, recurring)</td>
+      <td><span class="free">$25 one-time</span> (no renewal)</td></tr>
+    <tr><td>Enterprise / in-house only</td>
+      <td>$299/yr (private distribution — <em>not needed</em>)</td>
+      <td>n/a</td></tr>
+    <tr><td>Certificates, signing, review, beta (TestFlight / internal testing)</td>
+      <td>Included</td><td>Included</td></tr>
+    <tr><td>Store commission (paid apps / in-app purchases / subscriptions)</td>
+      <td colspan="2"><strong>15–30% — but Balagh is free with no in-app purchases →
+      <span class="free">$0 commission</span></strong></td></tr>
+    <tr><td>Org account prerequisites</td>
+      <td>D-U-N-S number (free)</td><td>Business verification (free)</td></tr>
+    <tr class="total"><td>Effective recurring store cost</td>
+      <td>$99 / year</td><td>$0 / year ($25 once, year 1)</td></tr>
+  </tbody>
+</table>
+<p class="note"><strong>Net store cost = $99/yr + $25 first-year one-time = $124 in year 1,
+then $99/yr thereafter</strong> — flat regardless of user count, because the app is free and
+takes no payments.</p>
+
+<h2 class="pagebreak">4. Maps service comparison</h2>
+<p>The mobile app currently uses the <strong>Mapbox Maps SDK</strong>, billed by
+<strong>monthly active users (MAU)</strong>. Two alternatives: Google Maps (free for mobile
+map display) and self-hosting our own vector tiles (MapLibre + Protomaps/OpenMapTiles).</p>
+
+<h3>4.1 Monthly maps cost by scale</h3>
+<table>
+  <thead><tr>
+    <th>Users (MAU)</th><th class="num">Mapbox</th><th class="num">Google Maps</th>
+    <th class="num">Self-hosted</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>100</td><td class="num free">$0</td><td class="num free">$0</td><td class="num">~$0</td></tr>
+    <tr><td>1,000</td><td class="num free">$0</td><td class="num free">$0</td><td class="num">~$0</td></tr>
+    <tr><td>10,000</td><td class="num free">$0</td><td class="num free">$0</td><td class="num">~$5</td></tr>
+    <tr><td>100,000</td><td class="num cost">$300</td><td class="num free">$0</td><td class="num">~$30 + egress</td></tr>
+    <tr class="total"><td>200,000</td><td class="num cost">$640</td><td class="num free">$0</td><td class="num">~$60 + egress</td></tr>
+  </tbody>
+</table>
+<p class="small"><strong>Mapbox rate card:</strong> free ≤ 25,000 MAU; 25,001–125,000 =
+$4.00/1,000; 125,001–250,000 = $3.20/1,000; 250,001+ = $2.40/1,000. &nbsp;
+<strong>100k</strong> = (100,000−25,000)/1,000 × $4 = <strong>$300/mo</strong>. &nbsp;
+<strong>200k</strong> = 100,000×$4/1k ($400) + 75,000×$3.20/1k ($240) = <strong>$640/mo</strong>.</p>
+<p class="small"><strong>Google Maps:</strong> the Maps SDK for Android & iOS (dynamic map
+display) is <strong>free with unlimited usage</strong>. Other SKUs (Geocoding, Places) get
+10,000 free events/month then ~$2–7/1,000 — Balagh barely needs them.</p>
+
+<h3>4.2 Trade-offs</h3>
+<table>
+  <thead><tr><th>Option</th><th>Cost</th><th>Privacy fit</th><th>Engineering effort</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Mapbox</strong> (current)</td>
+      <td>Free to 25k MAU, then per-MAU</td>
+      <td class="pill-good">Good — no Google dependency</td>
+      <td>None (already built: privacy circles, Arabic labels)</td>
+      <td><span class="pill-good">Recommended now</span></td>
+    </tr>
+    <tr>
+      <td><strong>Google Maps</strong></td>
+      <td class="free">$0 for map display</td>
+      <td class="pill-bad">Weak — routes users through Google, against app ethos</td>
+      <td>High — rewrite away from Mapbox-specific privacy-circle / Arabic-label code</td>
+      <td><span class="pill-warn">Cheapest, but ethos conflict</span></td>
+    </tr>
+    <tr>
+      <td><strong>Self-hosted</strong> (MapLibre + own tiles)</td>
+      <td>Low ongoing (server + egress); high one-time</td>
+      <td class="pill-good">Best — fully in-house, no third-party tracking</td>
+      <td>High one-time — tile pipeline, rebuild style, re-do Arabic labels</td>
+      <td><span class="pill-good">Best at scale (≥25k MAU)</span></td>
+    </tr>
+  </tbody>
+</table>
+<p class="note">Israel is a tiny map extract, so self-hosted tiles are cheap to store/serve;
+the real cost is one-time engineering. The crossover where it pays back is when Mapbox MAU
+fees become material — i.e. around and beyond <strong>25,000 MAU</strong>.</p>
+
+<h2 class="pagebreak">5. Cloud deployment comparison (AWS vs DigitalOcean)</h2>
+<p>Scenario: <strong>single shared stack</strong> — both Node services + PostgreSQL/PostGIS in
+one environment; web dashboard served as static files. Sizing grows with load.</p>
+
+<table>
+  <thead><tr>
+    <th>Users (MAU)</th><th>DigitalOcean — components</th><th class="num">DO / mo</th>
+    <th>AWS — components</th><th class="num">AWS / mo</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>100</td>
+      <td>1× Droplet 2 GB, Postgres on-box</td><td class="num">~$12</td>
+      <td>Lightsail $10–12 (all-in)</td><td class="num">~$12</td></tr>
+    <tr><td>1,000</td>
+      <td>Droplet 2 GB + Managed PG 1 GB ($15)</td><td class="num">~$27</td>
+      <td>Lightsail + RDS db.t4g.micro ($22)</td><td class="num">~$34</td></tr>
+    <tr><td>10,000</td>
+      <td>Droplet 4 GB/2 vCPU ($24) + Managed PG 2 GB ($30)</td><td class="num">~$54</td>
+      <td>EC2 t4g.medium + RDS db.t4g.small ($51) + ALB</td><td class="num">~$95</td></tr>
+    <tr><td>100,000</td>
+      <td>2× app Droplets + PG HA (primary+standby $60) + LB ($12)</td><td class="num">~$150</td>
+      <td>HA EC2 (2×) + RDS Multi-AZ + ALB + transfer</td><td class="num">~$330</td></tr>
+    <tr class="total"><td>200,000</td>
+      <td>3× app Droplets + larger PG HA + LB + Spaces</td><td class="num">~$250</td>
+      <td>EC2 fleet + RDS Multi-AZ + ALB + transfer</td><td class="num">~$520</td></tr>
+  </tbody>
+</table>
+
+<div class="two">
+  <div>
+    <h3>DigitalOcean</h3>
+    <ul>
+      <li>Droplets $6 (1GB) / $12 (2GB) / $24 (4GB) / $48 (8GB)</li>
+      <li>Managed PostgreSQL from $15/mo; HA from $60/mo</li>
+      <li>Load balancer $12/mo; Spaces $5/mo</li>
+      <li>Generous pooled data transfer → egress ≈ $0 at our scale</li>
+      <li><span class="pill-good">Simpler, cheaper, predictable</span></li>
+    </ul>
+  </div>
+  <div>
+    <h3>AWS</h3>
+    <ul>
+      <li>Lightsail $5–$44 all-in; EC2 t4g.small ≈ $12 + EBS</li>
+      <li>RDS db.t4g.micro $21.90/mo; db.t4g.small $51.10/mo (×~2 for Multi-AZ)</li>
+      <li>ALB ≈ $16–22/mo; data transfer $0.09/GB after 100 GB free</li>
+      <li>More services, steeper learning curve</li>
+      <li><span class="pill-warn">Pick when HA / compliance / scale demand it</span></li>
+    </ul>
+  </div>
+</div>
+<p class="note"><strong>Bandwidth:</strong> Balagh is text-only JSON + small WebSocket
+keepalives; map tiles come from the maps CDN. Egress is modest (well within DO's included
+transfer; tens of GB/mo on AWS at 100k). <strong>Self-hosting map tiles</strong> would shift
+tile bandwidth onto our bill — the main reason to budget egress/CDN if going that route.</p>
+
+<h2 class="pagebreak">6. Total cost of ownership — all scenarios</h2>
+<p>Year-1 totals = (cloud × 12) + (maps × 12) + Apple $99 + Google $25 one-time.
+Subsequent years drop the $25.</p>
+
+<h3>6.1 DigitalOcean + Mapbox (recommended)</h3>
+<table>
+  <thead><tr><th>Users</th><th class="num">Cloud</th><th class="num">Maps</th>
+    <th class="num">Stores (yr)</th><th class="num">Total / month</th><th class="num">Total / year</th></tr></thead>
+  <tbody>
+    <tr><td>100</td><td class="num">$12</td><td class="num free">$0</td><td class="num">$124</td><td class="num">~$12</td><td class="num">~$268</td></tr>
+    <tr><td>1,000</td><td class="num">$27</td><td class="num free">$0</td><td class="num">$99</td><td class="num">~$27</td><td class="num">~$448</td></tr>
+    <tr><td>10,000</td><td class="num">$54</td><td class="num free">$0</td><td class="num">$99</td><td class="num">~$54</td><td class="num">~$772</td></tr>
+    <tr><td>100,000</td><td class="num">$150</td><td class="num cost">$300</td><td class="num">$99</td><td class="num">~$450</td><td class="num">~$5,524</td></tr>
+    <tr class="total"><td>200,000</td><td class="num">$250</td><td class="num cost">$640</td><td class="num">$99</td><td class="num">~$890</td><td class="num">~$10,804</td></tr>
+  </tbody>
+</table>
+
+<h3>6.2 DigitalOcean + Google Maps (cheapest, ethos caveat)</h3>
+<table>
+  <thead><tr><th>Users</th><th class="num">Cloud</th><th class="num">Maps</th>
+    <th class="num">Stores (yr)</th><th class="num">Total / month</th><th class="num">Total / year</th></tr></thead>
+  <tbody>
+    <tr><td>100</td><td class="num">$12</td><td class="num free">$0</td><td class="num">$124</td><td class="num">~$12</td><td class="num">~$268</td></tr>
+    <tr><td>1,000</td><td class="num">$27</td><td class="num free">$0</td><td class="num">$99</td><td class="num">~$27</td><td class="num">~$448</td></tr>
+    <tr><td>10,000</td><td class="num">$54</td><td class="num free">$0</td><td class="num">$99</td><td class="num">~$54</td><td class="num">~$772</td></tr>
+    <tr><td>100,000</td><td class="num">$150</td><td class="num free">$0</td><td class="num">$99</td><td class="num">~$150</td><td class="num">~$1,899</td></tr>
+    <tr class="total"><td>200,000</td><td class="num">$250</td><td class="num free">$0</td><td class="num">$99</td><td class="num">~$250</td><td class="num">~$3,099</td></tr>
+  </tbody>
+</table>
+
+<h3>6.3 AWS + Mapbox (production / HA-leaning)</h3>
+<table>
+  <thead><tr><th>Users</th><th class="num">Cloud</th><th class="num">Maps</th>
+    <th class="num">Stores (yr)</th><th class="num">Total / month</th><th class="num">Total / year</th></tr></thead>
+  <tbody>
+    <tr><td>100</td><td class="num">$12</td><td class="num free">$0</td><td class="num">$124</td><td class="num">~$12</td><td class="num">~$268</td></tr>
+    <tr><td>1,000</td><td class="num">$34</td><td class="num free">$0</td><td class="num">$99</td><td class="num">~$34</td><td class="num">~$507</td></tr>
+    <tr><td>10,000</td><td class="num">$95</td><td class="num free">$0</td><td class="num">$99</td><td class="num">~$95</td><td class="num">~$1,239</td></tr>
+    <tr><td>100,000</td><td class="num">$330</td><td class="num cost">$300</td><td class="num">$99</td><td class="num">~$630</td><td class="num">~$7,659</td></tr>
+    <tr class="total"><td>200,000</td><td class="num">$520</td><td class="num cost">$640</td><td class="num">$99</td><td class="num">~$1,160</td><td class="num">~$13,999</td></tr>
+  </tbody>
+</table>
+
+<h2 class="pagebreak">7. Grand total — the bottom line</h2>
+<p>Recommended path (<strong>DigitalOcean + Mapbox</strong>), all costs included
+(cloud + maps + iOS + Android):</p>
+<table>
+  <thead><tr>
+    <th>Monthly active users</th>
+    <th class="num">Total per month</th>
+    <th class="num">Total per year (year 1)</th>
+    <th class="num">Total per year (ongoing)</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>100</td><td class="num">~$12</td><td class="num">~$268</td><td class="num">~$243</td></tr>
+    <tr><td>1,000</td><td class="num">~$27</td><td class="num">~$448</td><td class="num">~$423</td></tr>
+    <tr><td>10,000</td><td class="num">~$54</td><td class="num">~$772</td><td class="num">~$747</td></tr>
+    <tr><td>100,000</td><td class="num">~$450</td><td class="num">~$5,524</td><td class="num">~$5,499</td></tr>
+    <tr class="total"><td>200,000</td><td class="num">~$890</td><td class="num">~$10,804</td><td class="num">~$10,779</td></tr>
+  </tbody>
+</table>
+<p class="note"><strong>Reading the table:</strong> up to ~10,000 users the whole platform
+runs for the price of a couple of coffees a month — maps are free and one small server
+suffices. Cost only becomes significant past 100k users, and there it is dominated by the
+Mapbox per-MAU fee, not infrastructure — which is exactly when self-hosted tiles (or, with
+caveats, Google's free SDK) become worth the engineering investment.</p>
+
+<h2>8. Assumptions &amp; disclaimer</h2>
+<ul>
+  <li><strong>Moderate engagement:</strong> user count = MAU; ~10 app opens + map views per
+    user per month, a few small JSON fetches each, occasional report. Text-only, no media.</li>
+  <li><strong>Single shared stack;</strong> web dashboard served as static (≈ free).</li>
+  <li>USD list prices, no reserved/committed-use discounts; one-time engineering labour for a
+    maps migration is excluded (called out qualitatively in §4).</li>
+  <li>Cloud sizing is an estimate; real load testing may shift a tier up or down. Prices were
+    live-verified in June 2026 and <strong>should be re-checked before budgeting.</strong></li>
+</ul>
+
+<h2>9. Sources (verified June 2026)</h2>
+<ul class="small">
+  <li>Mapbox pricing — https://www.mapbox.com/pricing</li>
+  <li>Google Maps Platform pricing — https://mapsplatform.google.com/pricing/</li>
+  <li>DigitalOcean PostgreSQL — https://docs.digitalocean.com/products/databases/postgresql/details/pricing/</li>
+  <li>DigitalOcean Droplets — https://www.digitalocean.com/pricing/droplets</li>
+  <li>AWS RDS instance pricing — economize.cloud / aws.amazon.com (db.t4g.micro $21.90/mo, db.t4g.small $51.10/mo)</li>
+  <li>AWS Lightsail — https://aws.amazon.com/lightsail/pricing/</li>
+  <li>Apple Developer Program $99/yr; Google Play $25 one-time — developer.apple.com / play.google.com/console</li>
+</ul>
+
+</body>
+</html>

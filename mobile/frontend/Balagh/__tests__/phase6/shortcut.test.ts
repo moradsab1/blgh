@@ -35,10 +35,10 @@ describe('Android app-icon crisis shortcut', () => {
   });
 });
 
-describe('Android FLAG_SECURE hardening', () => {
-  it('sets FLAG_SECURE in MainActivity', () => {
+describe('Screen capture is allowed (no FLAG_SECURE)', () => {
+  it('does not set FLAG_SECURE in MainActivity, so screenshots and screen sharing work', () => {
     const activity = fs.readFileSync(MAIN_ACTIVITY, 'utf8');
-    expect(activity).toContain('FLAG_SECURE');
-    expect(activity).toMatch(/window\.setFlags/);
+    expect(activity).not.toContain('FLAG_SECURE');
+    expect(activity).not.toMatch(/window\.setFlags/);
   });
 });

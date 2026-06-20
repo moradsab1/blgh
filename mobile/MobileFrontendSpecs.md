@@ -388,7 +388,7 @@ Going bare means you own these files. This is also where the "one permission" gu
 - `newArchEnabled=true` and `hermesEnabled=true` in `gradle.properties`.
 - App Shortcuts XML for the crisis shortcut *(deferred with the shortcut feature)*.
 - `android/build.gradle` must pin the Kotlin Gradle plugin with the explicit `${kotlinVersion}` classpath (`kotlinVersion = "2.1.20"`) — see §16.
-- `FLAG_SECURE` consideration in §13 (screen-capture/recents protection).
+- Screen capture is **allowed** — no `FLAG_SECURE` (§13): screenshots, screen recording, and screen sharing all work.
 
 ### 7.3 Entry file — `index.js` (order matters)
 `react-native-screens` is **not** auto-initialized by native-stack, so `enableScreens()` must run before `AppRegistry.registerComponent` (§16). There is no RNG polyfill, no Firebase background handler, and no i18n import — the entry file is minimal:
@@ -629,7 +629,7 @@ On Android the OS still gives implicit ripple feedback. Wire a real library late
 - **Offline banner (deferred):** 3 s offline → amber 28 pt; reconnect → brief green → auto-dismiss. Connectivity detection (previously NetInfo) is deferred; a `net` store stub holds the flag.
 - **Update gate (426) (deferred):** full-screen, non-dismissable, "Open Store".
 - **Offline maps:** the map downloads a capped offline pack around the chosen locality so it renders with no connectivity. A Settings UI to clear it is still a future addition.
-- **Screen-capture protection (future):** consider Android `FLAG_SECURE` and an iOS app-switcher blur on sensitive screens (report/crisis) so a shoulder-surfer or recents preview can't reveal activity. Make it a toggle, default on for crisis screens.
+- **Screen capture is allowed.** The app does **not** set Android `FLAG_SECURE` and applies no iOS app-switcher blur, so screenshots, screen recording, and screen sharing work everywhere (incl. crisis/report). If shoulder-surfing protection is wanted later, reintroduce it behind a user toggle rather than app-wide.
 - **Status without background location:** background location is forbidden, so the status pill recomputes on foreground (and, with a backend, via `status.changed` events) — never via a background geofence.
 
 ---
@@ -690,7 +690,7 @@ By the end of this phase the app is **fully working end-to-end** against the moc
 - Privacy Constitution (7 collapsible rules + "كيف نضمن ذلك؟" + "محدّث" badge), About (general info only — logo, tagline, mission, version), the How It Works screen (§5.19b), full Settings (change locality/language, notification toggles default-on, contact = share `mailto` via the built-in `Share` API, hidden debug via 5× long-press on version).
 - App-icon long-press shortcut "بلاغ فوري آمن" → fires `balagh://crisis` (native shortcut wiring for Android + iOS Quick Action).
 - All error/edge states: generic ("تعذر التحميل") / network / map-load failure with retry, submit-fail banner, feed-empty ("منطقتك هادئة الآن") / search-empty, skeleton loaders (static under reduce-motion), offline indicator, non-dismissable **426 update gate**.
-- Safety hardening: Android `FLAG_SECURE` + iOS app-switcher blur on crisis/report screens; offline-region management UI in Settings.
+- Safety hardening: screen capture is allowed (no `FLAG_SECURE`, no app-switcher blur — §13); offline-region management UI in Settings.
 - A11y + reduce-motion sweep; haptic map verified (or confirmed no-op); **zero-sound CI check**.
 - **Exit criteria / tests:** every route reachable and functional (no `StubScreen` remaining); each error state renders + retries; reduce-motion disables shimmer/pulse; update gate non-dismissable; no audio import anywhere; native manifest has only Location / Internet / Notifications; full onboarding→map→report→detail→inbox→settings smoke test passes.
 
@@ -952,8 +952,8 @@ Quick Action native steps). Implement every error/edge state: generic ("تعذر
 network / map-load failure with retry, submit-failure banner, feed-empty
 ("منطقتك هادئة الآن") and search-no-results states, skeleton loaders (5 feed cards / 7 inbox
 rows; static under reduce-motion), the offline indicator, and the non-dismissable 426 update
-gate ("يلزم تحديث التطبيق"). Add safety hardening: Android FLAG_SECURE + iOS app-switcher blur
-on crisis/report screens; offline-region management UI in Settings. Accessibility +
+gate ("يلزم تحديث التطبيق"). Safety hardening: screen capture is allowed (no FLAG_SECURE,
+no app-switcher blur); offline-region management UI in Settings. Accessibility +
 reduce-motion sweep. Add a CI check that fails on any audio import and a test asserting the
 native manifest contains only Location/Internet/Notifications.
 Exit criteria/tests: every route reachable and functional (no StubScreen remains); a full
